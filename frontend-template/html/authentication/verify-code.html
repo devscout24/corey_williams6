@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Code | POS System</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .login-page {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT BLUE PANEL ── */
+    .login-left {
+      width: 42%;
+      background: #2563EB;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 48px;
+      border-radius: 0 80px 80px 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .brand-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(255,255,255,.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .brand-text-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .brand-text-role {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,.65);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .welcome-heading {
+      font-size: 38px;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 28px;
+    }
+
+    .btn-resend {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 24px;
+      border: 1.5px solid rgba(255,255,255,.6);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s, border-color .2s;
+    }
+
+    .btn-resend:hover {
+      background: rgba(255,255,255,.15);
+      border-color: #fff;
+      color: #fff;
+    }
+
+    .btn-resend.sent {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .login-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      background: #fff;
+    }
+
+    /* ── CARD ── */
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 40px 36px;
+      background: #fff;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+      text-align: center;
+    }
+
+    .card-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 8px;
+    }
+
+    .card-sub {
+      font-size: 13px;
+      color: #94A3B8;
+      margin-bottom: 30px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* ── OTP INPUTS ── */
+    .otp-group {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .otp-input {
+      width: 58px;
+      height: 58px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #0F172A;
+      text-align: center;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      background: #fff;
+      caret-color: #2563EB;
+    }
+
+    .otp-input:focus {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
+
+    .otp-input.filled {
+      border-color: #2563EB;
+      background: #EFF6FF;
+      color: #2563EB;
+    }
+
+    .otp-input.error {
+      border-color: #EF4444;
+      background: #FEF2F2;
+      color: #EF4444;
+      animation: shake .3s ease;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-5px); }
+      75%      { transform: translateX(5px); }
+    }
+
+    /* ── CONTINUE BUTTON ── */
+    .btn-continue {
+      width: 100%;
+      height: 44px;
+      background: #2563EB;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      letter-spacing: .3px;
+      margin-bottom: 14px;
+    }
+
+    .btn-continue:hover { background: #1D4ED8; }
+    .btn-continue:active { transform: scale(.99); }
+    .btn-continue:disabled {
+      background: #93C5FD;
+      cursor: not-allowed;
+    }
+
+    .expire-note {
+      font-size: 12px;
+      color: #94A3B8;
+      font-weight: 400;
+    }
+
+    /* ── TIMER ── */
+    .timer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #FEF3C7;
+      color: #B45309;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+
+    /* ── ERROR MSG ── */
+    .error-msg {
+      display: none;
+      font-size: 12.5px;
+      color: #EF4444;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .login-left { width: 38%; padding: 32px 28px; }
+      .welcome-heading { font-size: 28px; }
+    }
+
+    @media (max-width: 680px) {
+      .login-page { flex-direction: column; }
+      .login-left {
+        width: 100%;
+        min-height: 220px;
+        border-radius: 0 0 60px 60px;
+        padding: 32px 24px;
+      }
+      .welcome-heading { font-size: 26px; }
+      .login-right { padding: 40px 16px; align-items: flex-start; }
+      .login-card { padding: 28px 22px; box-shadow: none; border: none; }
+      .otp-input { width: 52px; height: 52px; font-size: 22px; }
+    }
+
+    @media (max-width: 380px) {
+      .otp-input { width: 44px; height: 44px; font-size: 20px; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-page">
+
+  <!-- ── LEFT BLUE PANEL ── -->
+  <div class="login-left">
+    <div class="brand-block">
+      <div class="brand-icon"><i class="bi bi-shop"></i></div>
+      <div>
+        <div class="brand-text-name">Main Branch</div>
+        <div class="brand-text-role">Administrator</div>
+      </div>
+    </div>
+    <div class="welcome-heading">Welcome Back!</div>
+    <button class="btn-resend" id="resendBtn" onclick="resendCode()">
+      <i class="bi bi-arrow-clockwise"></i> Resend code
+    </button>
+  </div>
+
+  <!-- ── RIGHT WHITE PANEL ── -->
+  <div class="login-right">
+    <div class="login-card">
+
+      <div class="card-title">Enter your code</div>
+      <div class="card-sub">Enter the 4-digit code we sent to your email.</div>
+
+      <!-- Timer -->
+      <div class="timer-badge" id="timerBadge">
+        <i class="bi bi-clock"></i>
+        <span id="timerText">10:00</span>
+      </div>
+
+      <!-- OTP Inputs -->
+      <div class="otp-group">
+        <input class="otp-input" type="text" inputmode="numeric" maxlength="1" id="otp1" />
+        <input class="otp-input" type="text" inputmode="numeric" maxlength="1" id="otp2" />
+        <input class="otp-input" type="text" inputmode="numeric" maxlength="1" id="otp3" />
+        <input class="otp-input" type="text" inputmode="numeric" maxlength="1" id="otp4" />
+      </div>
+
+      <!-- Error message -->
+      <div class="error-msg" id="errorMsg">
+        <i class="bi bi-exclamation-circle me-1"></i>Invalid code. Please try again.
+      </div>
+
+      <button class="btn-continue" id="continueBtn" onclick="handleContinue()">Continue</button>
+
+      <div class="expire-note">For security, this code expires in 10 minutes.</div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  const inputs = document.querySelectorAll('.otp-input');
+  let timerInterval;
+  let secondsLeft = 600; // 10 minutes
+
+  /* ── OTP Input Behavior ── */
+  inputs.forEach((input, idx) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val;
+
+      if (val) {
+        input.classList.add('filled');
+        input.classList.remove('error');
+        if (idx < inputs.length - 1) inputs[idx + 1].focus();
+      } else {
+        input.classList.remove('filled');
+      }
+
+      // Auto-submit when all filled
+      const allFilled = [...inputs].every(i => i.value.length === 1);
+      document.getElementById('continueBtn').disabled = !allFilled;
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        inputs[idx - 1].focus();
+        inputs[idx - 1].value = '';
+        inputs[idx - 1].classList.remove('filled');
+      }
+      // Arrow key navigation
+      if (e.key === 'ArrowLeft' && idx > 0) inputs[idx - 1].focus();
+      if (e.key === 'ArrowRight' && idx < inputs.length - 1) inputs[idx + 1].focus();
+    });
+
+    // Handle paste
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData)
+        .getData('text').replace(/\D/g, '').slice(0, 4);
+      pasted.split('').forEach((char, i) => {
+        if (inputs[i]) {
+          inputs[i].value = char;
+          inputs[i].classList.add('filled');
+        }
+      });
+      const last = Math.min(pasted.length, inputs.length - 1);
+      inputs[last].focus();
+      const allFilled = [...inputs].every(i => i.value.length === 1);
+      document.getElementById('continueBtn').disabled = !allFilled;
+    });
+  });
+
+  // Focus first input on load
+  inputs[0].focus();
+  document.getElementById('continueBtn').disabled = true;
+
+  /* ── Continue Handler ── */
+  function handleContinue() {
+    const code = [...inputs].map(i => i.value).join('');
+
+    // Demo: any 4-digit code works except "0000"
+    if (code === '0000') {
+      inputs.forEach(i => i.classList.add('error'));
+      document.getElementById('errorMsg').style.display = 'block';
+      setTimeout(() => {
+        inputs.forEach(i => i.classList.remove('error'));
+      }, 600);
+      return;
+    }
+
+    // Success → redirect to new-password page
+    window.location.href = 'new-password.html';
+  }
+
+  /* ── Countdown Timer ── */
+  function startTimer() {
+    clearInterval(timerInterval);
+    secondsLeft = 600;
+
+    timerInterval = setInterval(() => {
+      secondsLeft--;
+      const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+      const s = (secondsLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timerText').textContent = `${m}:${s}`;
+
+      if (secondsLeft <= 60) {
+        document.getElementById('timerBadge').style.background = '#FEE2E2';
+        document.getElementById('timerBadge').style.color = '#DC2626';
+      }
+
+      if (secondsLeft <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('timerText').textContent = 'Expired';
+        document.getElementById('continueBtn').disabled = true;
+        inputs.forEach(i => { i.disabled = true; i.classList.add('error'); });
+        document.getElementById('errorMsg').textContent = 'Code expired. Please resend.';
+        document.getElementById('errorMsg').style.display = 'block';
+      }
+    }, 1000);
+  }
+
+  startTimer();
+
+  /* ── Resend Code ── */
+  function resendCode() {
+    const btn = document.getElementById('resendBtn');
+    btn.classList.add('sent');
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Code sent!';
+
+    // Reset inputs
+    inputs.forEach(i => {
+      i.value = '';
+      i.disabled = false;
+      i.classList.remove('filled', 'error');
+    });
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('continueBtn').disabled = true;
+    document.getElementById('timerBadge').style.background = '#FEF3C7';
+    document.getElementById('timerBadge').style.color = '#B45309';
+
+    startTimer();
+    inputs[0].focus();
+
+    setTimeout(() => {
+      btn.classList.remove('sent');
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Resend code';
+    }, 3000);
+  }
+</script>
+
+</body>
+</html>

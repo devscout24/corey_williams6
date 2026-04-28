@@ -1,0 +1,175 @@
+<!-- =============================================
+     SIDEBAR COMPONENT
+     Save this as: components/sidebar.html
+     Include via JS or copy-paste into each page
+     ============================================= -->
+
+<aside class="sidebar" id="sidebar">
+
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <i class="bi bi-shop"></i>
+    </div>
+    <div class="sidebar-brand-info">
+      <div class="sidebar-brand-name">Main Branch</div>
+      <div class="sidebar-brand-role">Administrator</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="sidebar-nav">
+
+    <!-- Main -->
+    <div class="sidebar-section-label">Main</div>
+
+    <div class="nav-item">
+      <a href="index.html" class="nav-link">
+        <i class="bi bi-grid-1x2-fill"></i>
+        <span>Dashboard</span>
+      </a>
+    </div>
+
+    <!-- Contacts -->
+    <div class="nav-item">
+      <a href="#" class="nav-link" data-toggle="submenu">
+        <i class="bi bi-people-fill"></i>
+        <span>Contacts</span>
+        <i class="bi bi-chevron-right nav-arrow"></i>
+      </a>
+      <div class="nav-submenu">
+        <div class="nav-item">
+          <a href="pages/customers.html" class="nav-link">
+            <i class="bi bi-dot"></i> Customers
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="pages/suppliers.html" class="nav-link">
+            <i class="bi bi-dot"></i> Suppliers
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory -->
+    <div class="nav-item">
+      <a href="#" class="nav-link" data-toggle="submenu">
+        <i class="bi bi-box-seam-fill"></i>
+        <span>Inventory</span>
+        <i class="bi bi-chevron-right nav-arrow"></i>
+      </a>
+      <div class="nav-submenu">
+        <div class="nav-item">
+          <a href="pages/items.html" class="nav-link">
+            <i class="bi bi-dot"></i> Items
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="pages/item-kits.html" class="nav-link">
+            <i class="bi bi-dot"></i> Item Kits
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="pages/categories.html" class="nav-link">
+            <i class="bi bi-dot"></i> Categories
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="nav-item">
+      <a href="pages/reports.html" class="nav-link">
+        <i class="bi bi-bar-chart-fill"></i>
+        <span>Reports</span>
+      </a>
+    </div>
+
+    <!-- Receiving -->
+    <div class="nav-item">
+      <a href="pages/receiving.html" class="nav-link">
+        <i class="bi bi-truck"></i>
+        <span>Receiving</span>
+      </a>
+    </div>
+
+    <!-- Sales -->
+    <div class="nav-item">
+      <a href="pages/sales.html" class="nav-link">
+        <i class="bi bi-cart-fill"></i>
+        <span>Sales</span>
+      </a>
+    </div>
+
+    <!-- Transfer -->
+    <div class="nav-item">
+      <a href="#" class="nav-link" data-toggle="submenu">
+        <i class="bi bi-arrow-left-right"></i>
+        <span>Transfer</span>
+        <i class="bi bi-chevron-right nav-arrow"></i>
+      </a>
+      <div class="nav-submenu">
+        <div class="nav-item">
+          <a href="pages/transfer-out.html" class="nav-link">
+            <i class="bi bi-dot"></i> Transfer Out
+          </a>
+        </div>
+        <div class="nav-item">
+          <a href="pages/transfer-in.html" class="nav-link">
+            <i class="bi bi-dot"></i> Transfer In
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employees -->
+    <div class="nav-item">
+      <a href="pages/employees.html" class="nav-link">
+        <i class="bi bi-person-badge-fill"></i>
+        <span>Employees</span>
+      </a>
+    </div>
+
+    <!-- VAT Report -->
+    <div class="nav-item">
+      <a href="pages/vat-report.html" class="nav-link">
+        <i class="bi bi-receipt"></i>
+        <span>VAT Report</span>
+      </a>
+    </div>
+
+    <!-- Store Config -->
+    <div class="nav-item">
+      <a href="pages/store-config.html" class="nav-link">
+        <i class="bi bi-gear-fill"></i>
+        <span>Store Config</span>
+      </a>
+    </div>
+
+    <!-- Locations -->
+    <div class="nav-item">
+      <a href="pages/locations.html" class="nav-link">
+        <i class="bi bi-geo-alt-fill"></i>
+        <span>Locations</span>
+      </a>
+    </div>
+
+    <!-- Messages -->
+    <div class="nav-item">
+      <a href="pages/messages.html" class="nav-link">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>Messages</span>
+      </a>
+    </div>
+
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <div class="sidebar-logout">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Logout</span>
+    </div>
+  </div>
+
+</aside>
