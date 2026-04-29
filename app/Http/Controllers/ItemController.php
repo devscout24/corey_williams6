@@ -15,10 +15,28 @@ class ItemController extends Controller
 {
     public function index(): View
     {
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $thumbs = DB::table('phppos_item_files')
+            ->select('item_id', DB::raw('MIN(file_id) as file_id'))
+            ->groupBy('item_id');
+
         $items = PhpposItem::query()
             ->leftJoin('phppos_categories as c', 'c.id', '=', 'phppos_items.category_id')
             ->leftJoin('phppos_suppliers as s', 's.person_id', '=', 'phppos_items.supplier_id')
-            ->select('phppos_items.*', 'c.name as category_name', 's.company_name as supplier_name')
+            ->leftJoinSub($thumbs, 'item_files', function ($join) {
+                $join->on('item_files.item_id', '=', 'phppos_items.item_id');
+            })
+            ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
+                $join->on('li.item_id', '=', 'phppos_items.item_id')
+                    ->where('li.location_id', '=', $locationId);
+            })
+            ->select(
+                'phppos_items.*',
+                'c.name as category_name',
+                's.company_name as supplier_name',
+                'li.quantity as location_quantity',
+                'item_files.file_id as image_file_id'
+            )
             ->where('phppos_items.deleted', 0)
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
@@ -42,6 +60,7 @@ class ItemController extends Controller
             'serial_numbers' => [],
             'secondary_categories' => [],
             'secondary_suppliers' => [],
+            'item_files' => [],
         ]);
     }
 
@@ -78,6 +97,13 @@ class ItemController extends Controller
             ->get()
             ->all();
 
+        $itemFiles = DB::table('phppos_item_files')
+            ->join('phppos_app_files', 'phppos_app_files.file_id', '=', 'phppos_item_files.file_id')
+            ->where('phppos_item_files.item_id', $itemId)
+            ->select('phppos_app_files.file_id', 'phppos_app_files.file_name')
+            ->get()
+            ->all();
+
         return view('items.form', [
             'item' => $item,
             'categories' => $categories,
@@ -88,6 +114,7 @@ class ItemController extends Controller
             'serial_numbers' => $serialNumbers,
             'secondary_categories' => $secondaryCategories,
             'secondary_suppliers' => $secondarySuppliers,
+            'item_files' => $itemFiles,
         ]);
     }
 
@@ -156,6 +183,8 @@ class ItemController extends Controller
             'serial_unit_prices' => ['nullable', 'array'],
             'secondary_categories' => ['nullable', 'array'],
             'secondary_suppliers' => ['nullable', 'array'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['file', 'mimes:jpg,jpeg,png,gif', 'max:4096'],
         ]);
 
         // Add custom fields validation
@@ -209,6 +238,25 @@ class ItemController extends Controller
             } else {
                 $item = PhpposItem::query()->create($payload);
                 $itemId = $item->item_id;
+            }
+
+            if (!empty($data['images'])) {
+                foreach ($data['images'] as $file) {
+                    if ($file) {
+                        $appFile = \App\Models\PhpposAppFile::create([
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_data' => file_get_contents($file->getRealPath()),
+                            'timestamp' => now(),
+                        ]);
+
+                        DB::table('phppos_item_files')->insert([
+                            'item_id' => $itemId,
+                            'file_id' => $appFile->file_id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
             }
 
             // Sync tags

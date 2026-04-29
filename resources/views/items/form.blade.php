@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <form method="post" action="{{ $item ? route('items.update', $item->item_id) : route('items.store') }}" class="needs-validation">
+    <form method="post" action="{{ $item ? route('items.update', $item->item_id) : route('items.store') }}" class="needs-validation" enctype="multipart/form-data">
         @csrf
         @if($item)
             @method('put')
@@ -154,6 +154,22 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="size">Size</label>
                                 <input type="text" class="form-control" id="size" name="size" value="{{ old('size', $item?->size) }}" />
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label" for="item_images">Item Images</label>
+                                <input type="file" class="form-control" id="item_images" name="images[]" accept="image/png,image/jpeg,image/gif" multiple />
+                                <div class="form-text">Upload one or more images (JPG, PNG, GIF).</div>
+
+                                @if(!empty($item_files))
+                                    <div class="mt-2 d-flex flex-wrap gap-2">
+                                        @foreach($item_files as $file)
+                                            <a href="{{ route('app_files.view', $file->file_id) }}" target="_blank" class="d-inline-flex align-items-center justify-content-center border rounded" style="width: 72px; height: 72px; overflow: hidden; background: #f8fafc;">
+                                                <img src="{{ route('app_files.view', $file->file_id) }}" alt="{{ $file->file_name }}" style="max-width: 100%; max-height: 100%;" />
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="col-md-6">

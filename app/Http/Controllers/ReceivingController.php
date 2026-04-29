@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
+use App\Models\PhpposCategory;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
 use App\Models\PhpposSupplier;
@@ -35,6 +36,11 @@ class ReceivingController extends Controller
 
         $suppliers = PhpposSupplier::with('person')->get();
         $locations = PhpposLocation::where('deleted', 0)->get();
+        $categories = PhpposCategory::where('deleted', 0)
+            ->where('hide_from_grid', 0)
+            ->whereNull('parent_id')
+            ->orderBy('name')
+            ->get(['id', 'name']);
         
         $subtotal = 0;
         foreach ($cart['items'] as $item) {
@@ -42,7 +48,143 @@ class ReceivingController extends Controller
         }
         $total = $subtotal;
 
-        return view('receivings.register', compact('cart', 'suppliers', 'locations', 'subtotal', 'total'));
+        return view('receivings.register', compact('cart', 'suppliers', 'locations', 'categories', 'subtotal', 'total'));
+    }
+
+    public function categories(Request $request)
+    {
+        $categoryId = $request->input('category_id');
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(4, (int) $request->input('per_page', 4)));
+        $currentCategory = null;
+
+        if ($categoryId) {
+            $currentCategory = PhpposCategory::where('deleted', 0)
+                ->select('id', 'name', 'parent_id')
+                ->find($categoryId);
+        }
+
+        $isRootCategory = $currentCategory && $currentCategory->parent_id === null;
+
+        if ($categoryId && !$isRootCategory) {
+            $items = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId)
+                ->orderBy('name')
+                ->get(['item_id', 'name', 'cost_price'])
+                ->map(function ($item) {
+                    return [
+                        'type' => 'item',
+                        'id' => $item->item_id,
+                        'name' => $item->name,
+                        'price' => $item->cost_price,
+                    ];
+                });
+
+            $kits = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'cost_price'])
+                ->map(function ($kit) {
+                    return [
+                        'type' => 'kit',
+                        'id' => $kit->id,
+                        'name' => '[KIT] ' . $kit->name,
+                        'price' => $kit->cost_price,
+                    ];
+                });
+
+            $products = $items->concat($kits)->sortBy('name')->values();
+            $total = $products->count();
+            $lastPage = (int) max(1, (int) ceil($total / $perPage));
+            $page = min($page, $lastPage);
+            $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+            return response()->json([
+                'level' => 'items',
+                'categories' => [],
+                'products' => $paged,
+                'current' => $currentCategory,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        }
+
+        $categoryQuery = PhpposCategory::where('deleted', 0)
+            ->where('hide_from_grid', 0)
+            ->orderBy('name');
+
+        if ($categoryId && $isRootCategory) {
+            $categoryQuery->where('parent_id', $categoryId);
+        } else {
+            $categoryQuery->whereNull('parent_id');
+        }
+
+        $categoryPage = $categoryQuery->paginate($perPage, ['id', 'name', 'parent_id'], 'page', $page);
+        $categories = collect($categoryPage->items());
+
+        if ($categoryId && $categories->isEmpty()) {
+            $items = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId)
+                ->orderBy('name')
+                ->get(['item_id', 'name', 'cost_price'])
+                ->map(function ($item) {
+                    return [
+                        'type' => 'item',
+                        'id' => $item->item_id,
+                        'name' => $item->name,
+                        'price' => $item->cost_price,
+                    ];
+                });
+
+            $kits = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'cost_price'])
+                ->map(function ($kit) {
+                    return [
+                        'type' => 'kit',
+                        'id' => $kit->id,
+                        'name' => '[KIT] ' . $kit->name,
+                        'price' => $kit->cost_price,
+                    ];
+                });
+
+            $products = $items->concat($kits)->sortBy('name')->values();
+            $total = $products->count();
+            $lastPage = (int) max(1, (int) ceil($total / $perPage));
+            $page = min($page, $lastPage);
+            $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+            return response()->json([
+                'level' => 'items',
+                'categories' => [],
+                'products' => $paged,
+                'current' => $currentCategory,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'level' => 'categories',
+            'categories' => $categories,
+            'products' => [],
+            'current' => $currentCategory,
+            'pagination' => [
+                'page' => $categoryPage->currentPage(),
+                'per_page' => $categoryPage->perPage(),
+                'total' => $categoryPage->total(),
+                'last_page' => $categoryPage->lastPage(),
+            ],
+        ]);
     }
 
     public function search(Request $request)
@@ -230,12 +372,17 @@ class ReceivingController extends Controller
                     );
 
                 DB::table('phppos_inventory_movements')->insert([
+                    'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
                     'item_id' => $item['item_id'],
-                    'user_id' => auth('employee')->id(),
-                    'trans_date' => now(),
-                    'trans_comment' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ') . $receiving->receiving_id,
-                    'trans_inventory' => $inventoryToMove,
-                    'location_id' => $cart['location_id'],
+                    'from_location_id' => $cart['mode'] == 'return' ? $cart['location_id'] : null,
+                    'to_location_id' => $cart['mode'] == 'receive' ? $cart['location_id'] : null,
+                    'quantity' => abs($inventoryToMove),
+                    'reference_id' => $receiving->receiving_id,
+                    'reference_type' => 'receiving',
+                    'created_by_person_id' => auth('employee')->id(),
+                    'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ') . $receiving->receiving_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 

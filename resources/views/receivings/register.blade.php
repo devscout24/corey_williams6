@@ -3,6 +3,28 @@
 @section('title', 'Receiving Register')
 @section('page-title', 'Receiving Register')
 
+@push('styles')
+<style>
+    .category-tabs { display: inline-flex; border: 1px solid #d7e0ea; border-radius: 10px; overflow: hidden; background: #fff; }
+    .category-tabs .tab-btn { border: 0; background: transparent; padding: 8px 16px; font-weight: 600; color: #334155; }
+    .category-tabs .tab-btn + .tab-btn { border-left: 1px solid #e2e8f0; }
+    .category-tabs .tab-btn.is-active { background: #3b82f6; color: #fff; }
+    .category-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 992px) { .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 576px) { .category-grid { grid-template-columns: 1fr; } }
+    .category-card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; text-align: left; padding: 0; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease; }
+    .category-card:hover { border-color: #cbd5f5; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
+    .category-media { height: 92px; background: linear-gradient(135deg, #e2e8f0, #f8fafc); display: flex; align-items: center; justify-content: center; }
+    .category-initial { width: 44px; height: 44px; border-radius: 50%; background: #1d4ed8; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+    .category-name { padding: 10px 12px; font-weight: 600; color: #0f172a; }
+    .category-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 12px; }
+    .category-pagination .page-btn { border: 1px solid #d7e0ea; background: #fff; padding: 4px 10px; border-radius: 8px; font-weight: 600; color: #334155; }
+    .category-pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .category-pagination .page-info { font-size: 0.9rem; color: #64748b; }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     @if(session('status'))
@@ -18,6 +40,33 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+
+    <div class="card shadow-sm border-0 mb-4" id="category-grid-card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="category-tabs" role="tablist" aria-label="Category tabs">
+                <button type="button" class="tab-btn is-active" role="tab" aria-selected="true">Categories</button>
+                <button type="button" class="tab-btn" role="tab" aria-selected="false">Tags</button>
+                <button type="button" class="tab-btn" role="tab" aria-selected="false">Suppliers</button>
+                <button type="button" class="tab-btn" role="tab" aria-selected="false">Favorites</button>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="toggle-category-grid" data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
+        </div>
+        <div class="card-body" id="category-grid-body">
+            <div class="category-grid" id="category-grid">
+                @forelse($categories as $category)
+                    <button type="button" class="category-card" data-category-id="{{ $category->id }}" data-category-name="{{ $category->name }}">
+                        <div class="category-media">
+                            <span class="category-initial">{{ strtoupper(substr($category->name, 0, 1)) }}</span>
+                        </div>
+                        <div class="category-name">{{ $category->name }}</div>
+                    </button>
+                @empty
+                    <div class="text-muted">No categories available.</div>
+                @endforelse
+            </div>
+            <div class="category-pagination" id="category-grid-pagination"></div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <!-- Left Side: Cart -->
@@ -191,6 +240,186 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.category-tabs').forEach((tabList) => {
+        const tabs = tabList.querySelectorAll('.tab-btn');
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach((btn) => {
+                    btn.classList.remove('is-active');
+                    btn.setAttribute('aria-selected', 'false');
+                });
+                tab.classList.add('is-active');
+                tab.setAttribute('aria-selected', 'true');
+            });
+        });
+    });
+
+    const toggleButton = document.getElementById('toggle-category-grid');
+    const gridBody = document.getElementById('category-grid-body');
+    const storageKey = 'receivingsCategoryGridHidden';
+
+    const grid = document.getElementById('category-grid');
+    const paginationEl = document.getElementById('category-grid-pagination');
+    const browseUrl = "{{ route('receivings.categories') }}";
+    const categoryStack = [];
+    const defaultPageSize = 4;
+    const childPageSize = 3;
+
+    const renderBackTile = () => {
+        if (!categoryStack.length) return '';
+        return `
+            <button type="button" class="category-card" data-action="back">
+                <div class="category-media">
+                    <span class="category-initial">\u00ab</span>
+                </div>
+                <div class="category-name">Back</div>
+            </button>
+        `;
+    };
+
+    const renderCategoryTile = (category) => {
+        const initial = (category.name || '?').trim().charAt(0).toUpperCase();
+        return `
+            <button type="button" class="category-card" data-category-id="${category.id}" data-category-name="${category.name}">
+                <div class="category-media">
+                    <span class="category-initial">${initial}</span>
+                </div>
+                <div class="category-name">${category.name}</div>
+            </button>
+        `;
+    };
+
+    const renderProductTile = (product) => {
+        const initial = (product.name || '?').trim().charAt(0).toUpperCase();
+        return `
+            <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
+                <div class="category-media">
+                    <span class="category-initial">${initial}</span>
+                </div>
+                <div class="category-name">${product.name}</div>
+            </button>
+        `;
+    };
+
+    const renderPagination = (pagination) => {
+        if (!paginationEl) return;
+        if (!pagination || pagination.last_page <= 1) {
+            paginationEl.innerHTML = '';
+            return;
+        }
+
+        paginationEl.innerHTML = `
+            <button type="button" class="page-btn" data-page="${pagination.page - 1}" ${pagination.page <= 1 ? 'disabled' : ''}>Prev</button>
+            <span class="page-info">Page ${pagination.page} of ${pagination.last_page}</span>
+            <button type="button" class="page-btn" data-page="${pagination.page + 1}" ${pagination.page >= pagination.last_page ? 'disabled' : ''}>Next</button>
+        `;
+    };
+
+    const renderGrid = (data) => {
+        if (!grid) return;
+        const tiles = [];
+        tiles.push(renderBackTile());
+
+        if (data.level === 'categories') {
+            if (data.categories.length) {
+                data.categories.forEach((category) => tiles.push(renderCategoryTile(category)));
+            } else {
+                tiles.push('<div class="text-muted">No categories available.</div>');
+            }
+        } else {
+            if (data.products.length) {
+                data.products.forEach((product) => tiles.push(renderProductTile(product)));
+            } else {
+                tiles.push('<div class="text-muted">No products found.</div>');
+            }
+        }
+
+        grid.innerHTML = tiles.join('');
+        renderPagination(data.pagination);
+    };
+
+    const loadLevel = (categoryId, pushStack, page = 1) => {
+        const params = new URLSearchParams();
+        const perPage = categoryId ? childPageSize : defaultPageSize;
+        params.set('page', String(page));
+        params.set('per_page', String(perPage));
+        if (categoryId) params.set('category_id', categoryId);
+        const url = `${browseUrl}?${params.toString()}`;
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (pushStack && data.current) {
+                    const last = categoryStack[categoryStack.length - 1];
+                    if (!last || last.id !== data.current.id) {
+                        categoryStack.push({ id: data.current.id, name: data.current.name, page: 1 });
+                    }
+                } else if (categoryStack.length) {
+                    categoryStack[categoryStack.length - 1].page = data.pagination?.page || 1;
+                }
+                renderGrid(data);
+            })
+            .catch(() => {
+                if (grid) grid.innerHTML = '<div class="text-muted">Unable to load categories.</div>';
+            });
+    };
+
+    if (grid) {
+        grid.addEventListener('click', (event) => {
+            const backTile = event.target.closest('[data-action="back"]');
+            if (backTile) {
+                categoryStack.pop();
+                const prev = categoryStack[categoryStack.length - 1];
+                loadLevel(prev ? prev.id : null, false, prev?.page || 1);
+                return;
+            }
+
+            const categoryTile = event.target.closest('[data-category-id]');
+            if (categoryTile) {
+                const categoryId = categoryTile.getAttribute('data-category-id');
+                loadLevel(categoryId, true, 1);
+                return;
+            }
+
+            const productTile = event.target.closest('[data-product-id]');
+            if (productTile) {
+                const productId = productTile.getAttribute('data-product-id');
+                const productType = productTile.getAttribute('data-product-type');
+                const itemId = productType === 'kit' ? `KIT ${productId}` : productId;
+                addItem(itemId);
+            }
+        });
+    }
+
+    if (paginationEl) {
+        paginationEl.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-page]');
+            if (!button || button.disabled) return;
+            const page = parseInt(button.getAttribute('data-page'), 10);
+            const current = categoryStack[categoryStack.length - 1];
+            loadLevel(current ? current.id : null, false, page);
+        });
+    }
+
+    if (toggleButton && gridBody) {
+        const showText = toggleButton.getAttribute('data-show-text') || 'Show Grid';
+        const hideText = toggleButton.getAttribute('data-hide-text') || 'Hide Grid';
+
+        const applyGridState = (isHidden) => {
+            gridBody.style.display = isHidden ? 'none' : '';
+            toggleButton.textContent = isHidden ? showText : hideText;
+        };
+
+        const initialHidden = localStorage.getItem(storageKey) === '1';
+        applyGridState(initialHidden);
+
+        toggleButton.addEventListener('click', () => {
+            const isHidden = gridBody.style.display === 'none';
+            const nextHidden = !isHidden;
+            applyGridState(nextHidden);
+            localStorage.setItem(storageKey, nextHidden ? '1' : '0');
+        });
+    }
+
     const searchInput = document.getElementById('item_search');
     const resultsDiv = document.getElementById('search_results');
     
@@ -231,6 +460,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function addItem(itemId) {
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'question',
+                title: 'Add item?',
+                text: 'Do you want to add this item to the receiving cart?',
+                showCancelButton: true,
+                confirmButtonText: 'Add',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#3b82f6',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitAddItem(itemId);
+                }
+            });
+        } else {
+            submitAddItem(itemId);
+        }
+    }
+
+    function submitAddItem(itemId) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = "{{ route('receivings.item.add') }}";

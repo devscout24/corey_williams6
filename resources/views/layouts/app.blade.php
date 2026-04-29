@@ -48,6 +48,7 @@
           <div class="nav-item"><a href="{{ route('items.index') }}" class="nav-link"><i class="bi bi-dot"></i> Items</a></div>
           <div class="nav-item"><a href="{{ route('labels.index') }}" class="nav-link"><i class="bi bi-dot"></i> Labels</a></div>
           <div class="nav-item"><a href="{{ route('item-kits.index') }}" class="nav-link"><i class="bi bi-dot"></i> Item Kits</a></div>
+          <div class="nav-item"><a href="{{ route('orders.index') }}" class="nav-link"><i class="bi bi-dot"></i> Orders</a></div>
           <div class="nav-item"><a href="{{ route('categories.index') }}" class="nav-link"><i class="bi bi-dot"></i> Categories</a></div>
           <div class="nav-item"><a href="{{ Route::has('tags.index') ? route('tags.index') : '#' }}" class="nav-link"><i class="bi bi-dot"></i> Tags</a></div>
         </div>

@@ -152,10 +152,12 @@
               <th style="width: 50px;">
                 <input type="checkbox" class="custom-checkbox" id="selectAll" onchange="toggleAll(this)" />
               </th>
-              <th>Name / ID</th>
+              <th>Name</th>
               <th>Category</th>
-              <th>Supplier</th>
-              <th>Price</th>
+              <th>Cost Price</th>
+              <th>Selling Price</th>
+              <th>Quantity</th>
+              <th>UPC/EAN/ISBN</th>
               <th style="width: 100px;">Action</th>
             </tr>
           </thead>
@@ -165,16 +167,21 @@
               <td><input type="checkbox" class="custom-checkbox row-checkbox" onchange="checkSelection()" /></td>
               <td>
                 <div class="item-info">
-                  <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
+                  @if($item->image_file_id)
+                    <img src="{{ route('app_files.view', $item->image_file_id) }}" alt="{{ $item->name }}" class="item-img" />
+                  @else
+                    <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
+                  @endif
                   <div>
                     <div class="item-name">{{ $item->name }}</div>
-                    <div class="item-id">SKU:{{ $item->item_number }}</div>
                   </div>
                 </div>
               </td>
               <td>{{ $item->category_name ?? '—' }}</td>
-              <td>{{ $item->supplier_name ?? '—' }}</td>
+              <td>{{ number_format((float) $item->cost_price, 2) }}</td>
               <td>{{ number_format((float) $item->unit_price, 2) }}</td>
+              <td>{{ number_format((float) ($item->location_quantity ?? $item->default_quantity ?? 0), 3) }}</td>
+              <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
               <td>
                 <div class="row-actions">
                   <a href="{{ route('items.edit', $item->item_id) }}" class="text-decoration-none"><i class="bi bi-pencil-square action-icon"></i></a>
@@ -188,7 +195,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="6" class="text-center py-4 text-muted">No items found.</td>
+              <td colspan="8" class="text-center py-4 text-muted">No items found.</td>
             </tr>
             @endforelse
           </tbody>

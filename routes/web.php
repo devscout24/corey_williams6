@@ -12,6 +12,7 @@ use App\Http\Controllers\ItemKitController;
 use App\Http\Controllers\InventoryOperationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SupplierController;
@@ -62,6 +63,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::put('/item-kits/{kitId}', [ItemKitController::class, 'update'])->name('item-kits.update');
     Route::delete('/item-kits/{kitId}', [ItemKitController::class, 'destroy'])->name('item-kits.destroy');
 
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
@@ -85,6 +88,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::delete('/suppliers/files/{fileId}', [SupplierController::class, 'deleteFile'])->name('suppliers.files.delete');
 
     Route::get('/receivings', [ReceivingController::class, 'index'])->name('receivings.index');
+    Route::get('/receivings/categories', [ReceivingController::class, 'categories'])->name('receivings.categories');
     Route::get('/receivings/search', [ReceivingController::class, 'search'])->name('receivings.search');
     Route::post('/receivings/item', [ReceivingController::class, 'addItem'])->name('receivings.item.add');
     Route::post('/receivings/item/{index}', [ReceivingController::class, 'editItem'])->name('receivings.item.edit');
