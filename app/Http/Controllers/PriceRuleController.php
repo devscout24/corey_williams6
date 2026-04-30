@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PriceRule;
-use App\Models\PriceRulePriceBreak;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\ItemKit;
-use App\Models\Category;
-use App\Models\Tag;
-use App\Models\Manufacturer;
 use App\Models\Location;
+use App\Models\Manufacturer;
+use App\Models\PhpposLocation;
+use App\Models\PriceRule;
+use App\Models\PriceRulePriceBreak;
 use App\Models\PriceTier;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +25,7 @@ class PriceRuleController extends Controller
 
     public function create()
     {
-        $locations = Location::where('deleted', 0)->get();
+        $locations = PhpposLocation::where('deleted', 0)->get();
         $tiers = PriceTier::where('deleted', 0)->get();
         return view('price_rules.form', compact('locations', 'tiers'));
     }
@@ -32,7 +33,7 @@ class PriceRuleController extends Controller
     public function edit($id)
     {
         $priceRule = PriceRule::with(['items', 'itemKits', 'categories', 'tags', 'manufacturers', 'locations', 'priceBreaks'])->findOrFail($id);
-        $locations = Location::where('deleted', 0)->get();
+        $locations = PhpposLocation::where('deleted', 0)->get();
         $tiers = PriceTier::where('deleted', 0)->get();
         
         $rule_items = $priceRule->items->map(fn($item) => ['id' => $item->item_id, 'name' => $item->name]);

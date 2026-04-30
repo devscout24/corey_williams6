@@ -64,14 +64,15 @@
                         <textarea name="description" class="form-control" rows="3">{{ $priceRule->description ?? '' }}</textarea>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="start_date" class="form-control" value="{{ isset($priceRule->start_date) ? $priceRule->start_date->format('Y-m-d') : '' }}">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">End Date</label>
-                        <input type="date" name="end_date" class="form-control" value="{{ isset($priceRule->end_date) ? $priceRule->end_date->format('Y-m-d') : '' }}">
+                    <div class="col-md-12">
+                        <label class="form-label">Active Period (Start - End)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar-range"></i></span>
+                            <input type="text" id="date-range-picker" class="form-control" placeholder="Select date range" readonly>
+                        </div>
+                        {{-- Hidden inputs to store the values for Laravel --}}
+                        <input type="hidden" name="start_date" id="start_date" value="{{ isset($priceRule->start_date) ? $priceRule->start_date->format('Y-m-d') : '' }}">
+                        <input type="hidden" name="end_date" id="end_date" value="{{ isset($priceRule->end_date) ? $priceRule->end_date->format('Y-m-d') : '' }}">
                     </div>
 
                     <div class="col-md-6">
@@ -363,6 +364,21 @@
                 }
             });
         });
+    });
+    new Litepicker({
+        element: document.getElementById('date-range-picker'),
+        singleMode: false,
+        numberOfMonths: 2,
+        numberOfColumns: 2,
+        format: 'DD MMM, YYYY',
+        startDate: {!! isset($priceRule->start_date) ? "'" . $priceRule->start_date->format('Y-m-d') . "'" : 'null' !!},
+        endDate: {!! isset($priceRule->end_date) ? "'" . $priceRule->end_date->format('Y-m-d') . "'" : 'null' !!},
+        setup: (picker) => {
+            picker.on('selected', (date1, date2) => {
+                document.getElementById('start_date').value = date1.format('YYYY-MM-DD');
+                document.getElementById('end_date').value = date2.format('YYYY-MM-DD');
+            });
+        },
     });
 </script>
 @endpush

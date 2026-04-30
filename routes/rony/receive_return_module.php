@@ -1,0 +1,22 @@
+<?php
+
+use App\Http\Controllers\ReceivingController;
+use Illuminate\Support\Facades\Route;
+
+
+Route::middleware('auth:employee')->group(function (): void {
+   
+    // receivings
+    Route::get('/receivings', [ReceivingController::class, 'index'])->name('receivings.index');
+    Route::get('/receivings/categories', [ReceivingController::class, 'categories'])->name('receivings.categories');
+    Route::get('/receivings/search', [ReceivingController::class, 'search'])->name('receivings.search');
+    Route::post('/receivings/item', [ReceivingController::class, 'addItem'])->name('receivings.item.add');
+    Route::post('/receivings/item/{index}', [ReceivingController::class, 'editItem'])->name('receivings.item.edit');
+    Route::delete('/receivings/item/{index}', [ReceivingController::class, 'removeItem'])->name('receivings.item.remove');
+    Route::post('/receivings/supplier', [ReceivingController::class, 'setSupplier'])->name('receivings.supplier.set');
+    Route::post('/receivings/mode', [ReceivingController::class, 'setMode'])->name('receivings.mode.set');
+    Route::post('/receivings/complete', [ReceivingController::class, 'complete'])->name('receivings.complete');
+    Route::post('/receivings/cancel', [ReceivingController::class, 'cancel'])->name('receivings.cancel');
+
+    // returns
+});

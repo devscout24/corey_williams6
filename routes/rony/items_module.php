@@ -1,0 +1,44 @@
+<?php
+
+use App\Http\Controllers\AttributeController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\ItemKitController;
+use App\Http\Controllers\ItemLabelController;
+use App\Http\Controllers\PriceRuleController;
+use Illuminate\Support\Facades\Route;
+
+
+Route::middleware('auth:employee')->group(function (): void {
+    
+    //labels
+    Route::get('/items/labels', [ItemLabelController::class, 'index'])->name('labels.index');
+    Route::get('/items/labels/search', [ItemLabelController::class, 'search'])->name('labels.search');
+    Route::post('/items/labels/print', [ItemLabelController::class, 'print'])->name('labels.print');
+
+    // core items
+    Route::get('/items', [ItemController::class, 'index'])->name('items.index');
+    Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
+    Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+    Route::get('/items/{itemId}/edit', [ItemController::class, 'edit'])->name('items.edit');
+    Route::put('/items/{itemId}', [ItemController::class, 'update'])->name('items.update');
+    Route::delete('/items/{itemId}', [ItemController::class, 'destroy'])->name('items.destroy');
+
+    // item kits
+    Route::get('/item-kits', [ItemKitController::class, 'index'])->name('item-kits.index');
+    Route::get('/item-kits/create', [ItemKitController::class, 'create'])->name('item-kits.create');
+    Route::post('/item-kits', [ItemKitController::class, 'store'])->name('item-kits.store');
+    Route::get('/item-kits/{kitId}/edit', [ItemKitController::class, 'edit'])->name('item-kits.edit');
+    Route::put('/item-kits/{kitId}', [ItemKitController::class, 'update'])->name('item-kits.update');
+    Route::delete('/item-kits/{kitId}', [ItemKitController::class, 'destroy'])->name('item-kits.destroy');
+
+    //categories, attributes, price rules
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::delete('/categories/{categoryId}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    // resources routes
+    Route::resource('attributes', AttributeController::class);
+    Route::resource('price-rules', PriceRuleController::class);
+
+});
