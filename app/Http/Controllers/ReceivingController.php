@@ -55,7 +55,7 @@ class ReceivingController extends Controller
     {
         $categoryId = $request->input('category_id');
         $page = max(1, (int) $request->input('page', 1));
-        $perPage = max(1, min(4, (int) $request->input('per_page', 4)));
+        $perPage = max(1, min(8, (int) $request->input('per_page', 8)));
         $currentCategory = null;
 
         if ($categoryId) {

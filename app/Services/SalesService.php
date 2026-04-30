@@ -8,20 +8,24 @@ use RuntimeException;
 class SalesService
 {
     /**
-     * @param array<int, array{item_id:int, quantity:float}> $lines
+     * @param array<int, array{item_id:int, quantity:float, unit_price:float, discount:float}> $items
+     * @param array<int, array{type:string, amount:float}> $payments
      */
-    public function createSale(
+    public function createSaleFromCart(
         int $locationId,
         int $employeeId,
-        array $lines,
+        array $items,
+        array $payments,
         ?string $customerName = null,
         ?string $comment = null,
     ): int {
-        return DB::transaction(function () use ($locationId, $employeeId, $lines, $customerName, $comment): int {
-            $normalized = collect($lines)
+        return DB::transaction(function () use ($locationId, $employeeId, $items, $payments, $customerName, $comment): int {
+            $normalized = collect($items)
                 ->map(static fn (array $line): array => [
                     'item_id' => (int) $line['item_id'],
                     'quantity' => (float) $line['quantity'],
+                    'unit_price' => (float) $line['unit_price'],
+                    'discount' => (float) ($line['discount'] ?? 0),
                 ])
                 ->filter(static fn (array $line): bool => $line['quantity'] > 0)
                 ->values();
@@ -41,10 +45,12 @@ class SalesService
             foreach ($normalized as $line) {
                 $itemId = $line['item_id'];
                 $qty = $line['quantity'];
+                $unitPrice = $line['unit_price'];
+                $discount = $line['discount'];
                 $item = $itemRows->get($itemId);
 
                 if (! $item) {
-                    throw new RuntimeException('Item '.$itemId.' not found.');
+                    throw new RuntimeException('Item ' . $itemId . ' not found.');
                 }
 
                 $stock = DB::table('phppos_location_items')
@@ -54,11 +60,10 @@ class SalesService
                     ->first();
 
                 if (! $stock || (float) $stock->quantity < $qty) {
-                    throw new RuntimeException('Insufficient stock for item '.$itemId.' at location '.$locationId.'.');
+                    throw new RuntimeException('Insufficient stock for item ' . $itemId . ' at location ' . $locationId . '.');
                 }
 
-                $unitPrice = (float) $item->unit_price;
-                $lineTotal = $unitPrice * $qty;
+                $lineTotal = $unitPrice * $qty * (1 - $discount / 100);
                 $subtotal += $lineTotal;
 
                 DB::table('phppos_location_items')
@@ -77,14 +82,31 @@ class SalesService
                 ];
             }
 
+            $paymentRows = collect($payments)
+                ->map(static fn (array $payment): array => [
+                    'payment_type' => (string) $payment['type'],
+                    'payment_amount' => (float) $payment['amount'],
+                ])
+                ->filter(static fn (array $payment): bool => $payment['payment_amount'] > 0)
+                ->values();
+
+            if ($paymentRows->isEmpty()) {
+                $paymentRows = collect([
+                    ['payment_type' => 'Cash', 'payment_amount' => $subtotal],
+                ]);
+            }
+
+            $amountTendered = (float) $paymentRows->sum('payment_amount');
+            $changeDue = max(0, $amountTendered - $subtotal);
+
             $saleId = DB::table('phppos_sales')->insertGetId([
                 'location_id' => $locationId,
                 'employee_id' => $employeeId,
                 'sale_type' => 'sale',
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
-                'amount_tendered' => $subtotal,
-                'change_due' => 0,
+                'amount_tendered' => $amountTendered,
+                'change_due' => $changeDue,
                 'customer_name' => $customerName,
                 'comment' => $comment,
                 'created_at' => now(),
@@ -103,7 +125,7 @@ class SalesService
                 ]);
 
                 DB::table('phppos_inventory_movements')->insert([
-                    'movement_type' => 'return',
+                    'movement_type' => 'sale',
                     'item_id' => $lineRow['item_id'],
                     'from_location_id' => $locationId,
                     'to_location_id' => null,
@@ -117,13 +139,15 @@ class SalesService
                 ]);
             }
 
-            DB::table('phppos_sales_payments')->insert([
-                'sale_id' => $saleId,
-                'payment_type' => 'Cash',
-                'payment_amount' => $subtotal,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            foreach ($paymentRows as $paymentRow) {
+                DB::table('phppos_sales_payments')->insert([
+                    'sale_id' => $saleId,
+                    'payment_type' => $paymentRow['payment_type'],
+                    'payment_amount' => $paymentRow['payment_amount'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             return $saleId;
         });
