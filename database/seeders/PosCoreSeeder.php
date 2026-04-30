@@ -80,6 +80,8 @@ class PosCoreSeeder extends Seeder
                     ['module_id' => 'receivings', 'name_lang_key' => 'module_receivings', 'desc_lang_key' => 'module_receivings_desc', 'sort' => 40, 'icon' => 'ti-truck'],
                     ['module_id' => 'sales', 'name_lang_key' => 'module_sales', 'desc_lang_key' => 'module_sales_desc', 'sort' => 50, 'icon' => 'ti-shopping-cart'],
                     ['module_id' => 'messages', 'name_lang_key' => 'module_messages', 'desc_lang_key' => 'module_messages_desc', 'sort' => 60, 'icon' => 'ti-email'],
+                    ['module_id' => 'employees', 'name_lang_key' => 'module_employees', 'desc_lang_key' => 'module_employees_desc', 'sort' => 80, 'icon' => 'icon ti-id-badge'],
+                    ['module_id' => 'config', 'name_lang_key' => 'module_config', 'desc_lang_key' => 'module_config_desc', 'sort' => 100, 'icon' => 'icon ti-settings'],
                 ],
                 ['module_id'],
                 ['name_lang_key', 'desc_lang_key', 'sort', 'icon']
@@ -130,6 +132,47 @@ class PosCoreSeeder extends Seeder
             );
         }
 
+        if (Schema::hasTable('phppos_modules_actions')) {
+            DB::table('phppos_modules_actions')->upsert(
+                [
+                    ['action_id' => 'add_update', 'module_id' => 'employees', 'action_name_key' => 'module_action_add_update', 'sort' => 130],
+                    ['action_id' => 'delete', 'module_id' => 'employees', 'action_name_key' => 'module_action_delete', 'sort' => 140],
+                    ['action_id' => 'search', 'module_id' => 'employees', 'action_name_key' => 'module_action_search_employees', 'sort' => 150],
+                    ['action_id' => 'edit_profile', 'module_id' => 'employees', 'action_name_key' => 'common_edit_profile', 'sort' => 155],
+                    ['action_id' => 'assign_all_locations', 'module_id' => 'employees', 'action_name_key' => 'module_action_assign_all_locations', 'sort' => 151],
+                    ['action_id' => 'excel_export', 'module_id' => 'employees', 'action_name_key' => 'common_excel_export', 'sort' => 160],
+                ],
+                ['action_id', 'module_id'],
+                ['action_name_key', 'sort']
+            );
+        }
+
+        if (Schema::hasTable('phppos_permissions')) {
+            DB::table('phppos_permissions')->upsert(
+                [
+                    ['module_id' => 'config', 'person_id' => 1],
+                    ['module_id' => 'employees', 'person_id' => 1],
+                ],
+                ['module_id', 'person_id'],
+                []
+            );
+        }
+
+        if (Schema::hasTable('phppos_permissions_actions')) {
+            DB::table('phppos_permissions_actions')->upsert(
+                [
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'add_update'],
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'delete'],
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'search'],
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'edit_profile'],
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'assign_all_locations'],
+                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'excel_export'],
+                ],
+                ['module_id', 'person_id', 'action_id'],
+                []
+            );
+        }
+
         if (Schema::hasTable('phppos_categories')) {
             DB::table('phppos_categories')->updateOrInsert(
                 ['id' => 1],
@@ -174,6 +217,18 @@ class PosCoreSeeder extends Seeder
                     'quantity' => 0,
                     'created_at' => $now,
                     'updated_at' => $now,
+                ]
+            );
+        }
+
+        if (Schema::hasTable('phppos_registers')) {
+            DB::table('phppos_registers')->updateOrInsert(
+                ['register_id' => 1],
+                [
+                    'location_id' => 1,
+                    'name' => 'Default',
+                    'deleted' => 0,
+                    'enable_tips' => 0,
                 ]
             );
         }

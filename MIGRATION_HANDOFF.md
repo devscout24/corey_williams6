@@ -7,12 +7,39 @@
 3. **Next Tasks:** If you need to know what needs to be done next, **look into the `Upcoming` section below**.
 4. **Always Update:** You MUST ALWAYS UPDATE this `MIGRATION_HANDOFF.md` file when you complete a task or change the project state. Ensure the `History` and `Upcoming` sections remain accurate and up to date.
 
+### ✅ Migration / Seeder Rules (STRICT)
+These rules are non-negotiable for this repo’s cleaned schema.
+
+1. **One migration per table (create-only).**
+  - For any `phppos_*` table: keep exactly one `Schema::create()` migration that defines ALL columns + indexes + foreign keys.
+  - **Do not add `Schema::table()` “alter” migrations** to add columns, indexes, or foreign keys.
+  - If the schema needs to change during this migration phase, update the table’s single create migration and rebuild using `migrate:fresh`.
+
+2. **Use modern FK style (`foreignId` + `constrained`).**
+  - Prefer `foreignId('...')->nullable()->constrained('...')` (or `->constrained()` when the table name can be inferred).
+  - Use `->cascadeOnDelete()` / `->nullOnDelete()` intentionally where it matches legacy behavior.
+  - If MySQL FK constraint names risk exceeding 64 chars, use explicit short FK names.
+
+3. **Seed data must live in seeders (never migrations).**
+  - Any baseline data (modules tree, permissions, defaults) belongs in `database/seeders/*` (ex: `PosCoreSeeder`).
+  - Migrations should only define schema.
+
+4. **Always validate using a clean rebuild.**
+  - Required command: `php artisan migrate:fresh --seed`
+  - On Git Bash (Windows), use: `winpty php.exe artisan migrate:fresh --seed`
+
+5. **Legacy migrations are reference-only.**
+  - Keep old files archived under `database/migrations/legacy/`.
+  - Do not move legacy migrations back into the active `database/migrations/` folder.
+  - Keep Laravel default migrations (`users`, `cache`, `jobs`) as-is.
+
 ---
 
 ## 📜 History (Completed Work)
 
 ### May 1, 2026
-- No code changes or migrations recorded in this session.
+- **Inventory Flow (Receivings):** Enhanced `ReceivingController` to support searching and adding Item Kits (including nested kits) to the receiving cart. Implemented logic to parse item kits and correctly process their individual items during inventory updates, matching legacy POS system behavior.
+- **Migrations:** Archived legacy migrations to `database/migrations/legacy`, created one-migration-per-table schema (excluding users/cache/jobs), and centralized seed data in `PosCoreSeeder`.
 
 ### 1. Auth & Security
 - **Database:** Migrated `phppos_employees`, `phppos_people`, and related tables (`phppos_permissions`, `phppos_modules_actions`). Fixed MySQL FK issues.
@@ -72,7 +99,7 @@
 - **Locations:** Added `ulid` field to `phppos_locations` table and implemented ULID-based location loading via `EmployeeService::getLoggedInEmployeeCurrentLocationId()`. This supports connecting multiple PCs via LAN to a single location identifier, falling back to legacy session `employee_current_location_id`.
 - **Config:** Added `AppConfigService` (duplicate tax guard, payment types helper), `ConfigController`, and settings UI.
 - **Config:** Added Store Config shortcut for label sheet background uploads.
-- **Config:** Altered `phppos_app_files.file_data` to `LONGBLOB` to support larger uploads.
+- **Config:** Set `phppos_app_files.file_data` to `LONGBLOB` to support larger uploads.
 - **Employees:** Added dependencies (`phppos_employees_time_clock`, permissions locations, templates), `EmployeeService`, `EmployeeController`, and basic views for syncing permissions.
 
 ### 9. Items
