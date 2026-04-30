@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\AppFileController;
+use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ConfigController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\PriceRuleController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:employee')->group(function (): void {
@@ -77,6 +79,9 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::delete('/categories/{categoryId}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::resource('attributes', AttributeController::class);
+    Route::resource('price-rules', PriceRuleController::class);
 
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
