@@ -61,7 +61,9 @@
                         <div class="nav-item"><a href="{{ route('orders.index') }}" class="nav-link"><i
                                     class="bi bi-dot"></i> Orders</a></div>
                         <div class="nav-item">
-                            <a href="{{ route('attributes.index') }}" class="nav-link"><i class="bi bi-dot"></i> Attributes</a></div>            
+                            <a href="{{ route('attributes.index') }}" class="nav-link"><i class="bi bi-dot"></i>
+                                Attributes</a>
+                        </div>
                         <div class="nav-item"><a href="{{ route('categories.index') }}" class="nav-link"><i
                                     class="bi bi-dot"></i> Categories</a></div>
                         <div class="nav-item"><a href="{{ Route::has('tags.index') ? route('tags.index') : '#' }}"
