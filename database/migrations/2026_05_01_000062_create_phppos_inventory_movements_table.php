@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('phppos_inventory_movements', function (Blueprint $table) {
             $table->id();
-            $table->enum('movement_type', ['receiving', 'return', 'transfer_out', 'transfer_in']);
+            $table->enum('movement_type', ['receiving', 'return', 'transfer_out', 'transfer_in', 'sale']);
             $table->unsignedBigInteger('item_id');
             $table->unsignedBigInteger('from_location_id')->nullable();
             $table->unsignedBigInteger('to_location_id')->nullable();

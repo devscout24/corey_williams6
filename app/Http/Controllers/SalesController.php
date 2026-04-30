@@ -442,13 +442,32 @@ class SalesController extends Controller
         $saleRow = DB::table('phppos_sales as s')
             ->join('phppos_locations as l', 'l.location_id', '=', 's.location_id')
             ->join('phppos_people as p', 'p.person_id', '=', 's.employee_id')
-            ->select('s.*', 'l.name as location_name', 'p.first_name', 'p.last_name')
+            ->select(
+                's.*',
+                'l.name as location_name',
+                'l.address_1',
+                'l.address_2',
+                'l.city',
+                'l.state',
+                'l.zip',
+                'l.country',
+                'l.phone as location_phone',
+                'p.first_name',
+                'p.last_name'
+            )
             ->where('s.sale_id', $sale)
             ->firstOrFail();
 
         $lines = DB::table('phppos_sales_items as si')
             ->join('phppos_items as i', 'i.item_id', '=', 'si.item_id')
-            ->select('si.*', 'i.name as item_name', 'i.item_number')
+            ->select(
+                'si.*',
+                'i.name as item_name',
+                'i.item_number',
+                'i.product_id',
+                'i.size',
+                'i.description'
+            )
             ->where('si.sale_id', $sale)
             ->get()
             ->map(static function ($row) use ($sale): array {
@@ -465,6 +484,13 @@ class SalesController extends Controller
             ->values()
             ->all();
 
+        $itemsSold = 0.0;
+        $itemsReturned = 0.0;
+        foreach ($lines as $line) {
+            $itemsSold += (float) $line['quantity_purchased'];
+            $itemsReturned += (float) $line['returned_qty'];
+        }
+
         $payments = DB::table('phppos_sales_payments')
             ->where('sale_id', $sale)
             ->get()
@@ -474,11 +500,28 @@ class SalesController extends Controller
 
         $settings = DB::table('phppos_receipt_settings')->where('id', 1)->first();
 
+        $companyLogoId = $this->configService->get('company_logo');
+        $companyLogoUrl = $companyLogoId ? route('app_files.view', ['fileId' => $companyLogoId]) : null;
+
+        $company = (string) $this->configService->get('company', '');
+        $taxId = (string) $this->configService->get('tax_id', '');
+        $website = (string) $this->configService->get('website', '');
+        $returnPolicy = (string) $this->configService->get('return_policy', '');
+        $receiptTitle = (string) $this->configService->get('override_receipt_title', '');
+
         return view('sales.receipt', [
             'sale' => $saleRow,
             'lines' => $lines,
             'payments' => $payments,
             'settings' => $settings,
+            'companyLogoUrl' => $companyLogoUrl,
+            'company' => $company,
+            'taxId' => $taxId,
+            'website' => $website,
+            'returnPolicy' => $returnPolicy,
+            'receiptTitle' => $receiptTitle,
+            'itemsSold' => $itemsSold,
+            'itemsReturned' => $itemsReturned,
         ]);
     }
 
