@@ -11,6 +11,9 @@
 
 ## 📜 History (Completed Work)
 
+### May 1, 2026
+- No code changes or migrations recorded in this session.
+
 ### 1. Auth & Security
 - **Database:** Migrated `phppos_employees`, `phppos_people`, and related tables (`phppos_permissions`, `phppos_modules_actions`). Fixed MySQL FK issues.
 - **Models:** Created `PhpposPerson` and `PhpposEmployee`.
