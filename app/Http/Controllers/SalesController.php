@@ -522,6 +522,10 @@ class SalesController extends Controller
             'receiptTitle' => $receiptTitle,
             'itemsSold' => $itemsSold,
             'itemsReturned' => $itemsReturned,
+            'barcodeType' => (string) ($this->configService->get('barcode_type') ?: 'Code128'),
+            'barcodeWidth' => (float) ($this->configService->get('barcode_width') ?: 1.5),
+            'barcodeHeight' => (float) ($this->configService->get('barcode_height') ?: 36),
+            'barcodeFontSize' => (int) ($this->configService->get('barcode_font_size') ?: 12),
         ]);
     }
 

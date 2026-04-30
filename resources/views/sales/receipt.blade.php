@@ -25,6 +25,9 @@
     .receipt-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .return-grid { display: grid; grid-template-columns: 1fr 140px; gap: 8px; margin-bottom: 8px; }
 
+    .barcode-container { margin-top: 10px; display: flex; justify-content: center; }
+    .barcode { max-width: 100%; }
+
     @media (max-width: 900px) {
         .receipt-header { grid-template-columns: 1fr; }
         .totals { margin-left: 0; }
@@ -78,6 +81,15 @@
             <div class="receipt-title">{{ $receiptTitle ?: ($settings->title ?? 'Sales Receipt') }}</div>
             <div>{{ \Illuminate\Support\Carbon::parse($sale->created_at)->format('Y-m-d H:i:s') }}</div>
             <div>Sale #{{ $sale->sale_id }}</div>
+            <div class="barcode-container">
+                <svg class="barcode"
+                     jsbarcode-format="{{ strtoupper($barcodeType) }}"
+                     jsbarcode-value="{{ $sale->sale_id }}"
+                     jsbarcode-width="{{ $barcodeWidth }}"
+                     jsbarcode-height="{{ $barcodeHeight }}"
+                     jsbarcode-fontsize="{{ $barcodeFontSize }}"
+                     jsbarcode-displayValue="false"></svg>
+            </div>
             @if($sale->sale_type && $sale->sale_type !== 'sale')
                 <div>{{ ucfirst($sale->sale_type) }}</div>
             @endif
@@ -199,4 +211,12 @@
 
     <div class="receipt-footer">{{ $settings->footer ?? 'Thank you' }}</div>
 </main>
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        JsBarcode(".barcode").init();
+    });
+</script>
+@endpush
 @endsection

@@ -15,6 +15,35 @@ class ModuleController extends Controller
             ->orderBy('sort')
             ->get();
 
-        return view('modules.index', compact('modules'));
+        // Fetch Sales Information (Graphical)
+        $monthStart = now()->startOfMonth();
+        $monthEnd = now()->endOfDay();
+
+        $monthlySales = \Illuminate\Support\Facades\DB::table('phppos_sales')
+            ->selectRaw('DATE(created_at) as sale_date, SUM(total) as sale_amount')
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->groupBy('sale_date')
+            ->orderBy('sale_date')
+            ->get();
+
+        $weekStart = now()->startOfWeek();
+        $weekEnd = now()->endOfWeek();
+
+        $weeklySales = \Illuminate\Support\Facades\DB::table('phppos_sales')
+            ->selectRaw('DATE(created_at) as sale_date, SUM(total) as sale_amount')
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->groupBy('sale_date')
+            ->orderBy('sale_date')
+            ->get();
+
+        // Dashboard Stats
+        $stats = [
+            'total_sales' => \Illuminate\Support\Facades\DB::table('phppos_sales')->count(),
+            'total_customers' => \Illuminate\Support\Facades\DB::table('phppos_customers')->count(),
+            'total_items' => \Illuminate\Support\Facades\DB::table('phppos_items')->where('deleted', 0)->count(),
+            'total_item_kits' => \Illuminate\Support\Facades\DB::table('phppos_item_kits')->where('deleted', 0)->count(),
+        ];
+
+        return view('modules.index', compact('modules', 'monthlySales', 'weeklySales', 'stats'));
     }
 }
