@@ -9,15 +9,14 @@
     .category-tabs .tab-btn { border: 0; background: transparent; padding: 8px 16px; font-weight: 600; color: #334155; }
     .category-tabs .tab-btn + .tab-btn { border-left: 1px solid #e2e8f0; }
     .category-tabs .tab-btn.is-active { background: #3b82f6; color: #fff; }
-    .category-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    @media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .category-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 1600px) { .category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+    @media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     @media (max-width: 992px) { .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 576px) { .category-grid { grid-template-columns: 1fr; } }
     .category-card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; text-align: left; padding: 0; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease; }
     .category-card:hover { border-color: #cbd5f5; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
-    .category-media { height: 92px; background: linear-gradient(135deg, #e2e8f0, #f8fafc); display: flex; align-items: center; justify-content: center; }
-    .category-initial { width: 44px; height: 44px; border-radius: 50%; background: #1d4ed8; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
-    .category-name { padding: 10px 12px; font-weight: 600; color: #0f172a; }
+    .category-name { padding: 14px 12px; font-weight: 600; color: #0f172a; text-align: center; }
     .category-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 12px; }
     .category-pagination .page-btn { border: 1px solid #d7e0ea; background: #fff; padding: 4px 10px; border-radius: 8px; font-weight: 600; color: #334155; }
     .category-pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -55,9 +54,6 @@
             <div class="category-grid" id="category-grid">
                 @forelse($categories as $category)
                     <button type="button" class="category-card" data-category-id="{{ $category->id }}" data-category-name="{{ $category->name }}">
-                        <div class="category-media">
-                            <span class="category-initial">{{ strtoupper(substr($category->name, 0, 1)) }}</span>
-                        </div>
                         <div class="category-name">{{ $category->name }}</div>
                     </button>
                 @empty
@@ -262,40 +258,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const paginationEl = document.getElementById('category-grid-pagination');
     const browseUrl = "{{ route('receivings.categories') }}";
     const categoryStack = [];
-    const defaultPageSize = 4;
-    const childPageSize = 3;
+    const defaultPageSize = 8;
+    const childPageSize = 7;
 
     const renderBackTile = () => {
         if (!categoryStack.length) return '';
         return `
             <button type="button" class="category-card" data-action="back">
-                <div class="category-media">
-                    <span class="category-initial">\u00ab</span>
-                </div>
                 <div class="category-name">Back</div>
             </button>
         `;
     };
 
     const renderCategoryTile = (category) => {
-        const initial = (category.name || '?').trim().charAt(0).toUpperCase();
         return `
             <button type="button" class="category-card" data-category-id="${category.id}" data-category-name="${category.name}">
-                <div class="category-media">
-                    <span class="category-initial">${initial}</span>
-                </div>
                 <div class="category-name">${category.name}</div>
             </button>
         `;
     };
 
     const renderProductTile = (product) => {
-        const initial = (product.name || '?').trim().charAt(0).toUpperCase();
         return `
             <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
-                <div class="category-media">
-                    <span class="category-initial">${initial}</span>
-                </div>
                 <div class="category-name">${product.name}</div>
             </button>
         `;
