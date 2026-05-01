@@ -174,7 +174,7 @@ class ItemController extends Controller
             'verify_age' => ['nullable', 'boolean'],
             'required_age' => ['nullable', 'integer'],
             'ecommerce_shipping_class_id' => ['nullable', 'integer'],
-            
+
             // Nested or array inputs
             'tags' => ['nullable', 'string'],
             'additional_item_numbers' => ['nullable', 'array'],
@@ -217,7 +217,7 @@ class ItemController extends Controller
             'loyalty_multiplier' => $data['loyalty_multiplier'] ?? null,
             'required_age' => $data['required_age'] ?? null,
             'ecommerce_shipping_class_id' => $data['ecommerce_shipping_class_id'] ?? null,
-            
+
             'tax_included' => !empty($data['tax_included']) ? 1 : 0,
             'is_service' => !empty($data['is_service']) ? 1 : 0,
             'item_inactive' => !empty($data['item_inactive']) ? 1 : 0,
@@ -276,7 +276,7 @@ class ItemController extends Controller
                     }
                     $tagIds[] = $tagId;
                 }
-                
+
                 DB::table('phppos_items_tags')->where('item_id', $itemId)->delete();
                 foreach (array_unique($tagIds) as $tId) {
                     DB::table('phppos_items_tags')->insert([
@@ -307,7 +307,8 @@ class ItemController extends Controller
             DB::table('phppos_items_serial_numbers')->where('item_id', $itemId)->delete();
             if (!empty($data['serial_numbers'])) {
                 foreach ($data['serial_numbers'] as $index => $serialNum) {
-                    if (empty($serialNum)) continue;
+                    if (empty($serialNum))
+                        continue;
                     DB::table('phppos_items_serial_numbers')->insert([
                         'item_id' => $itemId,
                         'serial_number' => $serialNum,
@@ -348,4 +349,6 @@ class ItemController extends Controller
 
         return redirect()->route('items.index')->with('status', 'Item saved.');
     }
+
+
 }

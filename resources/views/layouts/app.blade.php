@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/defaults/def-favicon.svg') }}" />
+    <link rel="shortcut icon" href="{{asset('assets/images/defaults/fv.png')}}" type="image/svg+xml">
+
     <title>@yield('title', 'POS System')</title>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />

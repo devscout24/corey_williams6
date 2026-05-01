@@ -51,31 +51,31 @@ class PriceRule extends Model
 
     public function items(): BelongsToMany
     {
-        return $this->belongsToMany(Item::class, 'phppos_price_rules_items', 'rule_id', 'item_id');
+        return $this->belongsToMany(PhpposItem::class, 'phppos_price_rules_items', 'rule_id', 'item_id');
     }
 
     public function itemKits(): BelongsToMany
     {
-        return $this->belongsToMany(ItemKit::class, 'phppos_price_rules_item_kits', 'rule_id', 'item_kit_id');
+        return $this->belongsToMany(PhpposItemKit::class, 'phppos_price_rules_item_kits', 'rule_id', 'item_kit_id');
     }
 
     public function categories(): BelongsToMany
     {
-        return $this->belongsToMany(Category::class, 'phppos_price_rules_categories', 'rule_id', 'category_id');
+        return $this->belongsToMany(PhpposCategory::class, 'phppos_price_rules_categories', 'rule_id', 'category_id');
     }
 
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tag::class, 'phppos_price_rules_tags', 'rule_id', 'tag_id');
+        return $this->belongsToMany(PhpposTag::class, 'phppos_price_rules_tags', 'rule_id', 'tag_id');
     }
 
     public function manufacturers(): BelongsToMany
     {
-        return $this->belongsToMany(Manufacturer::class, 'phppos_price_rules_manufacturers', 'rule_id', 'manufacturer_id');
+        return $this->belongsToMany(PhpposManufacturer::class, 'phppos_price_rules_manufacturers', 'rule_id', 'manufacturer_id');
     }
 
     public function locations(): BelongsToMany
     {
-        return $this->belongsToMany(Location::class, 'phppos_price_rules_locations', 'rule_id', 'location_id');
+        return $this->belongsToMany(PhpposLocation::class, 'phppos_price_rules_locations', 'rule_id', 'location_id');
     }
 }

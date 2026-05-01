@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::middleware('auth:employee')->group(function (): void {
-    
+
     //labels
     Route::get('/items/labels', [ItemLabelController::class, 'index'])->name('labels.index');
     Route::get('/items/labels/search', [ItemLabelController::class, 'search'])->name('labels.search');
@@ -41,4 +41,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::resource('attributes', AttributeController::class);
     Route::resource('price-rules', PriceRuleController::class);
 
+    Route::get('/item-kits/search', [PriceRuleController::class, 'searchItemKits'])->name('item-kits.search');
+    Route::get('/categories/search', [PriceRuleController::class, 'searchCategories'])->name('categories.search');
+    Route::get('/tags/search', [PriceRuleController::class, 'searchTags'])->name('tags.search');
+    Route::get('/items/search', [PriceRuleController::class, 'search'])->name('items.search');
 });

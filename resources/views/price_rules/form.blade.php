@@ -143,24 +143,31 @@
                 <div class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Items</label>
-                        <input type="text" name="items" class="selectize-input" value="{{ isset($rule_items) ? $rule_items->pluck('id')->implode(',') : '' }}">
-                        <small class="text-muted">Comma separated IDs (e.g. 1,2,3)</small>
+                        <div class="items-search-wrapper" style="position: relative;">
+                            <input type="hidden" name="items" id="items_hidden" value="{{ isset($rule_items) ? $rule_items->pluck('id')->implode(',') : '' }}">
+
+                            <div id="items_tags" class="form-control d-flex flex-wrap gap-1 align-items-center" style="min-height: 40px; cursor: text; padding: 6px 10px;">
+                                <!-- Tags render here -->
+                                <input type="text" id="items_search_input" autocomplete="off" placeholder="Search items..." style="border: none; outline: none; flex: 1; min-width: 120px; padding: 0; background: transparent;">
+                            </div>
+
+                            <div id="items_dropdown" class="border rounded bg-white shadow-sm" style="display:none; position: absolute; z-index: 1000; width: 100%; max-height: 220px; overflow-y: auto; top: 100%; left: 0;">
+                                <div id="items_results"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Search and select items</small>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Item Kits</label>
-                        <input type="text" name="itemkits" class="selectize-input" value="{{ isset($rule_item_kits) ? $rule_item_kits->pluck('id')->implode(',') : '' }}">
+                        <input type="text" name="itemkits" id="set_itemkits" value="{{ isset($rule_item_kits) ? $rule_item_kits->pluck('id')->implode(',') : '' }}">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Categories</label>
-                        <input type="text" name="categories" class="selectize-input" value="{{ isset($rule_cats) ? $rule_cats->pluck('id')->implode(',') : '' }}">
+                        <input type="text" name="categories" id="set_categories" value="{{ isset($rule_cats) ? $rule_cats->pluck('id')->implode(',') : '' }}">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tags</label>
-                        <input type="text" name="tags" class="selectize-input" value="{{ isset($rule_tags) ? $rule_tags->pluck('id')->implode(',') : '' }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Manufacturers</label>
-                        <input type="text" name="manufacturers" class="selectize-input" value="{{ isset($rule_manus) ? $rule_manus->pluck('id')->implode(',') : '' }}">
+                        <input type="text" name="tags" id="set_tags" value="{{ isset($rule_tags) ? $rule_tags->pluck('id')->implode(',') : '' }}">
                     </div>
                     <div class="col-md-6 mt-4 d-flex align-items-center" id="mix_and_match_container">
                          <div class="form-check form-switch mt-3">
@@ -322,7 +329,7 @@
                 $('#num_times_to_apply').val(1);
             }
         });
-
+        
         $('#add_price_break').click(function() {
             const newRow = `
                 <tr>
@@ -350,7 +357,7 @@
             if ($(this).val()) $('#percent_off').val('');
         });
 
-        // Initialize Selectize
+        // Initialize Selectize for remaining generic inputs
         $('.selectize-input').each(function() {
             $(this).selectize({
                 plugins: ['remove_button'],
@@ -364,6 +371,51 @@
                 }
             });
         });
+
+        // Initialize Selectize with AJAX for Categories and Tags
+        function initSelectizeAjax(selector, url) {
+            $(selector).selectize({
+                plugins: ['remove_button'],
+                valueField: 'id',
+                labelField: 'name',
+                searchField: 'name',
+                preload: true,
+                load: function(query, callback) {
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        data: { query: query },
+                        error: function() {
+                            callback();
+                        },
+                        success: function(res) {
+                            callback(res.data.results);
+                        }
+                    });
+                },
+                onInitialize: function() {
+                    var selectize = this;
+                    var existingIds = selectize.$input.val();
+                    if (existingIds) {
+                        $.ajax({
+                            url: url,
+                            type: 'GET',
+                            data: { ids: existingIds },
+                            success: function(res) {
+                                res.forEach(function(item) {
+                                    selectize.addOption(item);
+                                    selectize.addItem(item.id, true);
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        initSelectizeAjax('#set_categories', '/categories/search');
+        initSelectizeAjax('#set_tags', '/tags/search');
+        initSelectizeAjax('#set_itemkits', '/item-kits/search');
     });
     new Litepicker({
         element: document.getElementById('date-range-picker'),
@@ -380,5 +432,125 @@
             });
         },
     });
+</script>
+<script>
+$(function () {
+
+    // ── Config ──────────────────────────────────────────────────────────────
+    const SEARCH_URL = '/items/search'; // adjust to your endpoint
+    let selectedItems = {}; // { id: label }
+    let searchTimer;
+
+    // ── Init: load pre-selected items ───────────────────────────────────────
+    const existingIds = $('#items_hidden').val();
+    if (existingIds) {
+        const ids = existingIds.split(',').filter(Boolean);
+        if (ids.length) {
+            // Fetch labels for pre-selected IDs
+            $.get(SEARCH_URL, { ids: ids.join(',') }, function (data) {
+                data.forEach(item => addTag(item.id, item.name));
+            });
+        }
+    }
+
+    // ── Search input ─────────────────────────────────────────────────────────
+    $(document).on('input', '#items_search_input', function () {
+        const query = $(this).val().trim();
+        clearTimeout(searchTimer);
+        if (!query) { hideDropdown(); return; }
+
+        searchTimer = setTimeout(function () {
+            $.get(SEARCH_URL, { query: query }, function (response) {
+                renderResults(response.data.results || []);
+            });
+        }, 250);
+    });
+
+    // Focus on wrapper click
+    $('#items_tags').on('click', function () {
+        $('#items_search_input').focus();
+    });
+
+    // ── Render search results ────────────────────────────────────────────────
+    function renderResults(items) {
+        const $results = $('#items_results').empty();
+        if (!items.length) {
+            $results.html('<div class="px-3 py-2 text-muted small">No results found</div>');
+        } else {
+            items.forEach(function (item) {
+                const isSelected = selectedItems.hasOwnProperty(item.id);
+                $('<div>')
+                    .addClass('px-3 py-2 d-flex align-items-center justify-content-between')
+                    .css({ cursor: 'pointer', opacity: isSelected ? 0.5 : 1 })
+                    .html(`
+                        <span>${item.name} <small class="text-muted">${item.item_number}</small></span>
+                        ${isSelected ? '<small class="text-success">✓ Added</small>' : ''}
+                    `)
+                    .on('mouseenter', function () { $(this).css('background', '#f8f9fa'); })
+                    .on('mouseleave', function () { $(this).css('background', ''); })
+                    .on('click', function () {
+                        if (!isSelected) {
+                            addTag(item.item_id, item.name);
+                            $('#items_search_input').val('').focus();
+                            hideDropdown();
+                        }
+                    })
+                    .appendTo($results);
+            });
+        }
+        $('#items_dropdown').show();
+    }
+
+    // ── Add a tag ────────────────────────────────────────────────────────────
+    function addTag(id, label) {
+        if (selectedItems[id]) return;
+        selectedItems[id] = label;
+
+        const $tag = $('<span>')
+            .addClass('badge bg-primary d-inline-flex align-items-center gap-1')
+            .css({ fontSize: '13px', padding: '5px 8px' })
+            .html(`${label} <span class="remove-tag" data-id="${id}" style="cursor:pointer; margin-left:4px;">&times;</span>`);
+
+        $('#items_search_input').before($tag);
+        syncHidden();
+    }
+
+    // ── Remove a tag ─────────────────────────────────────────────────────────
+    $(document).on('click', '.remove-tag', function (e) {
+        e.stopPropagation();
+        const id = $(this).data('id');
+        delete selectedItems[id];
+        $(this).closest('.badge').remove();
+        syncHidden();
+    });
+
+    // ── Sync hidden input ────────────────────────────────────────────────────
+    function syncHidden() {
+        $('#items_hidden').val(Object.keys(selectedItems).join(','));
+    }
+
+    // ── Close dropdown on outside click ──────────────────────────────────────
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('.items-search-wrapper').length) hideDropdown();
+    });
+
+    function hideDropdown() {
+        $('#items_dropdown').hide();
+    }
+
+    // ── Keyboard: remove last tag on Backspace ────────────────────────────────
+    $('#items_search_input').on('keydown', function (e) {
+        if (e.key === 'Backspace' && !$(this).val()) {
+            const ids = Object.keys(selectedItems);
+            if (ids.length) {
+                const lastId = ids[ids.length - 1];
+                delete selectedItems[lastId];
+                $(`[data-id="${lastId}"]`).closest('.badge').remove();
+                syncHidden();
+            }
+        }
+    });
+
+});
 </script>
 @endpush
