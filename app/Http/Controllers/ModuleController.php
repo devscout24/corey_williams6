@@ -36,6 +36,17 @@ class ModuleController extends Controller
             ->orderBy('sale_date')
             ->get();
 
+        // Yearly Sales (Monthly totals for the current year)
+        $yearStart = now()->startOfYear();
+        $yearEnd = now()->endOfYear();
+
+        $yearlySales = \Illuminate\Support\Facades\DB::table('phppos_sales')
+            ->selectRaw('MONTH(created_at) as month, SUM(total) as sale_amount')
+            ->whereBetween('created_at', [$yearStart, $yearEnd])
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
         // Dashboard Stats
         $stats = [
             'total_sales' => \Illuminate\Support\Facades\DB::table('phppos_sales')->count(),
@@ -44,6 +55,6 @@ class ModuleController extends Controller
             'total_item_kits' => \Illuminate\Support\Facades\DB::table('phppos_item_kits')->where('deleted', 0)->count(),
         ];
 
-        return view('modules.index', compact('modules', 'monthlySales', 'weeklySales', 'stats'));
+        return view('modules.index', compact('modules', 'monthlySales', 'weeklySales', 'yearlySales', 'stats'));
     }
 }

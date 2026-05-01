@@ -19,10 +19,17 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\PriceRuleController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:employee')->group(function (): void {
     Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
+
+    Route::prefix('reports')->group(function () {
+        Route::get('/', 'App\Http\Controllers\ReportController@index')->name('reports.index');
+        Route::get('/generate/{report}', 'App\Http\Controllers\ReportController@generate')->name('reports.generate');
+        Route::post('/generate/{report}', 'App\Http\Controllers\ReportController@store')->name('reports.store');
+    });
     Route::get('/modules', [ModuleController::class, 'index'])->name('modules.list');
 
     Route::get('/items/labels', [ItemLabelController::class, 'index'])->name('labels.index');

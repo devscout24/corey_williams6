@@ -70,8 +70,11 @@
                                 class="nav-link"><i class="bi bi-dot"></i> Tags</a></div>
                     </div>
                 </div>
-                <div class="nav-item"><a href="#" class="nav-link"><i
-                            class="bi bi-bar-chart-fill"></i><span>Reports</span></a></div>
+                <div class="nav-item">
+                    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-fill"></i><span>Reports</span>
+                    </a>
+                </div>
                 <div class="nav-item"><a href="{{ route('receivings.index') }}" class="nav-link"><i
                             class="bi bi-truck"></i><span>Receiving</span></a></div>
                 <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i
@@ -119,7 +122,19 @@
                 </button>
                 <span class="topbar-title">@yield('page-title', 'Dashboard')</span>
                 <div class="topbar-actions">
-                    <button class="btn-add"><i class="bi bi-plus-lg"></i> Add</button>
+                    <div class="dropdown">
+                        <button class="btn-add dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-lg"></i> Add
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 radius-lg mt-2">
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('sales.index') }}"><i class="bi bi-cart me-2"></i> New Sale</a></li>
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('orders.index') }}"><i class="bi bi-file-earmark-text me-2"></i> New Order</a></li>
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('receivings.index') }}"><i class="bi bi-truck me-2"></i> New Purchase Order</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('customers.index') }}"><i class="bi bi-person-plus me-2"></i> New Customer</a></li>
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('items.index') }}"><i class="bi bi-box-seam me-2"></i> New Item</a></li>
+                        </ul>
+                    </div>
                     <div class="topbar-icon-btn"><i class="bi bi-bell"></i><span class="badge-dot"></span></div>
                     <div class="topbar-user">
                         <div class="topbar-user-info">

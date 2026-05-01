@@ -16,12 +16,15 @@
     .actions a, .actions button { border: 0; background: #0e7490; color: #fff; border-radius: 8px; padding: 8px 12px; text-decoration: none; cursor: pointer; }
     form { margin: 0; }
     
-    .sales-info { margin-top: 24px; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); }
-    .sales-info h2 { margin: 0 0 16px; font-size: 1.2rem; text-align: center; }
-    .nav-tabs { border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; justify-content: center; }
-    .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 500; padding: 10px 20px; }
-    .nav-tabs .nav-link.active { color: #0e7490; border-bottom: 2px solid #0e7490; background: transparent; }
-    .chart-container { position: relative; height: 300px; width: 100%; }
+    .sales-info { margin-top: 24px; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; }
+    .sales-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .sales-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b; }
+    .chart-period-select { padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.85rem; font-weight: 500; color: #64748b; cursor: pointer; outline: none; }
+    .nav-tabs { border: none; margin-bottom: 0; gap: 8px; }
+    .nav-tabs .nav-link { border: none; color: #94a3b8; font-weight: 600; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; }
+    .nav-tabs .nav-link:hover { background: #f8fafc; color: #64748b; }
+    .nav-tabs .nav-link.active { color: #2563eb; background: #eff6ff; }
+    .chart-container { position: relative; height: 320px; width: 100%; margin-top: 10px; }
 
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { background: #fff; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); text-decoration: none; color: inherit; transition: transform 0.2s; }
@@ -117,19 +120,35 @@
     </div>
 
     <section class="sales-info">
-        <h2>Sales Information</h2>
-        
-        <ul class="nav nav-tabs" id="salesTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab">Month</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab">Week</button>
-            </li>
-        </ul>
+        <div class="sales-header">
+            <h2>Total Sales</h2>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <ul class="nav nav-tabs" id="salesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="year-tab" data-bs-toggle="tab" data-bs-target="#year" type="button" role="tab">Year</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab">Month</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab">Week</button>
+                    </li>
+                </ul>
+                <select class="chart-period-select">
+                    <option>Last One Year</option>
+                    <option>Last 6 Months</option>
+                    <option>Last 30 Days</option>
+                </select>
+            </div>
+        </div>
         
         <div class="tab-content" id="salesTabsContent">
-            <div class="tab-pane fade show active" id="month" role="tabpanel">
+            <div class="tab-pane fade show active" id="year" role="tabpanel">
+                <div class="chart-container">
+                    <canvas id="yearlyChart"></canvas>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="month" role="tabpanel">
                 <div class="chart-container">
                     <canvas id="monthlyChart"></canvas>
                 </div>
@@ -146,35 +165,111 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const createGradient = (ctx) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+        gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
+        return gradient;
+    };
+
     const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: 'index',
+        },
         scales: {
             y: {
                 beginAtZero: true,
+                grid: {
+                    display: true,
+                    drawBorder: false,
+                    color: '#f1f5f9'
+                },
                 ticks: {
+                    color: '#94a3b8',
+                    font: { size: 11 },
                     callback: function(value) {
                         return '$' + value;
                     }
                 }
+            },
+            x: {
+                grid: {
+                    display: false,
+                    drawBorder: false
+                },
+                ticks: {
+                    color: '#94a3b8',
+                    font: { size: 11 }
+                }
             }
         },
         plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#1e293b',
+                padding: 12,
+                titleFont: { size: 13 },
+                bodyFont: { size: 13 },
+                cornerRadius: 8,
+                displayColors: false
+            }
         }
     };
+
+    // Yearly Chart
+    const yearlyCtx = document.getElementById('yearlyChart').getContext('2d');
+    new Chart(yearlyCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Sales Amount',
+                data: (function() {
+                    const data = new Array(12).fill(0);
+                    {!! json_encode($yearlySales) !!}.forEach(item => {
+                        data[item.month - 1] = item.sale_amount;
+                    });
+                    return data;
+                })(),
+                borderColor: '#2563eb',
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: createGradient(yearlyCtx),
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 2,
+            }]
+        },
+        options: commonOptions
+    });
 
     // Monthly Chart
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
     new Chart(monthlyCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: {!! json_encode($monthlySales->pluck('sale_date')) !!},
+            labels: {!! json_encode($monthlySales->pluck('sale_date')->map(fn($d) => \Illuminate\Support\Carbon::parse($d)->format('M d'))) !!},
             datasets: [{
                 label: 'Sales Amount',
                 data: {!! json_encode($monthlySales->pluck('sale_amount')) !!},
-                backgroundColor: '#5d9bfb',
-                borderRadius: 4
+                borderColor: '#2563eb',
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: createGradient(monthlyCtx),
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 2,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#2563eb',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
             }]
         },
         options: commonOptions
@@ -183,14 +278,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Weekly Chart
     const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
     new Chart(weeklyCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: {!! json_encode($weeklySales->pluck('sale_date')) !!},
+            labels: {!! json_encode($weeklySales->pluck('sale_date')->map(fn($d) => \Illuminate\Support\Carbon::parse($d)->format('D'))) !!},
             datasets: [{
                 label: 'Sales Amount',
                 data: {!! json_encode($weeklySales->pluck('sale_amount')) !!},
-                backgroundColor: '#5d9bfb',
-                borderRadius: 4
+                borderColor: '#2563eb',
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: createGradient(weeklyCtx),
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 2,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#2563eb',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
             }]
         },
         options: commonOptions
