@@ -3,7 +3,7 @@
 use App\Http\Controllers\AppFileController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\ConfigController;
-use App\Http\Controllers\InventoryOperationController;
+use App\Http\Controllers\TransferController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
@@ -28,10 +28,15 @@ Route::middleware('auth:employee')->group(function (): void {
         Route::post('/generate/{report}', [ReportController::class,'store'])->name('reports.store');
     });
 
-    Route::get('/inventory/operations', [InventoryOperationController::class, 'index'])->name('inventory.operations');
-    Route::post('/inventory/receiving', [InventoryOperationController::class, 'storeReceiving'])->name('inventory.receiving.store');
-    Route::post('/inventory/return', [InventoryOperationController::class, 'storeReturn'])->name('inventory.return.store');
-    Route::post('/inventory/transfer-out', [InventoryOperationController::class, 'storeTransferOut'])->name('inventory.transfer-out.store');
+    Route::get('/transfers/out', [TransferController::class, 'outIndex'])->name('transfers.out');
+    Route::get('/transfers/in', [TransferController::class, 'inIndex'])->name('transfers.in');
+    Route::get('/transfers/new', [TransferController::class, 'create'])->name('transfers.create');
+    Route::post('/transfers/item', [TransferController::class, 'addItem'])->name('transfers.item.add');
+    Route::post('/transfers/item/{index}', [TransferController::class, 'editItem'])->name('transfers.item.edit');
+    Route::delete('/transfers/item/{index}', [TransferController::class, 'removeItem'])->name('transfers.item.remove');
+    Route::post('/transfers/location', [TransferController::class, 'setLocation'])->name('transfers.location.set');
+    Route::post('/transfers/complete', [TransferController::class, 'complete'])->name('transfers.complete');
+    Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
 
    
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');

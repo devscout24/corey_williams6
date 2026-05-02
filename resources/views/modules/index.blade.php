@@ -45,7 +45,7 @@
         <h1>Module Map</h1>
         <div class="actions" style="display:flex; gap:8px;">
             <a href="{{ route('labels.index') }}">Open Labels</a>
-            <a href="{{ route('inventory.operations') }}">Inventory Ops</a>
+            <a href="{{ route('transfers.out') }}">Transfers</a>
             <a href="{{ route('sales.index') }}">Sales</a>
             <a href="{{ route('messages.index') }}">Messages</a>
             <form method="post" action="{{ route('employee.logout') }}">
@@ -102,7 +102,7 @@
                             @elseif($module->module_id === 'items' && $sub->submodule_key === 'categories')
                                 <a href="{{ route('categories.index') }}">{{ $sub->label }}</a>
                             @elseif($module->module_id === 'receivings')
-                                <a href="{{ route('inventory.operations') }}">{{ $sub->label }}</a>
+                                <a href="{{ route('transfers.out') }}">{{ $sub->label }}</a>
                             @elseif($module->module_id === 'sales')
                                 <a href="{{ route('sales.index') }}">{{ $sub->label }}</a>
                             @elseif($module->module_id === 'messages')

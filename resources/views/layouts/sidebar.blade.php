@@ -66,8 +66,8 @@
                     <i class="bi bi-chevron-right nav-arrow"></i>
                 </a>
                 <div class="nav-submenu">
-                    <div class="nav-item"><a href="{{ route('inventory.operations') }}" class="nav-link"><i class="bi bi-dot"></i> Transfer Out</a></div>
-                    <div class="nav-item"><a href="{{ route('inventory.operations') }}" class="nav-link"><i class="bi bi-dot"></i> Transfer In</a></div>
+                    <div class="nav-item"><a href="{{ route('transfers.out') }}" class="nav-link"><i class="bi bi-dot"></i> Transfer Out</a></div>
+                    <div class="nav-item"><a href="{{ route('transfers.in') }}" class="nav-link"><i class="bi bi-dot"></i> Transfer In</a></div>
                 </div>
             </div>
 
