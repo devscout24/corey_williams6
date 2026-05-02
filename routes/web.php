@@ -12,7 +12,12 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TagController;
+<<<<<<< HEAD
 
+=======
+use App\Http\Controllers\PriceRuleController;
+use App\Http\Controllers\ReportController;
+>>>>>>> cecb20092221e1220bb434ae64c96f4035ee8738
 use Illuminate\Support\Facades\Route;
 
 require_once __DIR__.'/rony/items_module.php';
@@ -20,6 +25,12 @@ require_once __DIR__.'/rony/receive_return_module.php';
 
 Route::middleware('auth:employee')->group(function (): void {
     Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
+
+    Route::prefix('reports')->group(function () {
+        Route::get('/', 'App\Http\Controllers\ReportController@index')->name('reports.index');
+        Route::get('/generate/{report}', 'App\Http\Controllers\ReportController@generate')->name('reports.generate');
+        Route::post('/generate/{report}', 'App\Http\Controllers\ReportController@store')->name('reports.store');
+    });
     Route::get('/modules', [ModuleController::class, 'index'])->name('modules.list');
 
     Route::get('/inventory/operations', [InventoryOperationController::class, 'index'])->name('inventory.operations');
