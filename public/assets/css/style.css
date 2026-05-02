@@ -768,89 +768,496 @@ input, select, textarea { font-family: var(--font); }
   .gs-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* =============================================
+   DARK MODE
+   ============================================= */
+[data-theme='dark'] {
+  --gray-50:  #0F172A;
+  --gray-100: #1E293B;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #64748B;
+  --gray-500: #94A3B8;
+  --gray-600: #CBD5E1;
+  --gray-700: #E2E8F0;
+  --gray-800: #F1F5F9;
+  --gray-900: #F8FAFC;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.5), 0 2px 4px -1px rgba(0,0,0,.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.6), 0 4px 6px -2px rgba(0,0,0,.5);
+}
 
+[data-theme='dark'] .sidebar,
+[data-theme='dark'] .topbar,
+[data-theme='dark'] .card,
+[data-theme='dark'] .stat-card {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+}
 
+[data-theme='dark'] input,
+[data-theme='dark'] select,
+[data-theme='dark'] textarea,
+[data-theme='dark'] .form-control,
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .sc-form-control,
+[data-theme='dark'] .sc-currency-control,
+[data-theme='dark'] .sc-payment-control,
+[data-theme='dark'] .sc-payment-select,
+[data-theme='dark'] .sc-receipt-input,
+[data-theme='dark'] .sc-receipt-select,
+[data-theme='dark'] .sc-od-select {
+  background-color: var(--gray-50) !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
 
+[data-theme='dark'] .table,
+[data-theme='dark'] .sc-currency-table,
+[data-theme='dark'] .sc-currency-denom-table,
+[data-theme='dark'] .sc-od-providers-table {
+  color: var(--gray-900);
+}
 
- / *   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
-       D A R K   M O D E 
-       = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =   * / 
- [ d a t a - t h e m e = ' d a r k ' ]   { 
-     - - g r a y - 5 0 :     # 0 F 1 7 2 A ; 
-     - - g r a y - 1 0 0 :   # 1 E 2 9 3 B ; 
-     - - g r a y - 2 0 0 :   # 3 3 4 1 5 5 ; 
-     - - g r a y - 3 0 0 :   # 4 7 5 5 6 9 ; 
-     - - g r a y - 4 0 0 :   # 6 4 7 4 8 B ; 
-     - - g r a y - 5 0 0 :   # 9 4 A 3 B 8 ; 
-     - - g r a y - 6 0 0 :   # C B D 5 E 1 ; 
-     - - g r a y - 7 0 0 :   # E 2 E 8 F 0 ; 
-     - - g r a y - 8 0 0 :   # F 1 F 5 F 9 ; 
-     - - g r a y - 9 0 0 :   # F 8 F A F C ; 
-     - - s h a d o w - x s :   0   1 p x   2 p x   r g b a ( 0 , 0 , 0 , . 3 ) ; 
-     - - s h a d o w - s m :   0   1 p x   3 p x   r g b a ( 0 , 0 , 0 , . 4 ) ,   0   1 p x   2 p x   r g b a ( 0 , 0 , 0 , . 3 ) ; 
-     - - s h a d o w - m d :   0   4 p x   6 p x   - 1 p x   r g b a ( 0 , 0 , 0 , . 5 ) ,   0   2 p x   4 p x   - 1 p x   r g b a ( 0 , 0 , 0 , . 4 ) ; 
-     - - s h a d o w - l g :   0   1 0 p x   1 5 p x   - 3 p x   r g b a ( 0 , 0 , 0 , . 6 ) ,   0   4 p x   6 p x   - 2 p x   r g b a ( 0 , 0 , 0 , . 5 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . s i d e b a r , 
- [ d a t a - t h e m e = ' d a r k ' ]   . t o p b a r , 
- [ d a t a - t h e m e = ' d a r k ' ]   . c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s t a t - c a r d   { 
-     b a c k g r o u n d :   v a r ( - - g r a y - 1 0 0 ) ; 
-     b o r d e r - c o l o r :   v a r ( - - g r a y - 2 0 0 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   i n p u t , 
- [ d a t a - t h e m e = ' d a r k ' ]   s e l e c t , 
- [ d a t a - t h e m e = ' d a r k ' ]   t e x t a r e a , 
- [ d a t a - t h e m e = ' d a r k ' ]   . f o r m - c o n t r o l , 
- [ d a t a - t h e m e = ' d a r k ' ]   . f o r m - s e l e c t , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - f o r m - c o n t r o l , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - c u r r e n c y - c o n t r o l , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - p a y m e n t - c o n t r o l , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - p a y m e n t - s e l e c t , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - r e c e i p t - i n p u t , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - r e c e i p t - s e l e c t , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - o d - s e l e c t   { 
-     b a c k g r o u n d - c o l o r :   v a r ( - - g r a y - 5 0 )   ! i m p o r t a n t ; 
-     c o l o r :   v a r ( - - g r a y - 9 0 0 )   ! i m p o r t a n t ; 
-     b o r d e r - c o l o r :   v a r ( - - g r a y - 2 0 0 )   ! i m p o r t a n t ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . t a b l e , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - c u r r e n c y - t a b l e , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - c u r r e n c y - d e n o m - t a b l e , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - o d - p r o v i d e r s - t a b l e   { 
-     c o l o r :   v a r ( - - g r a y - 9 0 0 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . n a v - s u b m e n u   { 
-     b a c k g r o u n d :   v a r ( - - g r a y - 5 0 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . n a v - l i n k : h o v e r   { 
-     b a c k g r o u n d :   v a r ( - - g r a y - 5 0 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - t a b   { 
-     b a c k g r o u n d :   v a r ( - - g r a y - 1 0 0 ) ; 
-     c o l o r :   v a r ( - - g r a y - 5 0 0 ) ; 
-     b o r d e r - c o l o r :   v a r ( - - g r a y - 2 0 0 ) ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - t a b . a c t i v e   { 
-     b a c k g r o u n d :   v a r ( - - p r i m a r y ) ; 
-     c o l o r :   # f f f ; 
- } 
- 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - f o r m - c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - c u r r e n c y - c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - p a y m e n t - c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - p r i c e - r u l e s - c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - o d - c a r d , 
- [ d a t a - t h e m e = ' d a r k ' ]   . s c - r e c e i p t - c a r d   { 
-     b a c k g r o u n d :   v a r ( - - g r a y - 1 0 0 ) ; 
-     b o r d e r - c o l o r :   v a r ( - - g r a y - 2 0 0 ) ; 
- } 
-  
- 
+[data-theme='dark'] .nav-submenu {
+  background: var(--gray-50);
+}
+
+[data-theme='dark'] .nav-link:hover {
+  background: var(--gray-50);
+}
+
+[data-theme='dark'] .sc-tab {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-color: var(--gray-200);
+}
+
+.activity-info { flex: 1; }
+.activity-title { font-size: 13.5px; font-weight: 600; color: var(--gray-800); }
+.activity-meta { font-size: 12px; color: var(--gray-400); margin-top: 1px; }
+
+.activity-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+/* =============================================
+   CHART AREA
+   ============================================= */
+.chart-card { margin-top: 16px; }
+
+.chart-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gray-100);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.chart-filter:hover { background: var(--gray-200); }
+
+.chart-wrapper {
+  padding: 8px 20px 20px;
+  height: 200px;
+}
+
+/* =============================================
+   UTILITIES
+   ============================================= */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-primary { background: var(--primary-soft); color: var(--primary); }
+.badge-success { background: #D1FAE5; color: var(--success); }
+.badge-warning { background: #FEF3C7; color: var(--warning); }
+.badge-danger  { background: #FEE2E2; color: var(--danger); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: var(--transition);
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-outline { background: transparent; border: 1px solid var(--gray-300); color: var(--gray-700); }
+.btn-outline:hover { background: var(--gray-50); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* =============================================
+   SIDEBAR OVERLAY (Mobile)
+   ============================================= */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 99;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 992px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+  }
+
+  .main-content { margin-left: 0; }
+  .sidebar-toggle { display: flex; }
+
+  .topbar-user-info { display: none; }
+
+  .page-content { padding: 16px; }
+
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  .gs-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .topbar { padding: 0 16px; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-value { font-size: 17px; }
+  .gs-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* =============================================
+   DARK MODE
+   ============================================= */
+[data-theme='dark'] {
+  --gray-50:  #0F172A;
+  --gray-100: #1E293B;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #64748B;
+  --gray-500: #94A3B8;
+  --gray-600: #CBD5E1;
+  --gray-700: #E2E8F0;
+  --gray-800: #F1F5F9;
+  --gray-900: #F8FAFC;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.5), 0 2px 4px -1px rgba(0,0,0,.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.6), 0 4px 6px -2px rgba(0,0,0,.5);
+}
+
+[data-theme='dark'] .sidebar,
+[data-theme='dark'] .topbar,
+[data-theme='dark'] .card,
+[data-theme='dark'] .stat-card {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] select,
+[data-theme='dark'] textarea,
+[data-theme='dark'] .form-control,
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .sc-form-control,
+[data-theme='dark'] .sc-currency-control,
+[data-theme='dark'] .sc-payment-control,
+[data-theme='dark'] .sc-payment-select,
+[data-theme='dark'] .sc-receipt-input,
+[data-theme='dark'] .sc-receipt-select,
+[data-theme='dark'] .sc-od-select {
+  background-color: var(--gray-50) !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .table,
+[data-theme='dark'] .sc-currency-table,
+[data-theme='dark'] .sc-currency-denom-table,
+[data-theme='dark'] .sc-od-providers-table {
+  color: var(--gray-900);
+}
+
+[data-theme='dark'] .nav-submenu {
+  background: var(--gray-50);
+}
+
+[data-theme='dark'] .nav-link:hover {
+  background: var(--gray-50);
+}
+
+[data-theme='dark'] .sc-tab {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-color: var(--gray-200);
+}
+
+[data-theme='dark'] .sc-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+[data-theme='dark'] .sc-form-card,
+[data-theme='dark'] .sc-currency-card,
+[data-theme='dark'] .sc-payment-card,
+[data-theme='dark'] .sc-price-rules-card,
+[data-theme='dark'] .sc-od-card,
+[data-theme='dark'] .sc-receipt-card {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+}
+
+/* Custom Views & Cards Overrides */
+[data-theme='dark'] .sales-info,
+[data-theme='dark'] .customers-toolbar,
+[data-theme='dark'] .labels-card,
+[data-theme='dark'] .category-tree-card,
+[data-theme='dark'] .tags-card,
+[data-theme='dark'] .messages-card,
+[data-theme='dark'] .reports-card,
+[data-theme='dark'] .price-rules-card,
+[data-theme='dark'] .receivings-card,
+[data-theme='dark'] .table-card,
+[data-theme='dark'] .report-menu,
+[data-theme='dark'] .report-selection {
+  background: var(--gray-100) !important;
+  border-color: var(--gray-200) !important;
+}
+
+/* Module Page & Specific Typography Overrides */
+[data-theme='dark'] .sales-header h2,
+[data-theme='dark'] .stat-info h3,
+[data-theme='dark'] .card h2,
+[data-theme='dark'] .grid .card,
+[data-theme='dark'] .sub a,
+[data-theme='dark'] .sub {
+  color: var(--gray-800) !important;
+}
+
+[data-theme='dark'] .stat-info p,
+[data-theme='dark'] .report-menu h3 {
+  color: var(--gray-500) !important;
+}
+
+[data-theme='dark'] .sub li {
+  border-bottom-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .chart-period-select {
+  background: var(--gray-50) !important;
+  color: var(--gray-800) !important;
+  border-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .nav-tabs .nav-link {
+  color: var(--gray-500) !important;
+}
+
+[data-theme='dark'] .nav-tabs .nav-link:hover {
+  background: var(--gray-200) !important;
+  color: var(--gray-800) !important;
+}
+
+[data-theme='dark'] .nav-tabs .nav-link.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* Bootstrap Overrides for Dark Mode */
+[data-theme='dark'] .bg-white {
+  background-color: var(--gray-100) !important;
+}
+
+[data-theme='dark'] .bg-light {
+  background-color: var(--gray-50) !important;
+}
+
+[data-theme='dark'] .text-dark {
+  color: var(--gray-900) !important;
+}
+
+[data-theme='dark'] .text-muted {
+  color: var(--gray-500) !important;
+}
+
+[data-theme='dark'] .border,
+[data-theme='dark'] .border-top,
+[data-theme='dark'] .border-bottom,
+[data-theme='dark'] .border-start,
+[data-theme='dark'] .border-end {
+  border-color: var(--gray-200) !important;
+}
+
+/* Base App Overrides */
+[data-theme='dark'] .table {
+  color: var(--gray-800);
+}
+
+[data-theme='dark'] .table th,
+[data-theme='dark'] .table td {
+  background-color: transparent !important;
+  border-color: var(--gray-200);
+  color: var(--gray-800);
+}
+
+[data-theme='dark'] .table-hover tbody tr:hover td {
+  background-color: var(--gray-50) !important;
+}
+
+[data-theme='dark'] .card-header,
+[data-theme='dark'] .card-footer {
+  background-color: var(--gray-100) !important;
+  border-color: var(--gray-200) !important;
+}
+
+/* Detailed Config UI Overrides */
+[data-theme='dark'] .sc-form-label,
+[data-theme='dark'] .sc-currency-label,
+[data-theme='dark'] .sc-payment-label,
+[data-theme='dark'] .sc-od-label,
+[data-theme='dark'] .sc-profit-label,
+[data-theme='dark'] .sc-receipt-label,
+[data-theme='dark'] .sc-price-rules-row,
+[data-theme='dark'] .sc-file-check,
+[data-theme='dark'] .sc-od-zone-header {
+  color: var(--gray-600);
+}
+
+[data-theme='dark'] .sc-currency-table th {
+  background: var(--gray-200);
+  border-color: var(--gray-300);
+  color: var(--gray-800);
+}
+
+[data-theme='dark'] .sc-currency-table td {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+  color: var(--gray-900);
+}
+
+[data-theme='dark'] .sc-file-btn,
+[data-theme='dark'] .sc-btn-backup {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+  color: var(--gray-800);
+}
+
+[data-theme='dark'] .sc-file-btn:hover,
+[data-theme='dark'] .sc-btn-backup:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-300);
+}
+
+[data-theme='dark'] .sc-search-input,
+[data-theme='dark'] .sc-profit-input {
+  background-color: var(--gray-50) !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .sc-time-picker-container,
+[data-theme='dark'] .sc-time-picker-input {
+  background-color: var(--gray-50) !important;
+  color: var(--gray-900) !important;
+  border-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .sc-time-picker-dropdown {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+}
+
+[data-theme='dark'] .sc-time-picker-val,
+[data-theme='dark'] .sc-time-picker-btn {
+  color: var(--gray-900);
+}
+
+[data-theme='dark'] .sc-profit-row {
+  border-bottom-color: var(--gray-200);
+}
+
+[data-theme='dark'] .sc-profit-label {
+  border-right-color: var(--gray-200);
+}
+
+[data-theme='dark'] .sc-payment-select {
+  background: var(--gray-100) !important;
+}
+
+[data-theme='dark'] .sc-tab:hover {
+  background: var(--gray-200);
+  color: var(--gray-800);
+}
+
+/* Attributes and Custom Table Dark Mode Overrides */
+[data-theme='dark'] .attributes-card {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+}
+
+[data-theme='dark'] .attributes-table th {
+  background: var(--gray-200) !important;
+  border-bottom-color: var(--gray-300) !important;
+  color: var(--gray-800) !important;
+}
+
+[data-theme='dark'] .attributes-table td {
+  border-bottom-color: var(--gray-200) !important;
+  color: var(--gray-900) !important;
+}
+
+[data-theme='dark'] .form-actions {
+  background: var(--gray-100) !important;
+  border-top-color: var(--gray-200) !important;
+}
+
+[data-theme='dark'] .custom-table th {
+  background: var(--gray-200) !important;
+  border-color: var(--gray-300) !important;
+  color: var(--gray-800) !important;
+}
+
+[data-theme='dark'] .custom-table td {
+  border-color: var(--gray-200) !important;
+  color: var(--gray-900) !important;
+}
+
+[data-theme='dark'] .custom-table tr:hover {
+  background: var(--gray-50) !important;
+}
