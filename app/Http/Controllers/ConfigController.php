@@ -37,12 +37,9 @@ class ConfigController extends Controller
             $values[$key] = $configService->get($key, '');
         }
 
-        $locations = \App\Models\PhpposLocation::where('deleted', 0)->pluck('name', 'location_id');
-        $ecommerce_locations = \App\Models\PhpposEcommerceLocation::pluck('location_id')->toArray();
         $exchange_rates = \App\Models\PhpposCurrencyExchangeRate::all();
-        $api_keys = \App\Models\PhpposApiKey::all();
 
-        return view('config.index', compact('values', 'locations', 'ecommerce_locations', 'exchange_rates', 'api_keys'));
+        return view('config.index', compact('values', 'exchange_rates'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
@@ -58,7 +55,8 @@ class ConfigController extends Controller
             'suppliers_store_accounts', 'calculate_average_cost_price_from_receivings',
             'hide_dashboard_statistics', 'show_language_switcher', 'show_clock_on_header',
             'speed_up_search_queries', 'enable_sounds',
-            'show_barcode_company_name', 'hide_barcode_on_barcode_labels'
+            'show_barcode_company_name', 'hide_barcode_on_barcode_labels',
+            'disable_price_rules_dialog'
         ];
 
         foreach ($checkboxes as $checkbox) {
@@ -85,14 +83,7 @@ class ConfigController extends Controller
             return back()->withErrors(['config' => 'Error saving configuration. Please check for duplicate tax settings.']);
         }
 
-        \App\Models\PhpposEcommerceLocation::truncate();
-        if ($request->has('ecommerce_locations') && is_array($request->ecommerce_locations)) {
-            foreach ($request->ecommerce_locations as $location_id) {
-                \App\Models\PhpposEcommerceLocation::create(['location_id' => $location_id]);
-            }
-        } else {
-            \App\Models\PhpposEcommerceLocation::create(['location_id' => 1]);
-        }
+
 
         \App\Models\PhpposCurrencyExchangeRate::truncate();
         if ($request->has('currency_exchange_rates_to') && is_array($request->currency_exchange_rates_to)) {
@@ -120,22 +111,5 @@ class ConfigController extends Controller
         }
 
         return back()->with('status', 'Store configuration updated successfully.');
-    }
-
-    public function addApiKey()
-    {
-        $key = bin2hex(random_bytes(20));
-        \App\Models\PhpposApiKey::create([
-            'key' => sha1($key),
-            'key_ending' => substr($key, -7),
-            'date_created' => time(),
-        ]);
-        return back()->with('status', 'API Key added successfully. Key: ' . $key . ' (Please copy this now, it will not be shown again)');
-    }
-
-    public function deleteApiKey($id)
-    {
-        \App\Models\PhpposApiKey::destroy($id);
-        return back()->with('status', 'API Key deleted successfully.');
     }
 }

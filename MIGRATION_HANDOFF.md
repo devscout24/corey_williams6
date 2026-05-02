@@ -100,7 +100,7 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Config:** Added `AppConfigService` (duplicate tax guard, payment types helper), `ConfigController`, and settings UI.
 - **Config:** Added Store Config shortcut for label sheet background uploads.
 - **Config:** Set `phppos_app_files.file_data` to `LONGBLOB` to support larger uploads.
-- **Config:** Added migrations and models for `phppos_ecommerce_locations`, `phppos_currency_exchange_rates`, and `phppos_api_keys`. Modernized the Store Config UI to manage Integrations, Exchange Rates, and API Keys dynamically via Bootstrap Tabs. Added robust backend support for API Key creation/deletion, and saving complex configuration forms.
+- **Config:** Added migrations and models for `phppos_currency_exchange_rates`. Modernized the Store Config UI to manage Currency (Exchange Rates), Payment Types, and Price Rules dynamically via Bootstrap Tabs. Explicitly skipped API integrations (ecommerce locations, api keys) per user requirement.
 - **Employees:** Added dependencies (`phppos_employees_time_clock`, permissions locations, templates), `EmployeeService`, `EmployeeController`, and basic views for syncing permissions.
 
 
@@ -156,7 +156,6 @@ These rules are non-negotiable for this repo’s cleaned schema.
   - Employee form now has: Permission Templates dropdown, Module/Action checkboxes, Location overrides for modules/actions
   - `EmployeeController` properly handles `template_id`, permissions, action permissions, and location assignments
   - `EmployeeService` handles all permission syncing correctly
-- [x] **Config:** Add additional config tables (ecommerce locations, exchange rates, API keys) and modernize the config UI.
-  - Created migrations and Eloquent models for `phppos_ecommerce_locations`, `phppos_currency_exchange_rates`, and `phppos_api_keys`.
-  - Added new tabs to `config.index` UI for Integrations, Exchange Rates, and API Keys.
-  - Implemented backend methods in `ConfigController` for dynamically saving exchange rates and adding/removing API keys via separate actions.
+- [x] **Config:** Re-add sub modules for Currency, Payment Types, and Price Rules.
+  - Added new tabs to `config.index` UI for Currency (with Exchange Rates table), Payment Types, and Price Rules.
+  - Removed explicit API integration dependencies and tables as requested.

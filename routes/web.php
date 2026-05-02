@@ -57,8 +57,6 @@ Route::middleware('auth:employee')->group(function (): void {
 
     Route::get('/config', [ConfigController::class, 'index'])->name('config.index');
     Route::post('/config', [ConfigController::class, 'update'])->name('config.update');
-    Route::post('/config/api-key', [ConfigController::class, 'addApiKey'])->name('config.api_key.add');
-    Route::delete('/config/api-key/{id}', [ConfigController::class, 'deleteApiKey'])->name('config.api_key.delete');
 
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
 
