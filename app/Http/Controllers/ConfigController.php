@@ -37,14 +37,19 @@ class ConfigController extends Controller
             $values[$key] = $configService->get($key, '');
         }
 
-        return view('config.index', compact('values'));
+        $locations = \App\Models\PhpposLocation::where('deleted', 0)->pluck('name', 'location_id');
+        $ecommerce_locations = \App\Models\PhpposEcommerceLocation::pluck('location_id')->toArray();
+        $exchange_rates = \App\Models\PhpposCurrencyExchangeRate::all();
+        $api_keys = \App\Models\PhpposApiKey::all();
+
+        return view('config.index', compact('values', 'locations', 'ecommerce_locations', 'exchange_rates', 'api_keys'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
     {
         // In a real app, you might want more specific validation per field
         // For now, we'll allow all keys provided in the request that match our config
-        $data = $request->except(['_token', '_method']);
+        $data = $request->except(['_token', '_method', 'ecommerce_locations', 'currency_exchange_rates_to', 'currency_exchange_rates_symbol', 'currency_exchange_rates_rate', 'currency_exchange_rates_symbol_location', 'currency_exchange_rates_number_of_decimals', 'currency_exchange_rates_thousands_separator', 'currency_exchange_rates_decimal_point']);
         
         // Handle checkboxes (convert missing values to 0)
         $checkboxes = [
@@ -80,6 +85,57 @@ class ConfigController extends Controller
             return back()->withErrors(['config' => 'Error saving configuration. Please check for duplicate tax settings.']);
         }
 
+        \App\Models\PhpposEcommerceLocation::truncate();
+        if ($request->has('ecommerce_locations') && is_array($request->ecommerce_locations)) {
+            foreach ($request->ecommerce_locations as $location_id) {
+                \App\Models\PhpposEcommerceLocation::create(['location_id' => $location_id]);
+            }
+        } else {
+            \App\Models\PhpposEcommerceLocation::create(['location_id' => 1]);
+        }
+
+        \App\Models\PhpposCurrencyExchangeRate::truncate();
+        if ($request->has('currency_exchange_rates_to') && is_array($request->currency_exchange_rates_to)) {
+            $tos = $request->currency_exchange_rates_to;
+            $symbols = $request->currency_exchange_rates_symbol ?? [];
+            $rates = $request->currency_exchange_rates_rate ?? [];
+            $symbolLocations = $request->currency_exchange_rates_symbol_location ?? [];
+            $decimals = $request->currency_exchange_rates_number_of_decimals ?? [];
+            $thousands = $request->currency_exchange_rates_thousands_separator ?? [];
+            $decimalPoints = $request->currency_exchange_rates_decimal_point ?? [];
+
+            for ($i = 0; $i < count($tos); $i++) {
+                if (!empty($tos[$i]) && !empty($rates[$i])) {
+                    \App\Models\PhpposCurrencyExchangeRate::create([
+                        'currency_code_to' => $tos[$i],
+                        'currency_symbol' => $symbols[$i] ?? '',
+                        'exchange_rate' => $rates[$i],
+                        'currency_symbol_location' => $symbolLocations[$i] ?? 'before',
+                        'number_of_decimals' => $decimals[$i] ?? '',
+                        'thousands_separator' => $thousands[$i] ?? '',
+                        'decimal_point' => $decimalPoints[$i] ?? '',
+                    ]);
+                }
+            }
+        }
+
         return back()->with('status', 'Store configuration updated successfully.');
+    }
+
+    public function addApiKey()
+    {
+        $key = bin2hex(random_bytes(20));
+        \App\Models\PhpposApiKey::create([
+            'key' => sha1($key),
+            'key_ending' => substr($key, -7),
+            'date_created' => time(),
+        ]);
+        return back()->with('status', 'API Key added successfully. Key: ' . $key . ' (Please copy this now, it will not be shown again)');
+    }
+
+    public function deleteApiKey($id)
+    {
+        \App\Models\PhpposApiKey::destroy($id);
+        return back()->with('status', 'API Key deleted successfully.');
     }
 }

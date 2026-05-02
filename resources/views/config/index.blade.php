@@ -42,6 +42,15 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab">Advanced</button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="integrations-tab" data-bs-toggle="tab" data-bs-target="#integrations" type="button" role="tab">Integrations</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="exchange-rates-tab" data-bs-toggle="tab" data-bs-target="#exchange-rates" type="button" role="tab">Exchange Rates</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="api-keys-tab" data-bs-toggle="tab" data-bs-target="#api-keys" type="button" role="tab">API Keys</button>
+                    </li>
                 </ul>
             </div>
             
@@ -295,6 +304,103 @@
                         </div>
                     </div>
                     
+                    <!-- Integrations -->
+                    <div class="tab-pane fade" id="integrations" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <h6>eCommerce Locations</h6>
+                                <p class="text-muted small">Select the locations that are synced with eCommerce.</p>
+                                <div class="row">
+                                    @foreach($locations as $id => $name)
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="ecommerce_locations[]" value="{{ $id }}" class="form-check-input" @checked(in_array($id, $ecommerce_locations))>
+                                            <label class="form-check-label">{{ $name }}</label>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exchange Rates -->
+                    <div class="tab-pane fade" id="exchange-rates" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="exchangeRatesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Currency Code To</th>
+                                        <th>Symbol</th>
+                                        <th>Exchange Rate</th>
+                                        <th>Symbol Location</th>
+                                        <th>Decimals</th>
+                                        <th>Thousands Separator</th>
+                                        <th>Decimal Point</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($exchange_rates as $rate)
+                                    <tr>
+                                        <td><input type="text" name="currency_exchange_rates_to[]" class="form-control" value="{{ $rate->currency_code_to }}"></td>
+                                        <td><input type="text" name="currency_exchange_rates_symbol[]" class="form-control" value="{{ $rate->currency_symbol }}"></td>
+                                        <td><input type="text" name="currency_exchange_rates_rate[]" class="form-control" value="{{ (float)$rate->exchange_rate }}"></td>
+                                        <td>
+                                            <select name="currency_exchange_rates_symbol_location[]" class="form-select">
+                                                <option value="before" @selected($rate->currency_symbol_location == 'before')>Before</option>
+                                                <option value="after" @selected($rate->currency_symbol_location == 'after')>After</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="number" name="currency_exchange_rates_number_of_decimals[]" class="form-control" value="{{ $rate->number_of_decimals }}"></td>
+                                        <td><input type="text" name="currency_exchange_rates_thousands_separator[]" class="form-control" value="{{ $rate->thousands_separator }}"></td>
+                                        <td><input type="text" name="currency_exchange_rates_decimal_point[]" class="form-control" value="{{ $rate->decimal_point }}"></td>
+                                        <td><button type="button" class="btn btn-sm btn-danger remove-rate"><i class="bi bi-trash"></i></button></td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-sm btn-secondary" id="addExchangeRate">Add Exchange Rate</button>
+                        </div>
+                    </div>
+
+                    <!-- API Keys -->
+                    <div class="tab-pane fade" id="api-keys" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h6>Manage API Keys</h6>
+                            <button type="submit" formaction="{{ route('config.api_key.add') }}" class="btn btn-sm btn-success"><i class="bi bi-plus"></i> Add API Key</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Key Ending</th>
+                                        <th>Level</th>
+                                        <th>Date Created</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($api_keys as $key)
+                                    <tr>
+                                        <td>...{{ $key->key_ending }}</td>
+                                        <td>{{ $key->level }}</td>
+                                        <td>{{ $key->date_created ? date('Y-m-d H:i:s', $key->date_created) : 'N/A' }}</td>
+                                        <td>
+                                            <button type="button" onclick="deleteApiKey('{{ route('config.api_key.delete', $key->id) }}')" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Delete</button>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    @if($api_keys->isEmpty())
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No API keys found.</td>
+                                    </tr>
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
             
@@ -304,4 +410,52 @@
         </div>
     </form>
 </div>
+</div>
+
+<form id="deleteApiKeyForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+
+<script>
+    function deleteApiKey(url) {
+        if (confirm('Are you sure you want to delete this API Key?')) {
+            const form = document.getElementById('deleteApiKeyForm');
+            form.action = url;
+            form.submit();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const addExchangeRateBtn = document.getElementById('addExchangeRate');
+        if (addExchangeRateBtn) {
+            addExchangeRateBtn.addEventListener('click', function() {
+                const tbody = document.querySelector('#exchangeRatesTable tbody');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" name="currency_exchange_rates_to[]" class="form-control"></td>
+                    <td><input type="text" name="currency_exchange_rates_symbol[]" class="form-control"></td>
+                    <td><input type="text" name="currency_exchange_rates_rate[]" class="form-control" value="1"></td>
+                    <td>
+                        <select name="currency_exchange_rates_symbol_location[]" class="form-select">
+                            <option value="before">Before</option>
+                            <option value="after">After</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="currency_exchange_rates_number_of_decimals[]" class="form-control" value="2"></td>
+                    <td><input type="text" name="currency_exchange_rates_thousands_separator[]" class="form-control"></td>
+                    <td><input type="text" name="currency_exchange_rates_decimal_point[]" class="form-control"></td>
+                    <td><button type="button" class="btn btn-sm btn-danger remove-rate"><i class="bi bi-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.querySelector('#exchangeRatesTable').addEventListener('click', function(e) {
+            if (e.target.closest('.remove-rate')) {
+                e.target.closest('tr').remove();
+            }
+        });
+    });
+</script>
 @endsection
