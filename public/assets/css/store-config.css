@@ -1,0 +1,938 @@
+.sc-topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sc-btn-backup {
+      background: #fff;
+      border: 1.5px solid #E2E8F0;
+      color: #1E293B;
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.18s, border-color 0.18s;
+      cursor: pointer;
+    }
+
+    .sc-btn-backup:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .sc-btn-check {
+      background: #22c55e;
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.18s;
+      cursor: pointer;
+    }
+
+    .sc-btn-check:hover {
+      background: #16a34a;
+    }
+
+    .sc-search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .sc-search-input {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13.5px;
+      outline: none;
+      width: 220px;
+      transition: border-color 0.18s;
+    }
+
+    .sc-search-input:focus {
+      border-color: var(--primary, var(--primary));
+    }
+
+    .sc-btn-search {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+
+    .sc-btn-search:hover {
+      background: var(--primary-dark);
+    }
+
+    .sc-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+
+    .sc-tab {
+      background: #F1F5F9;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .sc-tab:hover {
+      background: #e2e8f0;
+      color: #1E293B;
+    }
+
+    .sc-tab.active {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .sc-form-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1.5px solid #E2E8F0;
+      padding: 32px 36px 28px;
+      max-width: 100%;
+    }
+
+    .sc-form-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .sc-form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      text-align: right;
+    }
+
+    .sc-form-control {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 14px;
+      color: #1E293B;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.18s;
+      background: #fff;
+    }
+
+    .sc-form-control:focus {
+      border-color: var(--primary);
+    }
+
+    .sc-file-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sc-file-btn {
+      background: #fff;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 7px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1E293B;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .sc-file-btn:hover {
+      background: #f1f5f9;
+    }
+
+    .sc-file-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #64748B;
+    }
+
+    .sc-file-check input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--primary);
+    }
+
+    .sc-btn-save {
+      background: #22c55e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 32px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.15s;
+      float: right;
+    }
+
+    .sc-btn-save:hover {
+      background: #16a34a;
+      transform: translateY(-1px);
+    }
+
+    .sc-tab-panel {
+      display: none;
+    }
+
+    .sc-tab-panel.active {
+      display: block;
+    }
+
+    /* Currency tab */
+    .sc-currency-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 18px 18px;
+      max-width: 100%;
+    }
+
+    .sc-currency-grid {
+      display: grid;
+      grid-template-columns: 170px minmax(260px, 1fr);
+      column-gap: 12px;
+      row-gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .sc-currency-label {
+      color: #374151;
+      font-size: 12px;
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    .sc-currency-control {
+      height: 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 2px;
+      background: #fff;
+      font-size: 12px;
+      color: #1f2937;
+      padding: 2px 8px;
+      width: 100%;
+      outline: none;
+    }
+
+    .sc-currency-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+
+    .sc-currency-table-wrap {
+      margin-left: 182px;
+      margin-bottom: 14px;
+      max-width: 700px;
+      overflow-x: auto;
+    }
+
+    .sc-currency-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+    }
+
+    .sc-currency-table th {
+      font-size: 11px;
+      color: #374151;
+      font-weight: 500;
+      border: 1px solid #d1d5db;
+      padding: 4px 6px;
+      background: #EEF0FF;
+      line-height: 1.15;
+      text-align: left;
+    }
+
+    .sc-currency-table td {
+      border: 1px solid #d1d5db;
+      padding: 4px 6px;
+      vertical-align: middle;
+      font-size: 12px;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+
+    .sc-currency-link {
+      color: var(--primary);
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .sc-currency-link:hover {
+      text-decoration: underline;
+    }
+
+    .sc-currency-denom-wrap {
+      margin-left: 182px;
+      max-width: 560px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .sc-currency-denom-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .sc-currency-denom-table th {
+      font-size: 12px;
+      font-weight: 600;
+      color: #111827;
+      text-align: left;
+      padding: 0 6px 8px;
+    }
+
+    .sc-currency-denom-table td {
+      padding: 2px 6px;
+      font-size: 12px;
+      color: #1f2937;
+      vertical-align: middle;
+    }
+
+    .sc-currency-denom-input {
+      width: 100%;
+      height: 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 2px;
+      padding: 2px 8px;
+      font-size: 12px;
+      background: #fff;
+      outline: none;
+    }
+
+    .sc-currency-denom-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+
+    .sc-profit-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+      padding: 20px 24px;
+      border-top: 1px solid #F1F5F9;
+    }
+
+    /* Custom Time Picker Styles */
+    .sc-time-picker-container {
+      position: relative;
+      width: 100%;
+      display: flex;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 6px;
+      overflow: visible;
+      background: white;
+      transition: border-color 0.2s;
+    }
+
+    .sc-time-picker-container:focus-within {
+      border-color: #3b82f6;
+    }
+
+    .sc-time-picker-icon {
+      background: #3b82f6;
+      color: white;
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      border-radius: 4px 0 0 4px;
+    }
+
+    .sc-time-picker-input {
+      flex: 1;
+      border: none;
+      padding: 10px 14px;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+      background: transparent;
+      color: #334155;
+    }
+
+    .sc-time-picker-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 320px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      padding: 24px;
+      display: none;
+      user-select: none;
+    }
+
+    .sc-time-picker-dropdown.active {
+      display: block;
+    }
+
+    .sc-time-picker-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .sc-time-picker-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sc-time-picker-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: #1e293b;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+
+    .sc-time-picker-btn:hover {
+      color: #3b82f6;
+    }
+
+    .sc-time-picker-val {
+      font-size: 26px;
+      font-weight: 500;
+      color: #1e293b;
+      min-width: 45px;
+      text-align: center;
+    }
+
+    .sc-time-picker-sep {
+      font-size: 26px;
+      font-weight: 500;
+      color: #94a3b8;
+      padding-bottom: 4px;
+    }
+
+    .sc-time-picker-ampm {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+      min-width: 55px;
+    }
+
+    .sc-time-picker-ampm:hover {
+      background: var(--primary);
+    }
+
+    /* Sync Operation Toggles */
+    .sc-sync-op {
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .sc-sync-op:hover {
+      transform: translateX(4px);
+      filter: brightness(0.98);
+    }
+
+    .sc-sync-op.inactive {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      opacity: 0.7;
+    }
+
+    .sc-sync-op.inactive i {
+      color: #cbd5e1 !important;
+    }
+
+    /* Payment types tab */
+    .sc-payment-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 24px 28px 20px;
+      max-width: 100%;
+    }
+
+    .sc-payment-row {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .sc-payment-label {
+      font-size: 12.5px;
+      color: #374151;
+      line-height: 1.3;
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .sc-payment-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      background: #fff;
+      color: #1f2937;
+      font-size: 12.5px;
+      padding: 4px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .sc-payment-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .sc-payment-pills {
+      display: inline-flex;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1.5px solid var(--primary-dark);
+      gap: 0;
+    }
+
+    .sc-payment-pill {
+      height: 28px;
+      border: none;
+      border-right: 1px solid rgba(255, 255, 255, 0.3);
+      background: #3b82f6;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 0 18px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .sc-payment-pill:last-child {
+      border-right: none;
+    }
+
+    .sc-payment-pill:hover,
+    .sc-payment-pill.is-active {
+      background: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    .sc-payment-select {
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      background: #e5e7eb;
+      color: #6b7280;
+      font-size: 12.5px;
+      padding: 4px 10px;
+      width: 100%;
+      outline: none;
+      appearance: none;
+      cursor: not-allowed;
+    }
+
+    .sc-payment-check {
+      width: 13px;
+      height: 13px;
+      accent-color: var(--primary);
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
+    .sc-payment-divider {
+      border: 0;
+      border-top: 1px solid #e2e8f0;
+      margin: 18px 0 14px;
+    }
+
+    .sc-payment-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Price rules tab */
+    .sc-price-rules-card {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 14px 18px;
+      max-width: 100%;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sc-price-rules-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #374151;
+      font-size: 18px;
+      font-weight: 500;
+      padding: 4px 2px;
+    }
+
+    .sc-price-rules-check {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--primary);
+    }
+
+    .sc-price-rules-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Profit calculation tab */
+    .sc-profit-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 24px 28px 20px;
+      max-width: 100%;
+    }
+
+    .sc-profit-grid {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 0 0 18px;
+    }
+
+    .sc-profit-row {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      align-items: stretch;
+      min-height: 48px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .sc-profit-row:last-child {
+      border-bottom: none;
+    }
+
+    .sc-profit-label {
+      color: #374151;
+      font-size: 13.5px;
+      font-weight: 400;
+      text-align: right;
+      padding: 10px 16px;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .sc-profit-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 10px 16px;
+    }
+
+    .sc-profit-input {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      background: #fff;
+      color: #374151;
+      font-size: 13px;
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .sc-profit-input:focus {
+      border-color: var(--primary);
+    }
+
+    .sc-profit-check {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .sc-profit-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 900px) {
+      .sc-profit-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sc-profit-label {
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .sc-profit-row:last-child .sc-profit-label {
+        border-bottom: 1px solid #e2e8f0;
+      }
+    }
+
+    /* Orders & Deliveries */
+    .sc-od-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 24px 28px 20px;
+      max-width: 100%;
+    }
+
+    .sc-od-row {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .sc-od-label {
+      font-size: 12.5px;
+      color: #374151;
+      line-height: 1.3;
+      text-align: right;
+      padding-right: 4px;
+      padding-top: 6px;
+    }
+
+    .sc-od-select {
+      height: 32px;
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      background: #e5e7eb;
+      color: #374151;
+      font-size: 12.5px;
+      padding: 4px 10px;
+      width: 100%;
+      max-width: 100%;
+      outline: none;
+      appearance: none;
+    }
+
+    .sc-od-check {
+      width: 13px;
+      height: 13px;
+      accent-color: var(--primary);
+      margin-top: 7px;
+      cursor: pointer;
+    }
+
+    .sc-od-providers-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    .sc-od-providers-table th {
+      font-weight: 600;
+      color: #374151;
+      padding: 4px 10px 6px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .sc-od-providers-table td {
+      padding: 4px 10px;
+    }
+
+    .sc-od-link {
+      color: var(--primary);
+      font-size: 12.5px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-block;
+      margin-top: 6px;
+    }
+
+    .sc-od-link:hover {
+      text-decoration: underline;
+    }
+
+    .sc-od-zone-box {
+      border: 1px solid #d1d5db;
+      border-radius: 3px;
+      background: #fff;
+      padding: 10px 12px;
+      width: 360px;
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.5;
+      min-height: 72px;
+    }
+
+    .sc-od-zone-header {
+      font-weight: 600;
+      font-size: 12.5px;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .sc-od-zones-cols {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .sc-od-zones-right {
+      display: flex;
+      gap: 30px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #374151;
+      padding-top: 4px;
+      white-space: nowrap;
+    }
+
+    .sc-od-divider {
+      border: 0;
+      border-top: 1px solid #e2e8f0;
+      margin: 18px 0 14px;
+    }
+
+    .sc-od-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Sales / Receipt Tab */
+    .sc-receipt-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 24px 28px 20px;
+      max-width: 100%;
+    }
+
+    .sc-receipt-row {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .sc-receipt-label {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.3;
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .sc-receipt-label.link-style {
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .sc-receipt-check {
+      width: 13px;
+      height: 13px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .sc-receipt-input {
+      height: 26px;
+      border: 1px solid #d1d5db;
+      border-radius: 2px;
+      background: #fff;
+      font-size: 12px;
+      color: #1f2937;
+      padding: 2px 8px;
+      width: 100%;
+      outline: none;
+    }
+
+    .sc-receipt-input:focus {
+      border-color: var(--primary);
+    }
+
+    .sc-receipt-select {
+      height: 26px;
+      border: 1px solid #d1d5db;
+      border-radius: 2px;
+      background: #e5e7eb;
+      color: #374151;
+      font-size: 12px;
+      padding: 2px 8px;
+      width: 100%;
+      outline: none;
+    }
+
+    .sc-receipt-divider {
+      border: 0;
+      border-top: 1px solid #e2e8f0;
+      margin: 18px 0 14px;
+    }
+
+    .sc-receipt-save-wrap {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+
+
+
+

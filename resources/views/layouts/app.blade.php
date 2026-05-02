@@ -47,6 +47,9 @@
                             <li><a class="dropdown-item py-2 px-3" href="{{ route('items.index') }}"><i class="bi bi-box-seam me-2"></i> New Item</a></li>
                         </ul>
                     </div>
+                    <div class="topbar-icon-btn" id="themeToggle" title="Toggle Dark Mode">
+                        <i class="bi bi-moon-fill" id="themeIcon"></i>
+                    </div>
                     <div class="topbar-icon-btn"><i class="bi bi-bell"></i><span class="badge-dot"></span></div>
                     <div class="topbar-user">
                         <div class="topbar-user-info">
@@ -75,6 +78,36 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
     <script src="{{ asset('assets/js/main.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const htmlEl = document.documentElement;
+            
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            htmlEl.setAttribute('data-theme', savedTheme);
+            updateIcon(savedTheme);
+
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = htmlEl.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                htmlEl.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateIcon(newTheme);
+            });
+
+            function updateIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.classList.remove('bi-moon-fill');
+                    themeIcon.classList.add('bi-sun-fill');
+                } else {
+                    themeIcon.classList.remove('bi-sun-fill');
+                    themeIcon.classList.add('bi-moon-fill');
+                }
+            }
+        });
+    </script>
     @stack('scripts')
 
     @if (session('status'))
