@@ -29,6 +29,7 @@ class ConfigController extends Controller
             'label_sheet_background',
             'show_barcode_company_name', 'hide_barcode_on_barcode_labels',
             'phppos_session_expiration', 'speed_up_search_queries', 'enable_sounds',
+            'receipt_text_size'
         ];
 
         $values = [];

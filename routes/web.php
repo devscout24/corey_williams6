@@ -12,12 +12,6 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TagController;
-<<<<<<< HEAD
-
-=======
-use App\Http\Controllers\PriceRuleController;
-use App\Http\Controllers\ReportController;
->>>>>>> cecb20092221e1220bb434ae64c96f4035ee8738
 use Illuminate\Support\Facades\Route;
 
 require_once __DIR__.'/rony/items_module.php';
