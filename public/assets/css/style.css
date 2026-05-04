@@ -1116,6 +1116,13 @@ input, select, textarea { font-family: var(--font); }
   color: var(--gray-500) !important;
 }
 
+[data-theme='dark'] .form-label,
+[data-theme='dark'] .form-check-label,
+[data-theme='dark'] .col-form-label,
+[data-theme='dark'] h6 {
+  color: var(--gray-700) !important;
+}
+
 [data-theme='dark'] .border,
 [data-theme='dark'] .border-top,
 [data-theme='dark'] .border-bottom,
@@ -1283,4 +1290,11 @@ input, select, textarea { font-family: var(--font); }
 [data-theme='dark'] .input-group > input.bg-light::placeholder,
 [data-theme='dark'] .input-group > .form-control.bg-light::placeholder {
   color: var(--gray-600) !important;
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder,
+[data-theme='dark'] .form-control::placeholder {
+  color: var(--gray-500) !important;
+  opacity: 1;
 }

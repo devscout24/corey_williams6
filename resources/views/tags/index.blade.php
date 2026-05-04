@@ -37,19 +37,25 @@
     clear: both;
     overflow: hidden;
   }
+  [data-theme='dark'] .tags-card {
+    background: var(--gray-100);
+  }
 
   .tags-table {
     width: 100%;
     border-collapse: collapse;
   }
   .tags-table th {
-    background: #f8fafc;
+    background: var(--gray-50);
     padding: 14px 24px;
     font-size: 13px;
     font-weight: 700;
     color: var(--gray-800);
     text-transform: capitalize;
     border-bottom: 1px solid var(--gray-200);
+  }
+  [data-theme='dark'] .tags-table th {
+    background: var(--gray-200);
   }
   .tags-table td {
     padding: 14px 24px;

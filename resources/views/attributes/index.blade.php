@@ -65,6 +65,15 @@
   .action-icon:hover {
     color: #a71d2a;
   }
+
+  /* Dark Mode Placeholder Fix */
+  [data-theme='dark'] ::placeholder {
+    color: #93c5fd !important;
+    opacity: 1;
+  }
+  [data-theme='dark'] .form-control::placeholder {
+    color: #93c5fd !important;
+  }
   
   .add-attribute-btn {
     display: inline-block;
