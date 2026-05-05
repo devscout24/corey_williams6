@@ -37,6 +37,10 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 6, 2026
+- **Transfers Sync (Backend):** Added peer-to-peer sync API endpoints with shared-token auth, transfer export endpoint, and import logic that creates a local Transfer In, inventory movements, and a Receiving record with source reference. Added external source/id fields to `phppos_transfers` for idempotent imports.
+- **Receivings UI:** Added manual “Sync Transfer” modal on the Receiving register page.
+
 ### May 1, 2026
 - **Inventory Flow (Receivings):** Enhanced `ReceivingController` to support searching and adding Item Kits (including nested kits) to the receiving cart. Implemented logic to parse item kits and correctly process their individual items during inventory updates, matching legacy POS system behavior.
 - **Migrations:** Archived legacy migrations to `database/migrations/legacy`, created one-migration-per-table schema (excluding users/cache/jobs), and centralized seed data in `PosCoreSeeder`.
@@ -137,6 +141,7 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ### 4. Inventory Flow
 - [ ] Modernize the UI for Receivings, Returns, and Transfers to match the new Pos HTML Dashboard template.
+- [ ] **Transfers Sync (UI):** Add target device registry for peer-to-peer transfer-out sync.
 
 ### 5. Sales & Receipts
 - [ ] Modernize Sales Register UI.

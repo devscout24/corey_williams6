@@ -10,9 +10,11 @@ use App\Models\PhpposReceivingItem;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplierStoreAccount;
+use App\Services\InventoryFlowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
@@ -389,6 +391,94 @@ class ReceivingController extends Controller
             Session::forget('receiving_cart');
             return redirect()->route('receivings.index')->with('status', 'Receiving completed successfully.');
         });
+    }
+
+    public function syncTransfer(Request $request, InventoryFlowService $inventoryFlowService): RedirectResponse
+    {
+        $data = $request->validate([
+            'sender_base_url' => 'required|string|max:255',
+            'transfer_out_id' => 'required|string|max:100',
+        ]);
+
+        $token = config('sync.shared_token');
+        if (! $token || $token === 'INSTALL_SET_TOKEN') {
+            return redirect()->back()->with('error', 'Sync token is not configured on this device.');
+        }
+
+        $baseUrl = rtrim($data['sender_base_url'], '/');
+        if (! preg_match('/^https?:\/\//i', $baseUrl)) {
+            $baseUrl = 'http://'.$baseUrl;
+        }
+
+        try {
+            $response = Http::withHeaders(['X-Sync-Token' => $token])
+                ->timeout(15)
+                ->get($baseUrl.'/api/sync/transfer-out/'.$data['transfer_out_id']);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to reach sender device.');
+        }
+
+        if (! $response->ok()) {
+            $message = $response->json('message') ?? 'Unable to fetch transfer from sender.';
+            return redirect()->back()->with('error', $message);
+        }
+
+        $payload = $response->json();
+        if (! is_array($payload)) {
+            return redirect()->back()->with('error', 'Invalid transfer payload.');
+        }
+
+        $fromLocation = PhpposLocation::where('ulid', $payload['from_location_ulid'] ?? null)->first();
+        $toLocation = PhpposLocation::where('ulid', $payload['to_location_ulid'] ?? null)->first();
+
+        if (! $fromLocation || ! $toLocation) {
+            return redirect()->back()->with('error', 'Location ULID not found on this device.');
+        }
+
+        $lines = [];
+        foreach (($payload['lines'] ?? []) as $index => $line) {
+            if (empty($line['item_id']) && empty($line['item_number'])) {
+                return redirect()->back()->with('error', 'Item identifier missing for line '.($index + 1).'.');
+            }
+
+            $item = null;
+            if (! empty($line['item_id'])) {
+                $item = PhpposItem::find($line['item_id']);
+            }
+            if (! $item && ! empty($line['item_number'])) {
+                $item = PhpposItem::where('item_number', $line['item_number'])->first();
+            }
+
+            if (! $item) {
+                return redirect()->back()->with('error', 'Item not found for line '.($index + 1).'.');
+            }
+
+            $lines[] = [
+                'item_id' => $item->item_id,
+                'quantity' => (float) ($line['quantity'] ?? 0),
+            ];
+        }
+
+        $result = $inventoryFlowService->importTransferIn(
+            $fromLocation->location_id,
+            $toLocation->location_id,
+            $lines,
+            (string) ($payload['source_device_id'] ?? 'unknown'),
+            (string) ($payload['transfer_out_id'] ?? $data['transfer_out_id']),
+            $payload['notes'] ?? null,
+            $payload['created_at'] ?? null,
+            auth('employee')->id()
+        );
+
+        $message = $result['already_imported']
+            ? 'Transfer already imported. Transfer In #'.$result['transfer_in_id']
+            : 'Transfer synced. Transfer In #'.$result['transfer_in_id'];
+
+        if (! empty($result['receiving_id'])) {
+            $message .= ' / Receiving #'.$result['receiving_id'];
+        }
+
+        return redirect()->back()->with('status', $message);
     }
 
     public function cancel(): RedirectResponse
