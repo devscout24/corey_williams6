@@ -38,8 +38,9 @@ class ConfigController extends Controller
         }
 
         $exchange_rates = \App\Models\PhpposCurrencyExchangeRate::all();
+        $locations = \App\Models\PhpposLocation::where('deleted', 0)->get();
 
-        return view('config.index', compact('values', 'exchange_rates'));
+        return view('config.index', compact('values', 'exchange_rates', 'locations'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
@@ -107,6 +108,15 @@ class ConfigController extends Controller
                         'decimal_point' => $decimalPoints[$i] ?? '',
                     ]);
                 }
+            }
+        }
+
+        if ($request->has('locations_color') && is_array($request->locations_color)) {
+            foreach ($request->locations_color as $locId => $color) {
+                \App\Models\PhpposLocation::where('location_id', $locId)->update([
+                    'color' => $color,
+                    'secondary_color' => $request->locations_secondary_color[$locId] ?? null
+                ]);
             }
         }
 

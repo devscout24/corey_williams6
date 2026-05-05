@@ -37,6 +37,7 @@
                 <button type="button" class="sc-tab" data-tab="currency">Currency</button>
                 <button type="button" class="sc-tab" data-tab="payment-types">Payment Types</button>
                 <button type="button" class="sc-tab" data-tab="price-rules">Price Rules</button>
+                <button type="button" class="sc-tab" data-tab="theme">Theme</button>
             </div>
 
             <!-- General Info -->
@@ -343,6 +344,38 @@
                 </div>
             </div>
 
+            <!-- Theme -->
+            <div class="sc-tab-panel" id="tab-theme">
+                <div class="sc-form-card">
+                    <h5 class="mb-4" style="color: var(--primary); font-weight: 700;">Location Theme Colors</h5>
+                    <p class="text-muted small mb-4">Set the primary and secondary colors for each location. These colors will be applied when an employee logged into the location uses the system.</p>
+                    
+                    @foreach($locations as $location)
+                    <div class="sc-form-row mb-4" style="border-bottom: 1px solid var(--gray-100); padding-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label class="sc-form-label fw-bold">{{ $location->name }}</label>
+                            <div class="text-muted small">Location ID: {{ $location->location_id }}</div>
+                        </div>
+                        <div style="display: flex; gap: 20px; flex: 2;">
+                            <div style="flex: 1;">
+                                <label class="small text-muted d-block mb-1">Primary Color</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" name="locations_color[{{ $location->location_id }}]" class="form-control form-control-color" value="{{ $location->color ?? '#2563EB' }}" title="Choose primary color">
+                                    <input type="text" class="sc-form-control text-uppercase" value="{{ $location->color ?? '#2563EB' }}" readonly style="width: 100px; font-family: monospace;">
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="small text-muted d-block mb-1">Secondary Color</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" name="locations_secondary_color[{{ $location->location_id }}]" class="form-control form-control-color" value="{{ $location->secondary_color ?? '#1E293B' }}" title="Choose secondary color">
+                                    <input type="text" class="sc-form-control text-uppercase" value="{{ $location->secondary_color ?? '#1E293B' }}" readonly style="width: 100px; font-family: monospace;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
         </form>
     </div>
 

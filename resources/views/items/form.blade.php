@@ -2,6 +2,67 @@
 
 @section('title', $item ? 'Edit Item' : 'New Item')
 @section('page-title', $item ? 'Edit Item' : 'New Item')
+@section('page-description', $item ? "Editing $item->name" : 'Create a new inventory item')
+
+@push('styles')
+<!-- Selectize CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" />
+<style>
+    /* Selectize Custom Styling to match POS theme */
+    .selectize-control.single .selectize-input, 
+    .selectize-control.single .selectize-input.input-active,
+    .selectize-control.multi .selectize-input {
+        background: #fff;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        padding: 8px 12px;
+        box-shadow: none;
+        transition: var(--transition);
+        font-family: var(--font);
+        font-size: 14px;
+    }
+    .selectize-input.focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.1);
+    }
+    .selectize-dropdown {
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-lg);
+        z-index: 1050;
+    }
+    .selectize-dropdown .active {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+    }
+    .selectize-dropdown .option {
+        padding: 8px 12px;
+    }
+
+    /* Dark Mode Support for Selectize */
+    [data-theme='dark'] .selectize-control.single .selectize-input,
+    [data-theme='dark'] .selectize-control.multi .selectize-input {
+        background: var(--gray-100);
+        border-color: var(--gray-200);
+        color: var(--gray-800);
+    }
+    [data-theme='dark'] .selectize-dropdown {
+        background: var(--gray-100);
+        border-color: var(--gray-200);
+        color: var(--gray-800);
+    }
+    [data-theme='dark'] .selectize-dropdown .active {
+        background-color: var(--gray-200);
+        color: var(--primary-light);
+    }
+    [data-theme='dark'] .selectize-input input {
+        color: var(--gray-800) !important;
+    }
+    [data-theme='dark'] .selectize-control.single .selectize-input:after {
+        border-color: var(--gray-400) transparent transparent transparent;
+    }
+</style>
+@endpush
 
 @section('content')
 <div class="container-fluid">
@@ -481,8 +542,32 @@
 @endsection
 
 @push('scripts')
+<!-- jQuery (Required for Selectize) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Selectize JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
+    // Initialize Selectize
+    function initSelectize(selector) {
+        $(selector).selectize({
+            create: false,
+            sortField: 'text',
+            placeholder: $(selector).find('option:first').text() || 'Select an option'
+        });
+    }
+
+    // Main Dropdowns
+    initSelectize('#category_id');
+    initSelectize('#supplier_id');
+    initSelectize('#manufacturer_id');
+
+    // Existing Secondary Dropdowns
+    $('.secondary-cat-row select, .secondary-sup-row select').each(function() {
+        initSelectize(this);
+    });
+
     // Add additional item number row
     document.getElementById('add-additional-number').addEventListener('click', function() {
         const container = document.getElementById('additional-numbers-container');
@@ -505,10 +590,11 @@ document.addEventListener('DOMContentLoaded', function() {
             options += '<option value="{{ $category->id }}">{{ addslashes($category->name) }}</option>';
         @endforeach
         row.innerHTML = `
-            <select class="form-select" name="secondary_categories[]">${options}</select>
+            <select class="form-select searchable-dropdown" name="secondary_categories[]">${options}</select>
             <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
         `;
         container.appendChild(row);
+        initSelectize($(row).find('select'));
     });
 
     // Add secondary supplier row
@@ -521,10 +607,11 @@ document.addEventListener('DOMContentLoaded', function() {
             options += '<option value="{{ $supplier->person_id }}">{{ addslashes($supplier->company_name) }}</option>';
         @endforeach
         row.innerHTML = `
-            <select class="form-select" name="secondary_suppliers[]">${options}</select>
+            <select class="form-select searchable-dropdown" name="secondary_suppliers[]">${options}</select>
             <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
         `;
         container.appendChild(row);
+        initSelectize($(row).find('select'));
     });
 
     // Add serial number row
@@ -546,7 +633,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         const removeBtn = e.target.closest('.remove-row');
         if (removeBtn) {
-            removeBtn.closest('.input-group') ? removeBtn.closest('.input-group').remove() : removeBtn.closest('tr').remove();
+            const row = removeBtn.closest('.input-group') || removeBtn.closest('tr');
+            if (row) {
+                // If it's a selectize element, we should destroy it first? 
+                // Usually removing the DOM is enough but good to be safe.
+                const $select = $(row).find('select');
+                if ($select.length && $select[0].selectize) {
+                    $select[0].selectize.destroy();
+                }
+                row.remove();
+            }
         }
     });
 });

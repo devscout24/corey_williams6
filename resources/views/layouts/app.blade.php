@@ -15,6 +15,42 @@
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+    
+    @php
+        $currentLocationId = auth('employee')->user()?->location_id ?? 1;
+        $currentLocation = \App\Models\PhpposLocation::find($currentLocationId);
+        $primaryColor = $currentLocation?->color ?? '#2563EB';
+        $secondaryColor = $currentLocation?->secondary_color ?? '#1E293B';
+        
+        // Generate lighter/darker variations for the primary color
+        function adjustBrightness($hex, $steps) {
+            $steps = max(-255, min(255, $steps));
+            $hex = str_replace('#', '', $hex);
+            if (strlen($hex) == 3) {
+                $hex = str_repeat(substr($hex, 0, 1), 2).str_repeat(substr($hex, 1, 1), 2).str_repeat(substr($hex, 2, 1), 2);
+            }
+            $color = '';
+            for ($x = 0; $x < 3; $x++) {
+                $c = hexdec(substr($hex, $x * 2, 2));
+                $c = dechex(max(0, min(255, $c + $steps)));
+                $color .= str_pad($c, 2, '0', STR_PAD_LEFT);
+            }
+            return '#' . $color;
+        }
+        
+        $primaryLight = adjustBrightness($primaryColor, 180);
+        $primaryDark = adjustBrightness($primaryColor, -40);
+    @endphp
+
+    <style>
+        :root {
+            --primary: {{ $primaryColor }};
+            --primary-dark: {{ $primaryDark }};
+            --primary-light: {{ $primaryLight }};
+            --secondary: {{ $secondaryColor }};
+        }
+    </style>
+
     @stack('styles')
 </head>
 
