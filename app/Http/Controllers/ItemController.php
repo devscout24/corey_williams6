@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
-use App\Models\PhpposManufacturer;
 use App\Models\PhpposSupplier;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,13 +48,12 @@ class ItemController extends Controller
     {
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
-        $manufacturers = PhpposManufacturer::query()->where('deleted', 0)->orderBy('name')->get();
+        $categoryOptions = $this->buildCategoryOptions($categories);
 
         return view('items.form', [
             'item' => null,
-            'categories' => $categories,
+            'categories' => $categoryOptions,
             'suppliers' => $suppliers,
-            'manufacturers' => $manufacturers,
             'tags' => '',
             'additional_item_numbers' => [],
             'serial_numbers' => [],
@@ -69,7 +68,7 @@ class ItemController extends Controller
         $item = PhpposItem::query()->where('item_id', $itemId)->firstOrFail();
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
-        $manufacturers = PhpposManufacturer::query()->where('deleted', 0)->orderBy('name')->get();
+        $categoryOptions = $this->buildCategoryOptions($categories);
 
         $tags = DB::table('phppos_items_tags')
             ->join('phppos_tags', 'phppos_items_tags.tag_id', '=', 'phppos_tags.id')
@@ -106,9 +105,8 @@ class ItemController extends Controller
 
         return view('items.form', [
             'item' => $item,
-            'categories' => $categories,
+            'categories' => $categoryOptions,
             'suppliers' => $suppliers,
-            'manufacturers' => $manufacturers,
             'tags' => $tags,
             'additional_item_numbers' => $additionalItemNumbers,
             'serial_numbers' => $serialNumbers,
@@ -116,6 +114,31 @@ class ItemController extends Controller
             'secondary_suppliers' => $secondarySuppliers,
             'item_files' => $itemFiles,
         ]);
+    }
+
+    private function buildCategoryOptions($categories): array
+    {
+        $grouped = $categories->groupBy('parent_id');
+        $options = [];
+
+        $walk = function ($parentId, int $depth) use (&$walk, $grouped, &$options): void {
+            $children = $grouped->get($parentId, collect())->sortBy('name');
+            foreach ($children as $child) {
+                $indent = str_repeat('&nbsp;', $depth * 4);
+                $label = $indent . e($child->name);
+                $options[] = (object) [
+                    'id' => $child->id,
+                    'name' => $child->name,
+                    'label' => $label,
+                    'depth' => $depth,
+                ];
+                $walk($child->id, $depth + 1);
+            }
+        };
+
+        $walk(null, 0);
+
+        return $options;
     }
 
     public function store(Request $request): RedirectResponse
@@ -133,6 +156,44 @@ class ItemController extends Controller
         PhpposItem::query()->where('item_id', $itemId)->update(['deleted' => 1]);
 
         return redirect()->route('items.index')->with('status', 'Item archived.');
+    }
+
+    public function quickUpdate(Request $request, int $itemId): JsonResponse
+    {
+        $data = $request->validate([
+            'cost_price' => ['nullable', 'numeric'],
+            'unit_price' => ['nullable', 'numeric'],
+            'quantity' => ['nullable', 'numeric'],
+            'reorder_level' => ['nullable', 'numeric'],
+        ]);
+
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $payload = [];
+
+        if ($request->has('cost_price')) {
+            $payload['cost_price'] = $data['cost_price'];
+        }
+        if ($request->has('unit_price')) {
+            $payload['unit_price'] = $data['unit_price'];
+        }
+        if ($request->has('reorder_level')) {
+            $payload['reorder_level'] = $data['reorder_level'];
+        }
+
+        DB::transaction(function () use ($itemId, $payload, $request, $data, $locationId): void {
+            if (!empty($payload)) {
+                PhpposItem::query()->where('item_id', $itemId)->update($payload);
+            }
+
+            if ($request->has('quantity')) {
+                DB::table('phppos_location_items')->updateOrInsert(
+                    ['location_id' => $locationId, 'item_id' => $itemId],
+                    ['quantity' => $data['quantity'] ?? 0, 'updated_at' => now(), 'created_at' => now()]
+                );
+            }
+        });
+
+        return response()->json(['status' => 'ok']);
     }
 
     private function saveItem(Request $request, ?int $itemId): RedirectResponse
@@ -155,6 +216,7 @@ class ItemController extends Controller
             'width' => ['nullable', 'numeric'],
             'height' => ['nullable', 'numeric'],
             'default_quantity' => ['nullable', 'numeric'],
+            'reorder_level' => ['nullable', 'numeric'],
             'cost_price' => ['nullable', 'numeric'],
             'unit_price' => ['nullable', 'numeric'],
             'tax_included' => ['nullable', 'boolean'],
@@ -210,6 +272,7 @@ class ItemController extends Controller
             'width' => $data['width'] ?? null,
             'height' => $data['height'] ?? null,
             'default_quantity' => $data['default_quantity'] ?? null,
+            'reorder_level' => $data['reorder_level'] ?? null,
             'cost_price' => $data['cost_price'] ?? 0,
             'unit_price' => $data['unit_price'] ?? 0,
             'series_quantity' => $data['series_quantity'] ?? null,

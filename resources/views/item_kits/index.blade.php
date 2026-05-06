@@ -29,8 +29,11 @@
                             <th class="ps-4">Item Kit</th>
                             <th>Kit Number</th>
                             <th>Category</th>
-                            <th>Manufacturer</th>
+                            <th>Supplier</th>
+                            <th>Cost</th>
                             <th class="text-end">Price</th>
+                            <th>Quantity</th>
+                            <th>Threshold</th>
                             <th class="text-end pe-4">Actions</th>
                         </tr>
                     </thead>
@@ -52,9 +55,26 @@
                                 <td>
                                     <span class="badge bg-light text-dark border">{{ $kit->category->name ?? 'None' }}</span>
                                 </td>
-                                <td>{{ $kit->manufacturer->name ?? '—' }}</td>
+                                <td>{{ $kit->supplier->company_name ?? '—' }}</td>
+                                <td>
+                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
+                                           data-kit-id="{{ $kit->id }}" data-field="cost_price"
+                                           value="{{ $kit->cost_price }}" />
+                                </td>
                                 <td class="text-end fw-bold text-dark">
-                                    ${{ number_format((float) $kit->unit_price, 2) }}
+                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
+                                           data-kit-id="{{ $kit->id }}" data-field="unit_price"
+                                           value="{{ $kit->unit_price }}" />
+                                </td>
+                                <td>
+                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
+                                           data-kit-id="{{ $kit->id }}" data-field="quantity"
+                                           value="{{ $kit->default_quantity ?? 0 }}" />
+                                </td>
+                                <td>
+                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
+                                           data-kit-id="{{ $kit->id }}" data-field="reorder_level"
+                                           value="{{ $kit->reorder_level ?? '' }}" />
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
@@ -69,7 +89,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
+                                <td colspan="9" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                     No item kits found.
                                 </td>
@@ -91,6 +111,7 @@
         @method('delete')
     </form>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -111,6 +132,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.action = `/item-kits/${id}`;
                 form.submit();
             }
+        });
+    });
+
+    const quickUpdateBase = "{{ url('/item-kits') }}";
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function parseValue(value) {
+        if (value === '' || value === null || typeof value === 'undefined') {
+            return null;
+        }
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    async function saveInlineKit(input) {
+        const kitId = input.dataset.kitId;
+        const field = input.dataset.field;
+        if (!kitId || !field) {
+            return;
+        }
+
+        const payload = { [field]: parseValue(input.value) };
+
+        try {
+            const response = await fetch(`${quickUpdateBase}/${kitId}/quick-update`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error('Save failed');
+            }
+        } catch (error) {
+            input.classList.add('is-invalid');
+            setTimeout(() => input.classList.remove('is-invalid'), 1200);
+        }
+    }
+
+    document.querySelectorAll('.inline-kit-input').forEach((input) => {
+        input.addEventListener('blur', () => {
+            saveInlineKit(input);
         });
     });
 });

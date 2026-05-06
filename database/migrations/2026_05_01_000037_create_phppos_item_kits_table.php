@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('item_kit_number', 255)->nullable();
             $table->string('product_id', 255)->nullable();
             $table->unsignedBigInteger('category_id')->nullable();
+            $table->unsignedBigInteger('supplier_id')->nullable();
             $table->text('description')->nullable();
             $table->text('info_popup')->nullable();
             $table->boolean('tax_included')->default(false);
@@ -39,6 +40,7 @@ return new class extends Migration
             $table->boolean('is_barcoded')->default(true);
             $table->boolean('item_kit_inactive')->default(false);
             $table->decimal('default_quantity', 23, 10)->nullable();
+            $table->decimal('reorder_level', 23, 10)->nullable();
             $table->boolean('dynamic_pricing')->default(false);
             $table->boolean('is_favorite')->default(false);
             $table->decimal('loyalty_multiplier', 15, 3)->nullable();
@@ -58,10 +60,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('category_id', 'item_kits_category_idx');
+            $table->index('supplier_id', 'item_kits_supplier_idx');
             $table->index('item_kit_number', 'item_kits_number_idx');
             $table->index('product_id', 'item_kits_product_idx');
             $table->index('manufacturer_id', 'item_kits_manufacturer_idx');
             $table->foreign('category_id', 'item_kits_category_fk')->references('id')->on('phppos_categories');
+            $table->foreign('supplier_id', 'item_kits_supplier_fk')->references('person_id')->on('phppos_suppliers');
             $table->foreign('manufacturer_id', 'item_kits_manufacturer_fk')->references('id')->on('phppos_manufacturers');
         });
     }

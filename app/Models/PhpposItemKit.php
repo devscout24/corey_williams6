@@ -34,9 +34,9 @@ class PhpposItemKit extends Model
         return $this->belongsTo(PhpposCategory::class, 'category_id', 'id');
     }
 
-    public function manufacturer()
+    public function supplier()
     {
-        return $this->belongsTo(PhpposManufacturer::class, 'manufacturer_id', 'id');
+        return $this->belongsTo(PhpposSupplier::class, 'supplier_id', 'person_id');
     }
 
     public function taxClass()

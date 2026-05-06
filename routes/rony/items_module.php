@@ -22,6 +22,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/items', [ItemController::class, 'store'])->name('items.store');
     Route::get('/items/{itemId}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::put('/items/{itemId}', [ItemController::class, 'update'])->name('items.update');
+    Route::patch('/items/{itemId}/quick-update', [ItemController::class, 'quickUpdate'])->name('items.quick-update');
     Route::delete('/items/{itemId}', [ItemController::class, 'destroy'])->name('items.destroy');
 
     // item kits
@@ -30,6 +31,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/item-kits', [ItemKitController::class, 'store'])->name('item-kits.store');
     Route::get('/item-kits/{kitId}/edit', [ItemKitController::class, 'edit'])->name('item-kits.edit');
     Route::put('/item-kits/{kitId}', [ItemKitController::class, 'update'])->name('item-kits.update');
+    Route::patch('/item-kits/{kitId}/quick-update', [ItemKitController::class, 'quickUpdate'])->name('item-kits.quick-update');
     Route::delete('/item-kits/{kitId}', [ItemKitController::class, 'destroy'])->name('item-kits.destroy');
 
     //categories, attributes, price rules

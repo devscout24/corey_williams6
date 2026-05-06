@@ -8,10 +8,11 @@ use App\Models\PhpposItemKit;
 use App\Models\PhpposItemKitItem;
 use App\Models\PhpposItemKitItemKit;
 use App\Models\PhpposItemKitTax;
-use App\Models\PhpposManufacturer;
 use App\Models\PhpposTaxClass;
 use App\Models\PhpposAppFile;
 use App\Models\PhpposTag;
+use App\Models\PhpposSupplier;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class ItemKitController extends Controller
     public function index(): View
     {
         $kits = PhpposItemKit::query()
-            ->with(['category', 'manufacturer'])
+            ->with(['category', 'supplier'])
             ->where('deleted', 0)
             ->orderBy('id', 'desc')
             ->paginate(20);
@@ -42,11 +43,14 @@ class ItemKitController extends Controller
 
     private function form(?int $kitId): View
     {
-        $kit = $kitId ? PhpposItemKit::with(['items', 'taxes', 'nestedKits', 'manufacturer'])->findOrFail($kitId) : null;
+        $kit = $kitId ? PhpposItemKit::with(['items', 'taxes', 'nestedKits', 'supplier'])->findOrFail($kitId) : null;
         
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
-        $manufacturers = PhpposManufacturer::query()->where('deleted', 0)->orderBy('name')->get();
+        $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
         $taxClasses = PhpposTaxClass::query()->where('deleted', 0)->orderBy('name')->get();
+        $secondarySuppliers = $kitId
+            ? DB::table('phppos_item_kits_secondary_suppliers')->where('item_kit_id', $kitId)->get()->all()
+            : [];
         
         // Tags
         $tags = $kitId ? DB::table('phppos_item_kits_tags as ikt')
@@ -63,13 +67,14 @@ class ItemKitController extends Controller
         return view('item_kits.form', [
             'kit' => $kit,
             'categories' => $categories,
-            'manufacturers' => $manufacturers,
+            'suppliers' => $suppliers,
             'taxClasses' => $taxClasses,
             'tags' => implode(',', $tags),
             'allItems' => $allItems,
             'allKits' => $allKits,
             'kitItems' => $kit ? $kit->items : [],
             'nestedKits' => $kit ? $kit->nestedKits : [],
+            'secondary_suppliers' => $secondarySuppliers,
         ]);
     }
 
@@ -89,6 +94,37 @@ class ItemKitController extends Controller
         return redirect()->route('item-kits.index')->with('status', 'Item kit archived.');
     }
 
+    public function quickUpdate(Request $request, int $kitId): JsonResponse
+    {
+        $data = $request->validate([
+            'cost_price' => ['nullable', 'numeric'],
+            'unit_price' => ['nullable', 'numeric'],
+            'quantity' => ['nullable', 'numeric'],
+            'reorder_level' => ['nullable', 'numeric'],
+        ]);
+
+        $payload = [];
+
+        if ($request->has('cost_price')) {
+            $payload['cost_price'] = $data['cost_price'];
+        }
+        if ($request->has('unit_price')) {
+            $payload['unit_price'] = $data['unit_price'];
+        }
+        if ($request->has('reorder_level')) {
+            $payload['reorder_level'] = $data['reorder_level'];
+        }
+        if ($request->has('quantity')) {
+            $payload['default_quantity'] = $data['quantity'];
+        }
+
+        if (!empty($payload)) {
+            PhpposItemKit::query()->where('id', $kitId)->update($payload);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
     private function saveKit(Request $request, ?int $kitId): RedirectResponse
     {
         $data = $request->validate([
@@ -96,7 +132,7 @@ class ItemKitController extends Controller
             'item_kit_number' => ['nullable', 'string', 'max:255'],
             'product_id' => ['nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'integer'],
-            'manufacturer_id' => ['nullable', 'integer'],
+            'supplier_id' => ['nullable', 'integer'],
             'description' => ['nullable', 'string'],
             'info_popup' => ['nullable', 'string'],
             'unit_price' => ['nullable', 'numeric'],
@@ -116,11 +152,13 @@ class ItemKitController extends Controller
             'max_edit_price' => ['nullable', 'numeric'],
             'min_edit_price' => ['nullable', 'numeric'],
             'default_quantity' => ['nullable', 'numeric'],
+            'reorder_level' => ['nullable', 'numeric'],
             'dynamic_pricing' => ['nullable', 'boolean'],
             'is_favorite' => ['nullable', 'boolean'],
             'loyalty_multiplier' => ['nullable', 'numeric'],
             'tags' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'secondary_suppliers' => ['nullable', 'array'],
             
             // Items and Nested Kits
             'kit_items' => ['nullable', 'array'],
@@ -148,7 +186,7 @@ class ItemKitController extends Controller
                 'item_kit_number' => $data['item_kit_number'] ?? null,
                 'product_id' => $data['product_id'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
-                'manufacturer_id' => ($data['manufacturer_id'] ?? -1) == -1 ? null : $data['manufacturer_id'],
+                'supplier_id' => $data['supplier_id'] ?? null,
                 'description' => $data['description'] ?? null,
                 'info_popup' => $data['info_popup'] ?? null,
                 'unit_price' => $data['unit_price'] ?? 0,
@@ -168,6 +206,7 @@ class ItemKitController extends Controller
                 'max_edit_price' => $data['max_edit_price'] ?? null,
                 'min_edit_price' => $data['min_edit_price'] ?? null,
                 'default_quantity' => $data['default_quantity'] ?? null,
+                'reorder_level' => $data['reorder_level'] ?? null,
                 'dynamic_pricing' => !empty($data['dynamic_pricing']) ? 1 : 0,
                 'is_favorite' => !empty($data['is_favorite']) ? 1 : 0,
                 'loyalty_multiplier' => $data['loyalty_multiplier'] ?? null,
@@ -193,6 +232,18 @@ class ItemKitController extends Controller
             } else {
                 $kit = PhpposItemKit::query()->create($payload);
                 $kitId = (int) $kit->id;
+            }
+
+            DB::table('phppos_item_kits_secondary_suppliers')->where('item_kit_id', $kitId)->delete();
+            if (!empty($data['secondary_suppliers'])) {
+                foreach (array_filter($data['secondary_suppliers']) as $secSupId) {
+                    DB::table('phppos_item_kits_secondary_suppliers')->insert([
+                        'item_kit_id' => $kitId,
+                        'supplier_id' => $secSupId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
             // Sync Items

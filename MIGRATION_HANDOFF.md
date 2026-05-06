@@ -41,6 +41,13 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Transfers Sync (Backend):** Added peer-to-peer sync API endpoints with shared-token auth, transfer export endpoint, and import logic that creates a local Transfer In, inventory movements, and a Receiving record with source reference. Added external source/id fields to `phppos_transfers` for idempotent imports.
 - **Receivings UI:** Added manual “Sync Transfer” modal on the Receiving register page.
 
+### May 7, 2026
+- **Orders UI (WIP):** Built initial Orders page UI and endpoints.
+- **Migration Fix:** Removed two schema-alter migrations and merged changes into create migrations. Added `supplier_id` + `reorder_level` to `phppos_item_kits`, added `reorder_level` to `phppos_items`, and added a new create migration for `phppos_item_kits_secondary_suppliers`.
+- **Threshold Labels:** Renamed reorder level labels to “Threshold” on item and item kit forms, and added Threshold column to item kits list.
+- **Threshold Column (Items):** Added Threshold column to items list.
+- **Quick Edit (Lists):** Added quick-edit modals with auto-save on blur for items and item kits list (cost, price, quantity, threshold).
+
 ### May 1, 2026
 - **Inventory Flow (Receivings):** Enhanced `ReceivingController` to support searching and adding Item Kits (including nested kits) to the receiving cart. Implemented logic to parse item kits and correctly process their individual items during inventory updates, matching legacy POS system behavior.
 - **Migrations:** Archived legacy migrations to `database/migrations/legacy`, created one-migration-per-table schema (excluding users/cache/jobs), and centralized seed data in `PosCoreSeeder`.

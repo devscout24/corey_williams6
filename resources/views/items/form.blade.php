@@ -117,12 +117,12 @@
                                 <select class="form-select" id="category_id" name="category_id">
                                     <option value="">— Select Category —</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" @selected(old('category_id', $item?->category_id) == $category->id)>{{ $category->name }}</option>
+                                        <option value="{{ $category->id }}" @selected(old('category_id', $item?->category_id) == $category->id)>{!! $category->label !!}</option>
                                     @endforeach
                                 </select>
                                 @if(auth()->user()->hasModulePermission('items', 'manage_categories'))
                                     <div class="mt-1">
-                                        <a href="javascript:void(0);" id="add_category">+ Add Category</a>
+                                        <a href="javascript:void(0);" id="add_category" data-bs-toggle="modal" data-bs-target="#addCategoryModal">+ Add Category</a>
                                     </div>
                                 @endif
                             </div>
@@ -146,7 +146,7 @@
                                                 <select class="form-select" name="secondary_categories[]">
                                                     <option value="">— Select Category —</option>
                                                     @foreach($categories as $category)
-                                                        <option value="{{ $category->id }}" @selected($secCat->category_id == $category->id)>{{ $category->name }}</option>
+                                                        <option value="{{ $category->id }}" @selected($secCat->category_id == $category->id)>{!! $category->label !!}</option>
                                                     @endforeach
                                                 </select>
                                                 <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
@@ -192,22 +192,6 @@
                                     <input type="text" class="form-control" id="tags" name="tags" value="{{ old('tags', $tags) }}" />
                                     @if(auth()->user()->hasModulePermission('items', 'manage_tags'))
                                         <a href="{{ route('tags.index') }}" class="btn btn-primary">Manage Tags</a>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <!-- Manufacturer -->
-                            <div class="col-md-6">
-                                <label class="form-label" for="manufacturer_id">Manufacturer</label>
-                                <div class="input-group">
-                                    <select class="form-select" id="manufacturer_id" name="manufacturer_id">
-                                        <option value="">— Select Manufacturer —</option>
-                                        @foreach($manufacturers as $manufacturer)
-                                            <option value="{{ $manufacturer->id }}" @selected(old('manufacturer_id', $item?->manufacturer_id) == $manufacturer->id)>{{ $manufacturer->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @if(auth()->user()->hasModulePermission('items', 'manage_manufacturers'))
-                                        <a href="{{ route('manufacturers.index') }}" class="btn btn-primary">Manage</a>
                                     @endif
                                 </div>
                             </div>
@@ -298,6 +282,10 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="default_quantity">Default Quantity</label>
                                 <input type="number" step="any" class="form-control" id="default_quantity" name="default_quantity" value="{{ old('default_quantity', $item?->default_quantity) }}" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="reorder_level">Threshold</label>
+                                <input type="number" step="any" class="form-control" id="reorder_level" name="reorder_level" value="{{ old('reorder_level', $item?->reorder_level) }}" />
                             </div>
                         </div>
                     </div>
@@ -539,6 +527,41 @@
         </div>
     </form>
 </div>
+
+@if(auth()->user()->hasModulePermission('items', 'manage_categories'))
+    <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" action="{{ route('categories.store') }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Category</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="category_parent_id">Parent Category</label>
+                            <select class="form-select" id="category_parent_id" name="parent_id">
+                                <option value="">— None —</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{!! $category->label !!}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="category_name">Category Name</label>
+                            <input type="text" class="form-control" id="category_name" name="name" required />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
 @endsection
 
 @push('scripts')
@@ -561,7 +584,6 @@ $(document).ready(function() {
     // Main Dropdowns
     initSelectize('#category_id');
     initSelectize('#supplier_id');
-    initSelectize('#manufacturer_id');
 
     // Existing Secondary Dropdowns
     $('.secondary-cat-row select, .secondary-sup-row select').each(function() {
@@ -587,7 +609,7 @@ $(document).ready(function() {
         row.className = 'input-group mb-2 secondary-cat-row';
         let options = '<option value="">— Select Category —</option>';
         @foreach($categories as $category)
-            options += '<option value="{{ $category->id }}">{{ addslashes($category->name) }}</option>';
+            options += '<option value="{{ $category->id }}">{!! addslashes($category->label) !!}</option>';
         @endforeach
         row.innerHTML = `
             <select class="form-select searchable-dropdown" name="secondary_categories[]">${options}</select>

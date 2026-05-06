@@ -29,6 +29,7 @@ return new class extends Migration
             $table->decimal('width', 23, 10)->nullable();
             $table->decimal('height', 23, 10)->nullable();
             $table->decimal('default_quantity', 23, 10)->nullable();
+            $table->decimal('reorder_level', 23, 10)->nullable();
             $table->boolean('tax_included')->default(false);
             $table->boolean('is_service')->default(false);
             $table->boolean('deleted')->default(false);

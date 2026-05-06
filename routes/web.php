@@ -42,6 +42,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/pull-list', [OrderController::class, 'pullList'])->name('orders.pull-list');
+    Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
 
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
 });

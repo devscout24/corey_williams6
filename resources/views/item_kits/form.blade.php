@@ -3,6 +3,10 @@
 @section('title', $kit ? 'Edit Item Kit' : 'New Item Kit')
 @section('page-title', $kit ? 'Edit Item Kit' : 'New Item Kit')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" />
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <form method="post" action="{{ $kit ? route('item-kits.update', $kit->id) : route('item-kits.store') }}" class="needs-validation" enctype="multipart/form-data">
@@ -52,7 +56,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="category_id">Category</label>
-                                <select class="form-select" id="category_id" name="category_id">
+                                <select class="form-select searchable-dropdown" id="category_id" name="category_id">
                                     <option value="">— Select Category —</option>
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}" @selected(old('category_id', $kit?->category_id) == $category->id)>{{ $category->name }}</option>
@@ -60,17 +64,36 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="manufacturer_id">Manufacturer</label>
-                                <select class="form-select" id="manufacturer_id" name="manufacturer_id">
-                                    <option value="-1">— None —</option>
-                                    @foreach($manufacturers as $manufacturer)
-                                        <option value="{{ $manufacturer->id }}" @selected(old('manufacturer_id', $kit?->manufacturer_id) == $manufacturer->id)>{{ $manufacturer->name }}</option>
+                                <label class="form-label" for="supplier_id">Supplier</label>
+                                <select class="form-select searchable-dropdown" id="supplier_id" name="supplier_id">
+                                    <option value="">— Select Supplier —</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->person_id }}" @selected(old('supplier_id', $kit?->supplier_id) == $supplier->person_id)>{{ $supplier->company_name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="tags">Tags (comma separated)</label>
                                 <input type="text" class="form-control" id="tags" name="tags" value="{{ old('tags', $tags) }}" />
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Secondary Suppliers</label>
+                                <div id="secondary-suppliers-container">
+                                    @if(isset($secondary_suppliers) && count($secondary_suppliers))
+                                        @foreach($secondary_suppliers as $secSup)
+                                            <div class="input-group mb-2 secondary-sup-row">
+                                                <select class="form-select searchable-dropdown" name="secondary_suppliers[]">
+                                                    <option value="">— Select Supplier —</option>
+                                                    @foreach($suppliers as $supplier)
+                                                        <option value="{{ $supplier->person_id }}" @selected($secSup->supplier_id == $supplier->person_id)>{{ $supplier->company_name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-secondary-supplier"><i class="bi bi-plus"></i> Add Secondary Supplier</button>
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label" for="barcode_name">Barcode Name</label>
@@ -304,6 +327,10 @@
                                 <input type="number" step="0.001" class="form-control" name="default_quantity" id="default_quantity" value="{{ old('default_quantity', $kit?->default_quantity) }}">
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label" for="reorder_level">Threshold</label>
+                                <input type="number" step="0.001" class="form-control" name="reorder_level" id="reorder_level" value="{{ old('reorder_level', $kit?->reorder_level) }}">
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label" for="loyalty_multiplier">Loyalty Multiplier</label>
                                 <input type="number" step="0.01" class="form-control" name="loyalty_multiplier" id="loyalty_multiplier" value="{{ old('loyalty_multiplier', $kit?->loyalty_multiplier) }}">
                             </div>
@@ -342,7 +369,7 @@
 <template id="kit-item-row">
     <tr>
         <td>
-            <select class="form-select form-select-sm" name="kit_items[INDEX][item_id]">
+            <select class="form-select form-select-sm searchable-dropdown" name="kit_items[INDEX][item_id]">
                 <option value="">Select Item</option>
                 @foreach($allItems as $item)
                     <option value="{{ $item->item_id }}">{{ $item->name }}</option>
@@ -357,7 +384,7 @@
 <template id="nested-kit-row">
     <tr>
         <td>
-            <select class="form-select form-select-sm" name="nested_kits[INDEX][item_kit_id]">
+            <select class="form-select form-select-sm searchable-dropdown" name="nested_kits[INDEX][item_kit_id]">
                 <option value="">Select Kit</option>
                 @foreach($allKits as $ak)
                     <option value="{{ $ak->id }}">{{ $ak->name }}</option>
@@ -378,13 +405,42 @@
     </tr>
 </template>
 
+<template id="secondary-supplier-row">
+    <div class="input-group mb-2 secondary-sup-row">
+        <select class="form-select searchable-dropdown" name="secondary_suppliers[]">
+            <option value="">— Select Supplier —</option>
+            @foreach($suppliers as $supplier)
+                <option value="{{ $supplier->person_id }}">{{ $supplier->company_name }}</option>
+            @endforeach
+        </select>
+        <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let kitItemIndex = {{ count($kitItems) }};
     let nestedKitIndex = {{ count($nestedKits) }};
+
+    function initSelectize(selector) {
+        if (!selector) {
+            return;
+        }
+        $(selector).selectize({
+            create: false,
+            sortField: 'text',
+            placeholder: $(selector).find('option:first').text() || 'Select an option'
+        });
+    }
+
+    document.querySelectorAll('.searchable-dropdown').forEach((select) => {
+        initSelectize(select);
+    });
 
     // Toggle containers
     const overrideCheckbox = document.getElementById('override_default_tax');
@@ -405,15 +461,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add rows
     document.getElementById('add-kit-item')?.addEventListener('click', function() {
-        addRow('kit-items-table', 'kit-item-row', kitItemIndex++);
+        const row = addRow('kit-items-table', 'kit-item-row', kitItemIndex++);
+        initSelectize(row.querySelector('select'));
     });
 
     document.getElementById('add-nested-kit')?.addEventListener('click', function() {
-        addRow('nested-kits-table', 'nested-kit-row', nestedKitIndex++);
+        const row = addRow('nested-kits-table', 'nested-kit-row', nestedKitIndex++);
+        initSelectize(row.querySelector('select'));
     });
 
     document.getElementById('add-tax-row')?.addEventListener('click', function() {
         addRow('taxes-table', 'tax-row', null);
+    });
+
+    document.getElementById('add-secondary-supplier')?.addEventListener('click', function() {
+        const container = document.getElementById('secondary-suppliers-container');
+        const template = document.getElementById('secondary-supplier-row').innerHTML;
+        container.insertAdjacentHTML('beforeend', template);
+        const row = container.lastElementChild;
+        if (row) {
+            initSelectize(row.querySelector('select'));
+        }
     });
 
     function addRow(tableId, templateId, index) {
@@ -421,13 +489,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const template = document.getElementById(templateId).innerHTML;
         const html = index !== null ? template.replace(/INDEX/g, index) : template;
         tbody.insertAdjacentHTML('beforeend', html);
+        return tbody.lastElementChild;
     }
 
     // Remove rows
     document.addEventListener('click', function(e) {
         const removeBtn = e.target.closest('.remove-row');
         if (removeBtn) {
-            removeBtn.closest('tr').remove();
+            const row = removeBtn.closest('.input-group') || removeBtn.closest('tr');
+            if (row) {
+                const select = row.querySelector('select');
+                if (select && select.selectize) {
+                    select.selectize.destroy();
+                }
+                row.remove();
+            }
         }
     });
 });
