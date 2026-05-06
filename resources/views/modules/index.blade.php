@@ -1,165 +1,347 @@
 @extends('layouts.app')
 
-@section('title', 'POS Modules')
-@section('page-title', 'Module Map')
+@section('title', 'Dashboard | POS System')
+@section('page-title', 'Executive Dashboard')
+@section('page-description', 'Overview of your business performance at Main Branch')
 
 @push('styles')
 <style>
-    .wrap { max-width: 100%; margin: 0; padding: 0; }
-    .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
-    .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); }
-    .card h2 { margin: 0 0 10px; font-size: 1.05rem; }
-    .sub { list-style: none; margin: 0; padding: 0; }
-    .sub li { padding: 6px 0; border-bottom: 1px dashed #dce3ee; }
-    .sub li:last-child { border-bottom: 0; }
-    .actions a, .actions button { border: 0; background: #0e7490; color: #fff; border-radius: 8px; padding: 8px 12px; text-decoration: none; cursor: pointer; }
-    form { margin: 0; }
-    
-    .sales-info { margin-top: 24px; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; }
-    .sales-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .sales-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b; }
-    .chart-period-select { padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.85rem; font-weight: 500; color: #64748b; cursor: pointer; outline: none; }
-    .nav-tabs { border: none; margin-bottom: 0; gap: 8px; }
-    .nav-tabs .nav-link { border: none; color: #94a3b8; font-weight: 600; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; }
-    .nav-tabs .nav-link:hover { background: #f8fafc; color: #64748b; }
-    .nav-tabs .nav-link.active { color: #2563eb; background: #eff6ff; }
-    .chart-container { position: relative; height: 320px; width: 100%; margin-top: 10px; }
+    /* Custom styles for matching corey-dashboard index.html precisely */
+    .gs-progress-badge {
+        background: #DBE1FF;
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 99px;
+    }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #fff; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); text-decoration: none; color: inherit; transition: transform 0.2s; }
-    .stat-card:hover { transform: translateY(-4px); color: inherit; }
-    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
-    .stat-info h3 { margin: 0; font-size: 1.5rem; font-weight: 700; }
-    .stat-info p { margin: 0; color: #64748b; font-size: 0.9rem; font-weight: 500; }
-    .bg-blue { background: #3b82f6; }
-    .bg-green { background: #10b981; }
-    .bg-red { background: #ef4444; }
-    .bg-orange { background: #f59e0b; }
+    .gs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .gs-item {
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius);
+        padding: 18px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        color: var(--gray-700);
+    }
+
+    .gs-item.done {
+        background: #f8fafc;
+    }
+
+    .gs-item:hover {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    .gs-item-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: var(--radius-sm);
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-500);
+        font-size: 17px;
+        transition: var(--transition);
+    }
+
+    .gs-item:hover .gs-item-icon {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+
+    .gs-item span {
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .cmd-list { padding: 10px; }
+
+    .cmd-btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--primary);
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        margin-bottom: 8px;
+        width: 100%;
+        text-decoration: none;
+    }
+
+    .cmd-btn-primary:hover { 
+        background: var(--primary-dark); 
+        color: #fff;
+    }
+
+    .cmd-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: var(--transition);
+        color: var(--gray-700);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .cmd-item:hover { 
+        background: var(--gray-50); 
+        color: var(--primary); 
+    }
+
+    .cmd-item-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cmd-item-left i { font-size: 14px; color: var(--gray-400); }
+    .cmd-item:hover .cmd-item-left i { color: var(--primary); }
+
+    .chart-wrapper {
+        padding: 20px;
+        height: 320px;
+    }
+
+    /* Dark Mode Overrides */
+    [data-theme='dark'] .gs-item {
+        background: var(--gray-100);
+        border-color: var(--gray-200);
+        color: var(--gray-700);
+    }
+    [data-theme='dark'] .gs-item.done {
+        background: var(--gray-200);
+    }
+    [data-theme='dark'] .cmd-item {
+        color: var(--gray-700);
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="wrap">
-    <div class="head">
-        <h1>Module Map</h1>
-        <div class="actions" style="display:flex; gap:8px;">
-            <a href="{{ route('labels.index') }}">Open Labels</a>
-            <a href="{{ route('transfers.out') }}">Transfers</a>
-            <a href="{{ route('sales.index') }}">Sales</a>
-            <a href="{{ route('messages.index') }}">Messages</a>
-            <form method="post" action="{{ route('employee.logout') }}">
-                @csrf
-                <button type="submit">Logout</button>
-            </form>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="bi bi-cart3"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Total Sales Amount</div>
+            <div class="stat-value">${{ number_format($stats['total_sales_amount'], 2) }}</div>
         </div>
     </div>
 
-    <div class="stats-grid">
-        <a href="{{ route('sales.index') }}" class="stat-card">
-            <div class="stat-icon bg-blue"><i class="bi bi-cart"></i></div>
-            <div class="stat-info">
-                <h3>{{ number_format($stats['total_sales']) }}</h3>
-                <p>Total Sales</p>
-            </div>
-        </a>
-        <a href="{{ route('suppliers.index') }}" class="stat-card">
-            <div class="stat-icon bg-green"><i class="bi bi-people"></i></div>
-            <div class="stat-info">
-                <h3>{{ number_format($stats['total_customers']) }}</h3>
-                <p>Total Customers</p>
-            </div>
-        </a>
-        <a href="{{ route('items.index') }}" class="stat-card">
-            <div class="stat-icon bg-red"><i class="bi bi-box"></i></div>
-            <div class="stat-info">
-                <h3>{{ number_format($stats['total_items']) }}</h3>
-                <p>Total Items</p>
-            </div>
-        </a>
-        <a href="{{ route('item-kits.index') }}" class="stat-card">
-            <div class="stat-icon bg-orange"><i class="bi bi-boxes"></i></div>
-            <div class="stat-info">
-                <h3>{{ number_format($stats['total_item_kits']) }}</h3>
-                <p>Total Item Kits</p>
-            </div>
-        </a>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-value">{{ number_format($stats['total_customers']) }}</div>
+        </div>
     </div>
 
-    <div class="grid">
-        @foreach($modules as $module)
-            <article class="card">
-                <h2>{{ ucfirst($module->module_id) }}</h2>
-                <ul class="sub">
-                    @foreach($module->submodules as $sub)
-                        <li>
-                            @if($module->module_id === 'items' && $sub->submodule_key === 'labels')
-                                <a href="{{ route('labels.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'items' && $sub->submodule_key === 'items')
-                                <a href="{{ route('items.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'items' && $sub->submodule_key === 'item_kits')
-                                <a href="{{ route('item-kits.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'items' && $sub->submodule_key === 'categories')
-                                <a href="{{ route('categories.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'receivings')
-                                <a href="{{ route('transfers.out') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'sales')
-                                <a href="{{ route('sales.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'messages')
-                                <a href="{{ route('messages.index') }}">{{ $sub->label }}</a>
-                            @elseif($module->module_id === 'contacts' && $sub->submodule_key === 'suppliers')
-                                <a href="{{ route('suppliers.index') }}">{{ $sub->label }}</a>
-                            @else
-                                {{ $sub->label }}
-                            @endif
-                        </li>
-                    @endforeach
-                </ul>
-            </article>
-        @endforeach
+    <div class="stat-card">
+        <div class="stat-icon red">
+            <i class="bi bi-box-seam"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Total Items</div>
+            <div class="stat-value">{{ number_format($stats['total_items']) }}</div>
+        </div>
     </div>
 
-    <section class="sales-info">
-        <div class="sales-header">
-            <h2>Total Sales</h2>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <ul class="nav nav-tabs" id="salesTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="year-tab" data-bs-toggle="tab" data-bs-target="#year" type="button" role="tab">Year</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab">Month</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab">Week</button>
-                    </li>
-                </ul>
-                <select class="chart-period-select">
-                    <option>Last One Year</option>
-                    <option>Last 6 Months</option>
-                    <option>Last 30 Days</option>
-                </select>
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <i class="bi bi-boxes"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Total Item Kits</div>
+            <div class="stat-value">{{ number_format($stats['total_item_kits']) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Getting Started -->
+    <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+            <div>
+                <div class="card-title mb-1">Getting Started</div>
+                <div style="font-size:12px; color:var(--gray-400);">Complete these steps to set up your store</div>
+            </div>
+            @php
+                $completed = 0;
+                if($stats['total_locations'] > 0) $completed++;
+                if($stats['total_items'] > 0) $completed++;
+                if($stats['total_employees'] > 0) $completed++;
+                if($stats['total_customers'] > 0) $completed++;
+                if($stats['total_sales'] > 0) $completed++;
+            @endphp
+            <span class="gs-progress-badge">{{ $completed }} / 6 Completed</span>
+        </div>
+        <div class="card-body">
+            <div class="gs-grid">
+                <a href="{{ route('config.index') }}" class="gs-item done">
+                    <div class="gs-item-icon"><i class="bi bi-gear-fill"></i></div>
+                    <span>Store Config</span>
+                </a>
+                <a href="{{ route('config.index') }}" class="gs-item {{ $stats['total_locations'] > 0 ? 'done' : '' }}">
+                    <div class="gs-item-icon"><i class="bi bi-geo-alt-fill"></i></div>
+                    <span>Locations</span>
+                </a>
+                <a href="{{ route('items.index') }}" class="gs-item {{ $stats['total_items'] > 0 ? 'done' : '' }}">
+                    <div class="gs-item-icon"><i class="bi bi-box-seam"></i></div>
+                    <span>Items</span>
+                </a>
+                <a href="{{ route('employees.index') }}" class="gs-item {{ $stats['total_employees'] > 0 ? 'done' : '' }}">
+                    <div class="gs-item-icon"><i class="bi bi-person-badge-fill"></i></div>
+                    <span>Employees</span>
+                </a>
+                <a href="{{ route('customers.index') }}" class="gs-item {{ $stats['total_customers'] > 0 ? 'done' : '' }}">
+                    <div class="gs-item-icon"><i class="bi bi-people"></i></div>
+                    <span>Customers</span>
+                </a>
+                <a href="{{ route('sales.index') }}" class="gs-item {{ $stats['total_sales'] > 0 ? 'done' : '' }}">
+                    <div class="gs-item-icon"><i class="bi bi-cart"></i></div>
+                    <span>Start Sales</span>
+                </a>
             </div>
         </div>
-        
+    </div>
+
+    <!-- Command Center -->
+    <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+            <div class="card-title">Command Center</div>
+        </div>
+        <div class="card-body p-0">
+            <div class="cmd-list">
+                <a href="{{ route('sales.index') }}" class="cmd-btn-primary">
+                    <span style="display:flex; align-items:center; gap:8px;">
+                        <i class="bi bi-cart-fill"></i> Start New Sale
+                    </span>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                <a href="{{ route('receivings.index') }}" class="cmd-item">
+                    <div class="cmd-item-left">
+                        <i class="bi bi-truck"></i>
+                        <span>Start a New Purchase</span>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
+                </a>
+                <a href="{{ route('reports.index') }}" class="cmd-item">
+                    <div class="cmd-item-left">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Today's closeout report</span>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
+                </a>
+                <a href="{{ route('reports.index') }}" class="cmd-item">
+                    <div class="cmd-item-left">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Today's detailed sales report</span>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
+                </a>
+                <a href="{{ route('reports.index') }}" class="cmd-item">
+                    <div class="cmd-item-left">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Today's summary items report</span>
+                    </div>
+                    <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card mb-4 mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-title">Recent Activity</div>
+        <a href="{{ route('sales.index') }}" style="font-size:12px; color:var(--primary); font-weight:600;">View All</a>
+    </div>
+    <div class="card-body p-0">
+        @forelse($recentSales as $sale)
+            <div class="activity-item">
+                <div class="activity-icon"><i class="bi bi-receipt-cutoff"></i></div>
+                <div class="activity-info">
+                    <div class="activity-title">Sale #{{ $sale->sale_id }}</div>
+                    <div class="activity-meta">
+                        {{ \Carbon\Carbon::parse($sale->created_at)->diffForHumans() }} &bull; 
+                        {{ ($sale->first_name || $sale->last_name) ? $sale->first_name . ' ' . $sale->last_name : 'Walk-in Customer' }}
+                    </div>
+                </div>
+                <div class="activity-amount">${{ number_format($sale->total, 2) }}</div>
+            </div>
+        @empty
+            <div class="p-4 text-center text-muted">No recent sales found</div>
+        @endforelse
+    </div>
+</div>
+
+<!-- Total Sales Chart -->
+<div class="card chart-card">
+    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+        <div class="card-title">Total Sales Analytics</div>
+        <div class="d-flex gap-2">
+             <ul class="nav nav-pills" id="salesTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="btn btn-sm btn-outline active" id="year-tab" data-bs-toggle="tab" data-bs-target="#year" type="button" role="tab">Year</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="btn btn-sm btn-outline ms-2" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab">Month</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="btn btn-sm btn-outline ms-2" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab">Week</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="card-body p-0">
         <div class="tab-content" id="salesTabsContent">
             <div class="tab-pane fade show active" id="year" role="tabpanel">
-                <div class="chart-container">
+                <div class="chart-wrapper">
                     <canvas id="yearlyChart"></canvas>
                 </div>
             </div>
             <div class="tab-pane fade" id="month" role="tabpanel">
-                <div class="chart-container">
+                <div class="chart-wrapper">
                     <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
             <div class="tab-pane fade" id="week" role="tabpanel">
-                <div class="chart-container">
+                <div class="chart-wrapper">
                     <canvas id="weeklyChart"></canvas>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 </div>
 
 @push('scripts')
@@ -266,10 +448,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pointBackgroundColor: '#fff',
                 pointBorderColor: '#2563eb',
                 pointBorderWidth: 2,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#2563eb',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2,
             }]
         },
         options: commonOptions
@@ -293,10 +471,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pointBackgroundColor: '#fff',
                 pointBorderColor: '#2563eb',
                 pointBorderWidth: 2,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#2563eb',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2,
             }]
         },
         options: commonOptions

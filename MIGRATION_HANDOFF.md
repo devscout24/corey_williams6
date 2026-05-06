@@ -42,8 +42,12 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Receivings UI:** Added manual “Sync Transfer” modal on the Receiving register page.
 
 ### May 7, 2026
+- **Dashboard Modernization:** Rebuilt the `modules.index` view to match the `corey-dashboard` template. Added sections for Stat Cards, Getting Started progress, Command Center, Recent Activity, and advanced Sales Analytics charts.
+- **Migration Fix:** Added missing `customer_id` column and foreign key to `phppos_sales` table migration to support recent activity tracking. Rebuilt database using `migrate:fresh --seed`.
+- **UI Refinements:** Improved sidebar hover and active states for both light and dark modes. Ensured the theme's primary blue color is used for active states and added better hover contrast in dark mode.
+- **ModuleController:** Updated to fetch extended stats and recent sales data.
 - **Orders UI (WIP):** Built initial Orders page UI and endpoints.
-- **Migration Fix:** Removed two schema-alter migrations and merged changes into create migrations. Added `supplier_id` + `reorder_level` to `phppos_item_kits`, added `reorder_level` to `phppos_items`, and added a new create migration for `phppos_item_kits_secondary_suppliers`.
+- **Migration Fix (Previous):** Removed two schema-alter migrations and merged changes into create migrations. Added `supplier_id` + `reorder_level` to `phppos_item_kits`, added `reorder_level` to `phppos_items`, and added a new create migration for `phppos_item_kits_secondary_suppliers`.
 - **Threshold Labels:** Renamed reorder level labels to “Threshold” on item and item kit forms, and added Threshold column to item kits list.
 - **Threshold Column (Items):** Added Threshold column to items list.
 - **Quick Edit (Lists):** Added quick-edit modals with auto-save on blur for items and item kits list (cost, price, quantity, threshold).

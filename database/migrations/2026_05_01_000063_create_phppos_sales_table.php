@@ -19,12 +19,14 @@ return new class extends Migration
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('amount_tendered', 23, 10)->default(0);
             $table->decimal('change_due', 23, 10)->default(0);
+            $table->unsignedBigInteger('customer_id')->nullable();
             $table->string('customer_name')->nullable();
             $table->text('comment')->nullable();
             $table->timestamps();
 
             $table->foreign('location_id', 'sales_loc_fk')->references('location_id')->on('phppos_locations');
             $table->foreign('employee_id', 'sales_emp_fk')->references('person_id')->on('phppos_employees');
+            $table->foreign('customer_id', 'sales_cust_fk')->references('person_id')->on('phppos_customers');
         });
     }
 

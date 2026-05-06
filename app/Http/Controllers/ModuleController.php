@@ -53,8 +53,20 @@ class ModuleController extends Controller
             'total_customers' => \Illuminate\Support\Facades\DB::table('phppos_customers')->count(),
             'total_items' => \Illuminate\Support\Facades\DB::table('phppos_items')->where('deleted', 0)->count(),
             'total_item_kits' => \Illuminate\Support\Facades\DB::table('phppos_item_kits')->where('deleted', 0)->count(),
+            'total_sales_amount' => \Illuminate\Support\Facades\DB::table('phppos_sales')->sum('total'),
+            'total_locations' => \Illuminate\Support\Facades\DB::table('phppos_locations')->where('deleted', 0)->count(),
+            'total_employees' => \Illuminate\Support\Facades\DB::table('phppos_employees')->where('deleted', 0)->count(),
         ];
 
-        return view('modules.index', compact('modules', 'monthlySales', 'weeklySales', 'yearlySales', 'stats'));
+        // Recent Sales
+        $recentSales = \Illuminate\Support\Facades\DB::table('phppos_sales')
+            ->join('phppos_customers', 'phppos_sales.customer_id', '=', 'phppos_customers.person_id', 'left')
+            ->join('phppos_people', 'phppos_customers.person_id', '=', 'phppos_people.person_id', 'left')
+            ->select('phppos_sales.*', 'phppos_people.first_name', 'phppos_people.last_name')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('modules.index', compact('modules', 'monthlySales', 'weeklySales', 'yearlySales', 'stats', 'recentSales'));
     }
 }
