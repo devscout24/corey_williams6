@@ -153,7 +153,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const payload = { [field]: parseValue(input.value) };
+        const newValue = input.value;
+        const oldValue = input.defaultValue;
+
+        if (newValue == oldValue) {
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`)) {
+            input.value = oldValue;
+            return;
+        }
+
+        const payload = { [field]: parseValue(newValue) };
 
         try {
             const response = await fetch(`${quickUpdateBase}/${kitId}/quick-update`, {
@@ -169,14 +181,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 throw new Error('Save failed');
             }
+
+            input.defaultValue = newValue;
+            input.classList.add('is-valid');
+            setTimeout(() => input.classList.remove('is-valid'), 1000);
         } catch (error) {
             input.classList.add('is-invalid');
+            input.value = oldValue;
             setTimeout(() => input.classList.remove('is-invalid'), 1200);
         }
     }
 
     document.querySelectorAll('.inline-kit-input').forEach((input) => {
-        input.addEventListener('blur', () => {
+        input.addEventListener('change', () => {
             saveInlineKit(input);
         });
     });

@@ -179,10 +179,26 @@
                 </div>
               </td>
               <td>{{ $item->category_name ?? '—' }}</td>
-              <td>${{ number_format($item->cost_price ?? 0, 2) }}</td>
-              <td>${{ number_format($item->unit_price ?? 0, 2) }}</td>
-              <td>{{ number_format($item->location_quantity ?? $item->default_quantity ?? 0, 3) }}</td>
-              <td>{{ number_format($item->reorder_level ?? 0, 3) }}</td>
+              <td>
+                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                       data-item-id="{{ $item->item_id }}" data-field="cost_price"
+                       value="{{ $item->cost_price }}" />
+              </td>
+              <td>
+                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                       data-item-id="{{ $item->item_id }}" data-field="unit_price"
+                       value="{{ $item->unit_price }}" />
+              </td>
+              <td>
+                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                       data-item-id="{{ $item->item_id }}" data-field="quantity"
+                       value="{{ $item->location_quantity ?? $item->default_quantity ?? 0 }}" />
+              </td>
+              <td>
+                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                       data-item-id="{{ $item->item_id }}" data-field="reorder_level"
+                       value="{{ $item->reorder_level ?? '' }}" />
+              </td>
               <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
               <td>
                 <div class="row-actions">
@@ -246,5 +262,76 @@
     selectAll.checked = false;
     checkSelection();
   }
+
+  const quickUpdateBase = "{{ url('/items') }}";
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+  function parseValue(value) {
+    if (value === '' || value === null || typeof value === 'undefined') {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  async function saveInlineItem(input) {
+    console.log('Save triggered for:', input.dataset.field);
+    const itemId = input.dataset.itemId;
+    const field = input.dataset.field;
+    if (!itemId || !field) {
+      return;
+    }
+
+    const newValue = input.value;
+    const oldValue = input.defaultValue;
+
+    console.log('Values:', { newValue, oldValue });
+
+    if (newValue == oldValue) {
+      console.log('Value unchanged, exiting');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`)) {
+      console.log('Update cancelled by user');
+      input.value = oldValue;
+      return;
+    }
+
+    console.log('Proceeding with update...');
+    const payload = { [field]: parseValue(newValue) };
+
+    try {
+      const response = await fetch(`${quickUpdateBase}/${itemId}/quick-update`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Save failed');
+      }
+
+      input.defaultValue = newValue;
+      input.classList.add('is-valid');
+      setTimeout(() => input.classList.remove('is-valid'), 1000);
+      console.log('Update successful');
+    } catch (error) {
+      console.error('Update failed:', error);
+      input.classList.add('is-invalid');
+      input.value = oldValue;
+      setTimeout(() => input.classList.remove('is-invalid'), 1200);
+    }
+  }
+
+  document.querySelectorAll('.inline-item-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      saveInlineItem(input);
+    });
+  });
 </script>
 @endpush
