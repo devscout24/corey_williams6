@@ -10,7 +10,7 @@
     .report-menu h3 { font-size: 0.9rem; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; padding-left: 8px; }
     .menu-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--gray-700); font-weight: 500; transition: var(--transition); cursor: pointer; border: none; width: 100%; text-align: left; background: none; }
     .menu-item:hover { background: var(--gray-50); color: var(--primary); }
-    .menu-item.active { background: var(--primary-light); color: var(--primary); }
+    .menu-item.active { background: #000000; color: #ffffff; }
     .menu-item i { font-size: 1.1rem; }
 
     .report-selection { background: #fff; border-radius: 12px; padding: 24px; box-shadow: var(--shadow-sm); min-height: 400px; }

@@ -24,17 +24,17 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+                    <thead class="bg-white">
                         <tr>
-                            <th class="ps-4">Item Kit</th>
-                            <th>Kit Number</th>
-                            <th>Category</th>
-                            <th>Supplier</th>
-                            <th>Cost</th>
-                            <th class="text-end">Price</th>
-                            <th>Quantity</th>
-                            <th>Threshold</th>
-                            <th class="text-end pe-4">Actions</th>
+                            <th class="ps-4 border-bottom">Item Kit</th>
+                            <th class="border-bottom">Kit Number</th>
+                            <th class="border-bottom">Category</th>
+                            <th class="border-bottom">Supplier</th>
+                            <th class="border-bottom">Cost</th>
+                            <th class="text-end border-bottom">Price</th>
+                            <th class="border-bottom">Quantity</th>
+                            <th class="border-bottom">Threshold</th>
+                            <th class="text-end pe-4 border-bottom">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
