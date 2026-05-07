@@ -56,26 +56,10 @@
                                     <span class="badge bg-light text-dark border">{{ $kit->category->name ?? 'None' }}</span>
                                 </td>
                                 <td>{{ $kit->supplier->company_name ?? '—' }}</td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="cost_price"
-                                           value="{{ $kit->cost_price }}" />
-                                </td>
-                                <td class="text-end fw-bold text-dark">
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="unit_price"
-                                           value="{{ $kit->unit_price }}" />
-                                </td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="quantity"
-                                           value="{{ $kit->default_quantity ?? 0 }}" />
-                                </td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="reorder_level"
-                                           value="{{ $kit->reorder_level ?? '' }}" />
-                                </td>
+                                <td>${{ number_format($kit->cost_price ?? 0, 2) }}</td>
+                                <td class="text-end fw-bold text-dark">${{ number_format($kit->unit_price ?? 0, 2) }}</td>
+                                <td>{{ number_format($kit->default_quantity ?? 0, 3) }}</td>
+                                <td>{{ number_format($kit->reorder_level ?? 0, 3) }}</td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('item-kits.edit', $kit->id) }}" data-bs-toggle="tooltip" title="Edit">
@@ -132,52 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.action = `/item-kits/${id}`;
                 form.submit();
             }
-        });
-    });
-
-    const quickUpdateBase = "{{ url('/item-kits') }}";
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    function parseValue(value) {
-        if (value === '' || value === null || typeof value === 'undefined') {
-            return null;
-        }
-        const parsed = Number(value);
-        return Number.isNaN(parsed) ? null : parsed;
-    }
-
-    async function saveInlineKit(input) {
-        const kitId = input.dataset.kitId;
-        const field = input.dataset.field;
-        if (!kitId || !field) {
-            return;
-        }
-
-        const payload = { [field]: parseValue(input.value) };
-
-        try {
-            const response = await fetch(`${quickUpdateBase}/${kitId}/quick-update`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                throw new Error('Save failed');
-            }
-        } catch (error) {
-            input.classList.add('is-invalid');
-            setTimeout(() => input.classList.remove('is-invalid'), 1200);
-        }
-    }
-
-    document.querySelectorAll('.inline-kit-input').forEach((input) => {
-        input.addEventListener('blur', () => {
-            saveInlineKit(input);
         });
     });
 });

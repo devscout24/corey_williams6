@@ -5,6 +5,41 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" />
+<style>
+    .selectize-dropdown {
+        z-index: 1060 !important;
+    }
+    .selectize-input {
+        min-height: 38px;
+        line-height: 24px;
+        display: block !important;
+        background: #fff !important;
+        color: #000 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        overflow: visible !important;
+    }
+    .selectize-input.full {
+        background-color: #fff !important;
+    }
+    .selectize-input .item {
+        color: #000 !important;
+        background: #f1f1f1 !important;
+        border: 1px solid #ccc !important;
+        padding: 0 6px !important;
+        margin: 0 2px 2px 0 !important;
+        display: inline-block !important;
+        border-radius: 3px !important;
+        float: left !important;
+    }
+    .selectize-input > input {
+        display: inline-block !important;
+        color: #000 !important;
+        opacity: 1 !important;
+        position: relative !important;
+        left: 0 !important;
+    }
+</style>
 @endpush
 
 @section('content')
@@ -135,7 +170,7 @@
                                             @foreach($kitItems as $index => $kitItem)
                                                 <tr>
                                                     <td>
-                                                        <select class="form-select form-select-sm" name="kit_items[{{ $index }}][item_id]">
+                                                        <select class="form-select form-select-sm searchable-dropdown" name="kit_items[{{ $index }}][item_id]">
                                                             @foreach($allItems as $item)
                                                                 <option value="{{ $item->item_id }}" @selected($kitItem->item_id == $item->item_id)>{{ $item->name }}</option>
                                                             @endforeach
@@ -166,7 +201,7 @@
                                             @foreach($nestedKits as $index => $nested)
                                                 <tr>
                                                     <td>
-                                                        <select class="form-select form-select-sm" name="nested_kits[{{ $index }}][item_kit_id]">
+                                                        <select class="form-select form-select-sm searchable-dropdown" name="nested_kits[{{ $index }}][item_kit_id]">
                                                             @foreach($allKits as $ak)
                                                                 <option value="{{ $ak->id }}" @selected($nested->item_kit_item_kit == $ak->id)>{{ $ak->name }}</option>
                                                             @endforeach
@@ -434,7 +469,29 @@ document.addEventListener('DOMContentLoaded', function() {
         $(selector).selectize({
             create: false,
             sortField: 'text',
-            placeholder: $(selector).find('option:first').text() || 'Select an option'
+            placeholder: $(selector).find('option:first').text() || 'Select an option',
+            onInitialize: function() {
+                this.$control.css({
+                    'background': '#fff',
+                    'color': '#000',
+                    'opacity': '1',
+                    'visibility': 'visible'
+                });
+                this.$control_input.css({
+                    'color': '#000',
+                    'opacity': '1',
+                    'position': 'relative'
+                });
+            },
+            onItemAdd: function() {
+                this.$control.find('.item').css({
+                    'color': '#000',
+                    'background': '#f1f1f1',
+                    'opacity': '1',
+                    'visibility': 'visible',
+                    'display': 'inline-block'
+                });
+            }
         });
     }
 
