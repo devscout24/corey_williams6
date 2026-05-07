@@ -50,6 +50,14 @@
         [data-theme='dark'] .form-control::placeholder {
             color: #b6b6b6ff !important;
         }
+
+        /* Fix tab text visibility */
+        .nav-tabs .nav-link {
+            color: #495057;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd !important;
+        }
     </style>
 @endpush
 
