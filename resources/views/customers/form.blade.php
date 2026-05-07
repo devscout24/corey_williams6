@@ -3,6 +3,18 @@
 @section('title', $customer ? 'Edit Customer' : 'New Customer')
 @section('page-title', $customer ? 'Edit Customer' : 'New Customer')
 
+@push('styles')
+    <style>
+        /* Fix tab text visibility */
+        .nav-tabs .nav-link {
+            color: #495057;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd !important;
+        }
+    </style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <form method="post" action="{{ $customer ? route('customers.update', $customer->person_id) : route('customers.store') }}" class="needs-validation" enctype="multipart/form-data">
