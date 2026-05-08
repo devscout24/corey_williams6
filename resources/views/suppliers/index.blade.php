@@ -73,9 +73,10 @@
   /* Table */
   .custom-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   .custom-table th {
-    background: var(--primary-light); color: var(--gray-700);
+    background: #fff; color: var(--gray-700);
     font-size: 12px; font-weight: 700; padding: 12px 20px;
     text-align: left; white-space: nowrap;
+    border-bottom: 2px solid var(--gray-100);
   }
   .custom-table td {
     padding: 14px 20px; border-bottom: 1px solid var(--gray-100);
