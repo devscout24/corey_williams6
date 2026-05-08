@@ -235,7 +235,7 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 bg-info text-white">
+            <div class="card shadow-sm border-0 bg-secondary text-white">
                 <div class="card-body">
                     <h6 class="text-uppercase small mb-4 opacity-75 fw-bold">Order Summary</h6>
                     <div class="d-flex justify-content-between mb-2">
@@ -254,9 +254,9 @@
                     <form action="{{ route('sales.complete') }}" method="POST">
                         @csrf
                         <div class="mb-3">
-                            <textarea name="comment" class="form-control form-control-sm bg-info border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
+                            <textarea name="comment" class="form-control form-control-sm bg-dark border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
                         </div>
-                        <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-info mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
+                        <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-dark mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
                             <i class="bi bi-check2-circle me-2"></i> COMPLETE SALE
                         </button>
                     </form>
