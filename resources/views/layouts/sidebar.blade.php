@@ -57,7 +57,12 @@
                 </a>
             </div>
 
-            <div class="nav-item"><a href="{{ route('receivings.index') }}" class="nav-link"><i class="bi bi-truck"></i><span>Receiving</span></a></div>
+            <div class="nav-item">
+                <a href="{{ route('purchases.index') }}"
+                    class="nav-link {{ request()->routeIs('purchases.*', 'receivings.*') ? 'active' : '' }}">
+                    <i class="bi bi-truck"></i><span>Purchases</span>
+                </a>
+            </div>
             <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i class="bi bi-cart-fill"></i><span>Sales</span></a></div>
 
             <div class="nav-item">

@@ -11,6 +11,7 @@ use App\Models\PhpposSupplier;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplierStoreAccount;
 use App\Services\InventoryFlowService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,17 +33,70 @@ class ReceivingController extends Controller
         return is_array($cart) ? array_merge($defaultCart, $cart) : $defaultCart;
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $receivings = PhpposReceiving::query()
+        $q = trim((string) $request->query('q', ''));
+        $criteria = $request->query('criteria', 'id');
+        if (! in_array($criteria, ['id', 'supplier', 'date', 'status'], true)) {
+            $criteria = 'id';
+        }
+
+        $purchasesQuery = PhpposReceiving::query()
             ->with(['supplier', 'items'])
             ->where('deleted', 0)
-            ->orderBy('receiving_time', 'desc')
-            ->get();
+            ->where(function (Builder $modeQuery): void {
+                $modeQuery->whereNull('mode')->orWhere('mode', '<>', 'return');
+            });
+
+        $returnsQuery = PhpposReceiving::query()
+            ->with(['supplier', 'items'])
+            ->where('deleted', 0)
+            ->where('mode', 'return');
+
+        if ($q !== '') {
+            $this->applyPurchasesListSearch($purchasesQuery, $q, $criteria);
+            $this->applyPurchasesListSearch($returnsQuery, $q, $criteria);
+        }
+
+        $purchases = $purchasesQuery->orderByDesc('receiving_time')->get();
+        $returns = $returnsQuery->orderByDesc('receiving_time')->get();
 
         return view('receivings.index', [
-            'receivings' => $receivings,
+            'purchases' => $purchases,
+            'returns' => $returns,
+            'criteria' => $criteria,
+            'q' => $q,
         ]);
+    }
+
+    private function applyPurchasesListSearch(Builder $query, string $q, string $criteria): void
+    {
+        match ($criteria) {
+            'supplier' => $query->whereHas('supplier', static function (Builder $sq) use ($q): void {
+                $sq->where('company_name', 'like', '%'.$q.'%');
+            }),
+            'date' => $query->where('receiving_time', 'like', '%'.$q.'%'),
+            'status' => $this->applyPurchasesStatusSearch($query, $q),
+            default => ctype_digit($q)
+                ? $query->where('receiving_id', (int) $q)
+                : $query->where('receiving_id', 'like', '%'.$q.'%'),
+        };
+    }
+
+    private function applyPurchasesStatusSearch(Builder $query, string $q): void
+    {
+        $ql = strtolower($q);
+        if (str_contains($ql, 'suspend')) {
+            $query->where('suspended', '>', 0);
+
+            return;
+        }
+        if (str_contains($ql, 'po') || str_contains($ql, 'order')) {
+            $query->where('is_po', true);
+
+            return;
+        }
+        $query->where('suspended', 0)->where('is_po', false);
     }
 
     public function create(): View
@@ -251,7 +305,7 @@ class ReceivingController extends Controller
         }
 
         Session::put('receiving_cart', $cart);
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.create');
     }
 
     private function addKitItemsToCart($kit, $quantity, &$cart)
@@ -303,7 +357,7 @@ class ReceivingController extends Controller
             if ($request->has('discount')) $cart['items'][$index]['discount'] = (float) $request->discount;
             Session::put('receiving_cart', $cart);
         }
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.create');
     }
 
     public function removeItem(int $index): RedirectResponse
@@ -314,7 +368,7 @@ class ReceivingController extends Controller
             $cart['items'] = array_values($cart['items']);
             Session::put('receiving_cart', $cart);
         }
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.create');
     }
 
     public function setSupplier(Request $request): RedirectResponse
@@ -322,7 +376,7 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
         $cart['supplier_id'] = $request->supplier_id ?: null;
         Session::put('receiving_cart', $cart);
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.create');
     }
 
     public function setMode(Request $request): RedirectResponse
@@ -330,7 +384,7 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
         $cart['mode'] = $request->mode;
         Session::put('receiving_cart', $cart);
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.create');
     }
 
     public function complete(Request $request): RedirectResponse
@@ -402,7 +456,13 @@ class ReceivingController extends Controller
             }
 
             Session::forget('receiving_cart');
-            return redirect()->route('receivings.index')->with('status', 'Receiving completed successfully.');
+            $msg = $cart['mode'] === 'return'
+                ? 'Return completed successfully.'
+                : 'Purchase completed successfully.';
+
+            $to = route('purchases.index').($cart['mode'] === 'return' ? '#returns-list' : '');
+
+            return redirect()->to($to)->with('status', $msg);
         });
     }
 
@@ -497,7 +557,7 @@ class ReceivingController extends Controller
     public function cancel(): RedirectResponse
     {
         Session::forget('receiving_cart');
-        return redirect()->route('receivings.index');
+        return redirect()->route('purchases.index');
     }
 }
 

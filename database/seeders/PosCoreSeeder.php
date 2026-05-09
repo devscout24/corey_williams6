@@ -101,7 +101,7 @@ class PosCoreSeeder extends Seeder
                 ['module_id' => 'items', 'submodule_key' => 'price_rules', 'label' => 'Price Rules', 'sort' => 60],
                 ['module_id' => 'items', 'submodule_key' => 'labels', 'label' => 'Labels', 'sort' => 70],
 
-                ['module_id' => 'receivings', 'submodule_key' => 'receiving', 'label' => 'Receiving', 'sort' => 10],
+                ['module_id' => 'receivings', 'submodule_key' => 'receiving', 'label' => 'Purchases', 'sort' => 10],
                 ['module_id' => 'receivings', 'submodule_key' => 'returns', 'label' => 'Return', 'sort' => 20],
                 ['module_id' => 'receivings', 'submodule_key' => 'transfer_out', 'label' => 'Transfer Out', 'sort' => 30],
                 ['module_id' => 'receivings', 'submodule_key' => 'transfer_in_auto', 'label' => 'Transfer In (Auto)', 'sort' => 40],

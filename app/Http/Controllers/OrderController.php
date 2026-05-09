@@ -250,12 +250,12 @@ class OrderController extends Controller
 
     public function show($receivingId)
     {
-        return redirect()->route('receivings.index', ['receiving_id' => $receivingId]);
+        return redirect()->route('purchases.index', ['receiving_id' => $receivingId]);
     }
 
     public function edit($receivingId)
     {
-        return redirect()->route('receivings.index', ['receiving_id' => $receivingId]);
+        return redirect()->route('purchases.index', ['receiving_id' => $receivingId]);
     }
 
     public function approve($receivingId): JsonResponse
@@ -275,7 +275,7 @@ class OrderController extends Controller
 
     public function print($receivingId)
     {
-        return redirect()->route('receivings.index', ['receiving_id' => $receivingId, 'print' => 1]);
+        return redirect()->route('purchases.index', ['receiving_id' => $receivingId, 'print' => 1]);
     }
 
     public function destroy($receivingId): JsonResponse

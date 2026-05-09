@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Receiving Register')
-@section('page-title', 'Receiving Register')
+@section('title', 'New purchase')
+@section('page-title', 'New purchase')
 
 @push('styles')
 <style>
@@ -26,6 +26,11 @@
 
 @section('content')
 <div class="container-fluid">
+    <div class="mb-3">
+        <a href="{{ route('purchases.index') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to purchases
+        </a>
+    </div>
     @if(session('status'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
@@ -133,7 +138,7 @@
                                     <tr>
                                         <td colspan="7" class="text-center py-5 text-muted">
                                             <i class="bi bi-cart fs-1 d-block mb-2"></i>
-                                            Your receiving cart is empty.
+                                            Your purchase cart is empty.
                                         </td>
                                     </tr>
                                 @endforelse
@@ -151,7 +156,7 @@
                 <div class="card-body">
                     <form action="{{ route('receivings.mode.set') }}" method="POST" id="mode-form">
                         @csrf
-                        <label class="form-label small fw-bold text-uppercase text-muted">Receiving Mode</label>
+                        <label class="form-label small fw-bold text-uppercase text-muted">Purchase mode</label>
                         <select name="mode" class="form-select form-select-lg border-primary text-primary fw-bold" onchange="this.form.submit()">
                             <option value="receive" @selected($cart['mode'] == 'receive')>Receive (Stock In)</option>
                             <option value="return" @selected($cart['mode'] == 'return')>Return (Stock Out)</option>
@@ -217,14 +222,14 @@
                             <textarea name="comment" class="form-control form-control-sm bg-primary border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
                         </div>
                         <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-primary mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
-                            <i class="bi bi-check2-circle me-2"></i> COMPLETE
+                            <i class="bi bi-check2-circle me-2"></i> Finish purchase
                         </button>
                     </form>
                     
                     <form action="{{ route('receivings.cancel') }}" method="POST">
                         @csrf
                         <button type="submit" class="btn btn-link btn-sm w-100 text-white opacity-75 text-decoration-none mt-2" onclick="return confirm('Clear cart?')">
-                            <i class="bi bi-trash"></i> Cancel Receiving
+                            <i class="bi bi-trash"></i> Cancel
                         </button>
                     </form>
                 </div>
@@ -485,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'question',
                 title: 'Add item?',
-                text: 'Do you want to add this item to the receiving cart?',
+                text: 'Do you want to add this item to the purchase cart?',
                 showCancelButton: true,
                 confirmButtonText: 'Add',
                 cancelButtonText: 'Cancel',

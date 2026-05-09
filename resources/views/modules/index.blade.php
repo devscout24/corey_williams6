@@ -247,7 +247,7 @@
                     </span>
                     <i class="bi bi-chevron-right"></i>
                 </a>
-                <a href="{{ route('receivings.index') }}" class="cmd-item">
+                <a href="{{ route('purchases.create') }}" class="cmd-item">
                     <div class="cmd-item-left">
                         <i class="bi bi-truck"></i>
                         <span>Start a New Purchase</span>
