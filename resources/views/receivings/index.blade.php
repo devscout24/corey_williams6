@@ -128,7 +128,8 @@
 @endpush
 
 @section('content')
-<div class="container-fluid p-0">
+
+<div class="container-fluid">
     <div class="customers-toolbar">
         <div class="search-wrap">
             <input type="text" class="search-input" placeholder="Search receivings by supplier / receiving #" />
@@ -197,6 +198,5 @@
     </div>
 </div>
 
-</div>
-@ e n d s e c t i o n  
- 
+
+@endsection
