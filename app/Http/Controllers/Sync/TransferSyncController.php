@@ -117,7 +117,7 @@ class TransferSyncController extends Controller
             $data['source_device_id'],
             (string) $data['transfer_out_id'],
             $data['notes'] ?? null,
-            $data['created_at'] ?? null
+            $data['created_at'] ?? null,
             null
         );
 

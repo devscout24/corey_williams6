@@ -159,9 +159,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No orders yet.</td>
-                    </tr>
+                    @forelse($orders as $order)
+                        <tr>
+                            <td>#{{ $order->receiving_id }}</td>
+                            <td>{{ $order->supplier->company_name ?? '—' }}</td>
+                            <td>{{ \Carbon\Carbon::parse($order->receiving_time)->format('M d, Y h:i A') }}</td>
+                            <td>{{ $order->items->count() }} items</td>
+                            <td>
+                                <span class="status-badge status-open">
+                                    PO
+                                </span>
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    <i class="bi bi-eye action-icon text-primary" title="View"></i>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No orders yet.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -313,6 +332,7 @@
 
     const pullListEndpoint = '{{ route('orders.pull-list') }}';
     const searchEndpoint = '{{ route('orders.search-items') }}';
+    const storeEndpoint = '{{ route('orders.store') }}';
 
     let selectedSupplier = null;
     let mode = 'auto';
@@ -490,12 +510,55 @@
         renderPullList();
     });
 
-    savePullList?.addEventListener('click', () => {
+    savePullList?.addEventListener('click', async () => {
         if (!selectedSupplier) {
             pullListStatus.textContent = 'Select a supplier first.';
             return;
         }
-        pullListStatus.textContent = 'Saved for review.';
+
+        if (pullListItems.size === 0) {
+            pullListStatus.textContent = 'Add items before saving.';
+            return;
+        }
+
+        savePullList.disabled = true;
+        pullListStatus.textContent = 'Saving...';
+
+        const items = Array.from(pullListItems.values()).map(item => ({
+            type: item.type,
+            item_id: item.id,
+            quantity: item.qty
+        }));
+
+        try {
+            const response = await fetch(storeEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    supplier_id: selectedSupplier.id,
+                    items: items
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                pullListStatus.textContent = 'Order saved successfully!';
+                setTimeout(() => {
+                    pullListModal.hide();
+                    window.location.reload();
+                }, 1500);
+            } else {
+                pullListStatus.textContent = data.message || 'Error occurred.';
+                savePullList.disabled = false;
+            }
+        } catch (error) {
+            pullListStatus.textContent = 'Server error occurred.';
+            savePullList.disabled = false;
+        }
     });
 
     document.getElementById('pullListModal')?.addEventListener('hidden.bs.modal', () => {

@@ -34,6 +34,19 @@ class ReceivingController extends Controller
 
     public function index(): View
     {
+        $receivings = PhpposReceiving::query()
+            ->with(['supplier', 'items'])
+            ->where('deleted', 0)
+            ->orderBy('receiving_time', 'desc')
+            ->get();
+
+        return view('receivings.index', [
+            'receivings' => $receivings,
+        ]);
+    }
+
+    public function create(): View
+    {
         $cart = $this->getCart();
 
         $suppliers = PhpposSupplier::with('person')->get();

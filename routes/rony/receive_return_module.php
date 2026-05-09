@@ -8,6 +8,7 @@ Route::middleware('auth:employee')->group(function (): void {
    
     // receivings
     Route::get('/receivings', [ReceivingController::class, 'index'])->name('receivings.index');
+    Route::get('/receivings/create', [ReceivingController::class, 'create'])->name('receivings.create');
     Route::get('/receivings/categories', [ReceivingController::class, 'categories'])->name('receivings.categories');
     Route::get('/receivings/search', [ReceivingController::class, 'search'])->name('receivings.search');
     Route::post('/receivings/item', [ReceivingController::class, 'addItem'])->name('receivings.item.add');
