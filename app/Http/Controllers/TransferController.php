@@ -179,6 +179,74 @@ class TransferController extends Controller
         return redirect()->route('transfers.create');
     }
 
+    public function edit(int $transferId): RedirectResponse
+    {
+        $transfer = \App\Models\PhpposTransfer::with('items')->where('id', $transferId)->where('transfer_type', 'out')->firstOrFail();
+        if ($transfer->status === 'closed') {
+            return redirect()->route('transfers.out')->with('error', 'Cannot edit a closed transfer.');
+        }
+
+        $cart = [
+            'transfer_id' => $transfer->id,
+            'from_location_id' => $transfer->from_location_id,
+            'to_location_id' => $transfer->to_location_id,
+            'comment' => $transfer->notes,
+            'items' => [],
+        ];
+
+        foreach ($transfer->items as $tItem) {
+            $item = \App\Models\PhpposItem::find($tItem->item_id);
+            if ($item) {
+                $cart['items'][] = [
+                    'item_id' => $item->item_id,
+                    'name' => $item->name,
+                    'quantity' => $tItem->quantity,
+                    'cost_price' => $item->cost_price,
+                ];
+            }
+        }
+
+        Session::put('transfer_cart', $cart);
+        return redirect()->route('transfers.create');
+    }
+
+    public function save(Request $request): RedirectResponse
+    {
+        $cart = $this->getCart();
+        if (empty($cart['items'])) {
+            return redirect()->back()->with('error', 'Cart is empty.');
+        }
+
+        if (!$cart['to_location_id'] || $cart['from_location_id'] == $cart['to_location_id']) {
+            return redirect()->back()->with('error', 'Please select a valid destination location different from the source.');
+        }
+
+        try {
+            $lines = collect($cart['items'])->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])->toArray();
+            
+            if (isset($cart['transfer_id'])) {
+                $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
+                $transferOutId = $cart['transfer_id'];
+            } else {
+                $transferOutId = $this->inventoryFlowService->createTransferOut(
+                    $cart['from_location_id'],
+                    $cart['to_location_id'],
+                    $lines,
+                    auth('employee')->id(),
+                    $request->comment ?? $cart['comment']
+                );
+            }
+
+            // Sync the event
+            $this->inventoryFlowService->syncTransferEvent($transferOutId);
+
+            Session::forget('transfer_cart');
+            return redirect()->route('transfers.out')->with('status', 'Transfer saved successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
     public function complete(Request $request): RedirectResponse
     {
         $cart = $this->getCart();
@@ -194,14 +262,20 @@ class TransferController extends Controller
             DB::transaction(function () use ($cart, $request) {
                 $lines = collect($cart['items'])->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])->toArray();
                 
-                // 1. Core transfer flow (Deducts from source, Adds to dest, creates transfers)
-                $transferResult = $this->inventoryFlowService->transferOutAndAutoIn(
-                    $cart['from_location_id'],
-                    $cart['to_location_id'],
-                    $lines,
-                    auth('employee')->id(),
-                    $request->comment ?? $cart['comment']
-                );
+                if (isset($cart['transfer_id'])) {
+                    $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
+                    $transferOutId = $cart['transfer_id'];
+                } else {
+                    $transferOutId = $this->inventoryFlowService->createTransferOut(
+                        $cart['from_location_id'],
+                        $cart['to_location_id'],
+                        $lines,
+                        auth('employee')->id(),
+                        $request->comment ?? $cart['comment']
+                    );
+                }
+
+                $this->inventoryFlowService->completeTransferOut($transferOutId, auth('employee')->id());
 
                 // 2. Create a "Return" record in receivings for audit/reporting purposes (as requested)
                 $subtotal = 0;
@@ -215,7 +289,7 @@ class TransferController extends Controller
                     'receiving_time' => now(),
                     'supplier_id' => null, // Not bound to supplier
                     'employee_id' => auth('employee')->id(),
-                    'comment' => 'Transfer Out #' . $transferResult['transfer_out_id'] . ($request->comment ? ' - ' . $request->comment : ''),
+                    'comment' => 'Transfer Out #' . $transferOutId . ($request->comment ? ' - ' . $request->comment : ''),
                     'location_id' => $cart['from_location_id'],
                     'subtotal' => $subtotal,
                     'total' => $subtotal,
@@ -239,8 +313,10 @@ class TransferController extends Controller
                     ]);
                 }
 
-                Session::forget('transfer_cart');
+                $this->inventoryFlowService->syncTransferEvent($transferOutId);
             });
+
+            Session::forget('transfer_cart');
 
             return redirect()->route('transfers.out')->with('status', 'Transfer posted successfully!');
         } catch (\Exception $e) {

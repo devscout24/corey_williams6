@@ -66,6 +66,7 @@ class TransferSyncController extends Controller
             'from_location_ulid' => 'required|string|max:26',
             'to_location_ulid' => 'required|string|max:26',
             'notes' => 'nullable|string',
+            'status' => 'nullable|string|in:open,closed',
             'created_at' => 'nullable|date',
             'lines' => 'required|array|min:1',
             'lines.*.item_id' => 'nullable|integer',
@@ -118,7 +119,8 @@ class TransferSyncController extends Controller
             (string) $data['transfer_out_id'],
             $data['notes'] ?? null,
             $data['created_at'] ?? null,
-            null
+            null,
+            $data['status'] ?? 'closed'
         );
 
         return response()->json([

@@ -182,6 +182,7 @@
                     <th>To Location</th>
                     <th>Notes</th>
                     <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -193,7 +194,12 @@
                     <td>{{ $transfer->from_location_name }}</td>
                     <td>{{ $transfer->to_location_name }}</td>
                     <td>{{ $transfer->notes ?? '-' }}</td>
-                    <td><span class="badge badge-success">{{ ucfirst($transfer->status) }}</span></td>
+                    <td><span class="badge {{ $transfer->status === 'open' ? 'bg-warning text-dark' : 'bg-success' }}">{{ ucfirst($transfer->status) }}</span></td>
+                    <td>
+                        @if($transfer->status === 'open')
+                            <a href="{{ route('transfers.edit', $transfer->id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Edit</a>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>

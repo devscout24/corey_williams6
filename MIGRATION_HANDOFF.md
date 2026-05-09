@@ -152,7 +152,8 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ### 4. Inventory Flow
 - [ ] Modernize the UI for Receivings, Returns, and Transfers to match the new Pos HTML Dashboard template.
-- [ ] **Transfers Sync (UI):** Add target device registry for peer-to-peer transfer-out sync.
+- [x] **Transfers Sync (UI):** Added target device registry (`sync_url` in locations table) and enabled peer-to-peer transfer sync for open, edit, and completed transfer events.
+- [x] **Transfers:** Added capability to create/save a transfer without completing, and edit open transfers (adjust quantities, close/complete).
 
 ### 5. Sales & Receipts
 - [ ] Modernize Sales Register UI.

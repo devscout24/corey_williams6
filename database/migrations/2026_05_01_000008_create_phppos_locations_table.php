@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('zip')->default('');
             $table->string('country')->default('');
             $table->string('phone')->default('');
+            $table->string('sync_url')->nullable();
             $table->boolean('deleted')->default(false);
             $table->timestamps();
         });

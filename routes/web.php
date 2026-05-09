@@ -36,6 +36,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::delete('/transfers/item/{index}', [TransferController::class, 'removeItem'])->name('transfers.item.remove');
     Route::post('/transfers/location', [TransferController::class, 'setLocation'])->name('transfers.location.set');
     Route::post('/transfers/complete', [TransferController::class, 'complete'])->name('transfers.complete');
+    Route::post('/transfers/save', [TransferController::class, 'save'])->name('transfers.save');
+    Route::get('/transfers/edit/{id}', [TransferController::class, 'edit'])->name('transfers.edit');
     Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
 
    

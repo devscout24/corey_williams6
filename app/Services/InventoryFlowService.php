@@ -153,6 +153,186 @@ class InventoryFlowService
         });
     }
 
+    public function createTransferOut(int $fromLocationId, int $toLocationId, array $lines, ?int $employeePersonId = null, ?string $notes = null): int
+    {
+        if ($fromLocationId === $toLocationId) {
+            throw new RuntimeException('From and To location must be different.');
+        }
+
+        return DB::transaction(function () use ($fromLocationId, $toLocationId, $lines, $employeePersonId, $notes): int {
+            $transferOutId = DB::table('phppos_transfers')->insertGetId([
+                'transfer_type' => 'out',
+                'from_location_id' => $fromLocationId,
+                'to_location_id' => $toLocationId,
+                'status' => 'open',
+                'created_by_person_id' => $employeePersonId,
+                'notes' => $notes,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($lines as $line) {
+                $itemId = (int) $line['item_id'];
+                $qty = (float) $line['quantity'];
+                if ($qty <= 0) continue;
+                DB::table('phppos_transfer_items')->insert([
+                    'transfer_id' => $transferOutId,
+                    'item_id' => $itemId,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            return $transferOutId;
+        });
+    }
+
+    public function updateTransferOut(int $transferOutId, array $lines, ?string $notes = null): void
+    {
+        DB::transaction(function () use ($transferOutId, $lines, $notes): void {
+            DB::table('phppos_transfers')->where('id', $transferOutId)->update([
+                'notes' => $notes,
+                'updated_at' => now(),
+            ]);
+            DB::table('phppos_transfer_items')->where('transfer_id', $transferOutId)->delete();
+            foreach ($lines as $line) {
+                $itemId = (int) $line['item_id'];
+                $qty = (float) $line['quantity'];
+                if ($qty <= 0) continue;
+                DB::table('phppos_transfer_items')->insert([
+                    'transfer_id' => $transferOutId,
+                    'item_id' => $itemId,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+    }
+
+    public function completeTransferOut(int $transferOutId, ?int $employeePersonId = null): array
+    {
+        return DB::transaction(function () use ($transferOutId, $employeePersonId): array {
+            $transfer = DB::table('phppos_transfers')->where('id', $transferOutId)->first();
+            if (!$transfer || $transfer->status === 'closed') {
+                throw new RuntimeException('Transfer is already closed or not found.');
+            }
+
+            DB::table('phppos_transfers')->where('id', $transferOutId)->update([
+                'status' => 'closed',
+                'closed_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $lines = DB::table('phppos_transfer_items')->where('transfer_id', $transferOutId)->get();
+
+            $transferInId = DB::table('phppos_transfers')->insertGetId([
+                'transfer_type' => 'in',
+                'from_location_id' => $transfer->from_location_id,
+                'to_location_id' => $transfer->to_location_id,
+                'parent_transfer_id' => $transferOutId,
+                'auto_generated' => true,
+                'status' => 'closed',
+                'created_by_person_id' => $employeePersonId,
+                'closed_at' => now(),
+                'notes' => 'Auto-created from transfer out #'.$transferOutId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($lines as $line) {
+                $itemId = (int) $line->item_id;
+                $qty = (float) $line->quantity;
+
+                // transfer out: subtract from source
+                $this->adjustQuantity($transfer->from_location_id, $itemId, -$qty);
+
+                // transfer in: add to destination (automatic)
+                $this->adjustQuantity($transfer->to_location_id, $itemId, $qty);
+
+                DB::table('phppos_transfer_items')->insert([
+                    'transfer_id' => $transferInId,
+                    'item_id' => $itemId,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('phppos_inventory_movements')->insert([
+                    [
+                        'movement_type' => 'transfer_out',
+                        'item_id' => $itemId,
+                        'from_location_id' => $transfer->from_location_id,
+                        'to_location_id' => $transfer->to_location_id,
+                        'quantity' => $qty,
+                        'reference_id' => $transferOutId,
+                        'reference_type' => 'transfer',
+                        'created_by_person_id' => $employeePersonId,
+                        'notes' => $transfer->notes,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                    [
+                        'movement_type' => 'transfer_in',
+                        'item_id' => $itemId,
+                        'from_location_id' => $transfer->from_location_id,
+                        'to_location_id' => $transfer->to_location_id,
+                        'quantity' => $qty,
+                        'reference_id' => $transferInId,
+                        'reference_type' => 'transfer',
+                        'created_by_person_id' => $employeePersonId,
+                        'notes' => 'Auto transfer-in',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                ]);
+            }
+
+            return [
+                'transfer_out_id' => $transferOutId,
+                'transfer_in_id' => $transferInId,
+            ];
+        });
+    }
+
+    public function syncTransferEvent(int $transferOutId): void
+    {
+        $transfer = \App\Models\PhpposTransfer::with('items')->find($transferOutId);
+        if (!$transfer) return;
+        
+        $toLocation = \App\Models\PhpposLocation::where('location_id', $transfer->to_location_id)->first();
+        if (!$toLocation || empty($toLocation->sync_url)) return;
+
+        $fromLocation = \App\Models\PhpposLocation::where('location_id', $transfer->from_location_id)->first();
+
+        $lines = $transfer->items->map(function ($item) {
+            $itemModel = \App\Models\PhpposItem::find($item->item_id);
+            return [
+                'item_id' => $item->item_id,
+                'item_number' => $itemModel?->item_number,
+                'quantity' => (float) $item->quantity,
+            ];
+        })->values();
+
+        $payload = [
+            'source_device_id' => config('sync.device_id', 'unknown'),
+            'transfer_out_id' => (string) $transfer->id,
+            'from_location_ulid' => $fromLocation?->ulid,
+            'to_location_ulid' => $toLocation->ulid,
+            'notes' => $transfer->notes,
+            'status' => $transfer->status,
+            'created_at' => $transfer->created_at?->toISOString(),
+            'lines' => $lines->toArray(),
+        ];
+
+        try {
+            \Illuminate\Support\Facades\Http::timeout(5)
+                ->post(rtrim($toLocation->sync_url, '/') . '/api/sync/transfer-out', $payload);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Transfer sync failed: ' . $e->getMessage());
+        }
+    }
+
     /**
      * @param array<int, array{item_id:int, quantity:float}> $lines
      */
@@ -164,7 +344,8 @@ class InventoryFlowService
         string $externalTransferId,
         ?string $notes = null,
         ?string $createdAt = null,
-        ?int $employeePersonId = null
+        ?int $employeePersonId = null,
+        string $status = 'closed'
     ): array {
         if ($fromLocationId === $toLocationId) {
             throw new RuntimeException('From and To location must be different.');
@@ -178,29 +359,82 @@ class InventoryFlowService
                 ->first();
 
             if ($existing) {
-                return [
-                    'transfer_in_id' => $existing->id,
-                    'already_imported' => true,
-                ];
+                if ($existing->status === 'closed') {
+                    return [
+                        'transfer_in_id' => $existing->id,
+                        'already_imported' => true,
+                    ];
+                }
+
+                if ($status === 'open') {
+                    // Just update lines if it's still open
+                    DB::table('phppos_transfers')->where('id', $existing->id)->update([
+                        'notes' => $notes,
+                        'updated_at' => now(),
+                    ]);
+                    DB::table('phppos_transfer_items')->where('transfer_id', $existing->id)->delete();
+                    foreach ($lines as $line) {
+                        DB::table('phppos_transfer_items')->insert([
+                            'transfer_id' => $existing->id,
+                            'item_id' => (int) $line['item_id'],
+                            'quantity' => (float) $line['quantity'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                    return [
+                        'transfer_in_id' => $existing->id,
+                        'already_imported' => false,
+                    ];
+                }
+                
+                // Existing is open, but new status is closed. We will update it to closed and process inventory.
+                $transferInId = $existing->id;
+                DB::table('phppos_transfers')->where('id', $transferInId)->update([
+                    'status' => 'closed',
+                    'closed_at' => now(),
+                    'notes' => $notes,
+                    'updated_at' => now(),
+                ]);
+                DB::table('phppos_transfer_items')->where('transfer_id', $transferInId)->delete();
+            } else {
+                $timestamp = $createdAt ? Carbon::parse($createdAt) : now();
+
+                $transferInId = DB::table('phppos_transfers')->insertGetId([
+                    'transfer_type' => 'in',
+                    'from_location_id' => $fromLocationId,
+                    'to_location_id' => $toLocationId,
+                    'parent_transfer_id' => null,
+                    'auto_generated' => false,
+                    'status' => $status,
+                    'created_by_person_id' => null,
+                    'closed_at' => $status === 'closed' ? $timestamp : null,
+                    'notes' => $notes,
+                    'external_source' => $externalSource,
+                    'external_transfer_id' => $externalTransferId,
+                    'created_at' => $timestamp,
+                    'updated_at' => now(),
+                ]);
             }
 
-            $timestamp = $createdAt ? Carbon::parse($createdAt) : now();
-
-            $transferInId = DB::table('phppos_transfers')->insertGetId([
-                'transfer_type' => 'in',
-                'from_location_id' => $fromLocationId,
-                'to_location_id' => $toLocationId,
-                'parent_transfer_id' => null,
-                'auto_generated' => false,
-                'status' => 'closed',
-                'created_by_person_id' => null,
-                'closed_at' => $timestamp,
-                'notes' => $notes,
-                'external_source' => $externalSource,
-                'external_transfer_id' => $externalTransferId,
-                'created_at' => $timestamp,
-                'updated_at' => now(),
-            ]);
+            if ($status === 'open') {
+                foreach ($lines as $line) {
+                    $itemId = (int) $line['item_id'];
+                    $qty = (float) $line['quantity'];
+                    if ($qty <= 0) continue;
+                    DB::table('phppos_transfer_items')->insert([
+                        'transfer_id' => $transferInId,
+                        'item_id' => $itemId,
+                        'quantity' => $qty,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+                return [
+                    'transfer_in_id' => $transferInId,
+                    'already_imported' => false,
+                ];
+            }
 
             $receivingEmployeeId = $employeePersonId ?? $this->resolveSyncEmployeeId();
             $receivingComment = 'Synced Transfer Out '.$externalTransferId.' from '.$externalSource;
@@ -266,7 +500,7 @@ class InventoryFlowService
                     'transfer_id' => $transferInId,
                     'item_id' => $itemId,
                     'quantity' => $qty,
-                    'created_at' => $timestamp,
+                    'created_at' => $timestamp ?? now(),
                     'updated_at' => now(),
                 ]);
 

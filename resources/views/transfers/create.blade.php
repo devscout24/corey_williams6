@@ -193,6 +193,13 @@
                         <span class="fw-bold">{{ collect($cart['items'])->sum('quantity') }}</span>
                     </div>
 
+                    <form action="{{ route('transfers.save') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-light btn-lg w-100 fw-bold mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
+                            <i class="bi bi-save me-2"></i> SAVE TRANSFER
+                        </button>
+                    </form>
+
                     <form action="{{ route('transfers.complete') }}" method="POST">
                         @csrf
                         <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-primary mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
