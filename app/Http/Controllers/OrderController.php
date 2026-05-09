@@ -247,4 +247,45 @@ class OrderController extends Controller
             'kits' => $kits->values(),
         ]);
     }
+
+    public function show($receivingId)
+    {
+        return redirect()->route('receivings.index', ['receiving_id' => $receivingId]);
+    }
+
+    public function edit($receivingId)
+    {
+        return redirect()->route('receivings.index', ['receiving_id' => $receivingId]);
+    }
+
+    public function approve($receivingId): JsonResponse
+    {
+        try {
+            $receiving = PhpposReceiving::findOrFail($receivingId);
+            $receiving->update([
+                'suspended' => 0,
+                'is_po' => 0,
+                'receiving_time' => now()
+            ]);
+            return response()->json(['success' => true, 'message' => 'Order approved successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function print($receivingId)
+    {
+        return redirect()->route('receivings.index', ['receiving_id' => $receivingId, 'print' => 1]);
+    }
+
+    public function destroy($receivingId): JsonResponse
+    {
+        try {
+            $receiving = PhpposReceiving::findOrFail($receivingId);
+            $receiving->update(['deleted' => 1]);
+            return response()->json(['success' => true, 'message' => 'Order deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

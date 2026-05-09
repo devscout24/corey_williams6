@@ -43,9 +43,9 @@
   }
   .custom-table { width: 100%; border-collapse: collapse; min-width: 900px; }
   .custom-table th {
-    background: #fff; color: var(--gray-700); font-size: 12px; font-weight: 700;
-    padding: 12px 20px; text-align: left; white-space: nowrap;
-    border-bottom: 2px solid var(--gray-100);
+    background: #F8F9FE; color: #475569; font-size: 13px; font-weight: 700;
+    padding: 16px 20px; text-align: left; white-space: nowrap;
+    border-bottom: 1px solid #E2E8F0;
   }
   .custom-table td {
     padding: 14px 20px; border-bottom: 1px solid var(--gray-100); font-size: 13.5px;
@@ -54,12 +54,33 @@
   .custom-table tr:last-child td { border-bottom: none; }
   .custom-table tr:hover { background: var(--gray-50); }
   .status-badge {
-    padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-block;
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; min-width: 80px;
   }
-  .status-open { background: #DCFCE7; color: #166534; }
-  .status-close { background: #E2E8F0; color: #334155; }
-  .row-actions { display: flex; align-items: center; gap: 10px; }
-  .action-icon { cursor: pointer; transition: color .2s; font-size: 16px; }
+  .status-open { background: #E6F9EE; color: #008A3D; }
+  .status-closed { background: #F1F5F9; color: #475569; }
+
+  .row-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .btn-action-icon {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; border: 1px solid var(--gray-200); background: #fff;
+    color: var(--gray-500); transition: all 0.2s; cursor: pointer; text-decoration: none;
+  }
+  .btn-action-icon:hover { background: var(--gray-50); color: var(--primary); border-color: var(--primary-soft); }
+  
+  .dropdown-toggle-nocaret::after { display: none; }
+  .action-dropdown-menu {
+    border: none; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+    padding: 8px; min-width: 180px;
+  }
+  .action-dropdown-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 500; color: var(--gray-600); transition: all 0.2s;
+    cursor: pointer; border: none; background: transparent; width: 100%; text-align: left;
+  }
+  .action-dropdown-item:hover { background: var(--gray-50); color: var(--primary); }
+  .action-dropdown-item i { font-size: 16px; }
+  .action-dropdown-item.text-danger:hover { background: #FEF2F2; color: #DC2626; }
+  .dropdown-divider { margin: 8px 0; border-top: 1px solid var(--gray-100); }
 
   .modal-content-custom { border-radius: 16px; border: 1px solid var(--gray-200); }
   .modal-header-custom { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--gray-100); }
@@ -124,6 +145,16 @@
     .search-wrap { max-width: 100%; flex-wrap: wrap; }
     .start-mode-grid { grid-template-columns: 1fr; }
   }
+
+  @media (max-width: 768px) {
+    .custom-table th:nth-child(3), .custom-table td:nth-child(3) { display: none; } /* Hide Created Date */
+    .custom-table td, .custom-table th { padding: 12px 14px; font-size: 13px; }
+  }
+
+  @media (max-width: 576px) {
+    .custom-table th:nth-child(4), .custom-table td:nth-child(4) { display: none; } /* Hide Items */
+    .status-badge { padding: 4px 10px; min-width: 60px; font-size: 12px; }
+  }
 </style>
 @endpush
 
@@ -161,18 +192,48 @@
                 <tbody>
                     @forelse($orders as $order)
                         <tr>
-                            <td>#{{ $order->receiving_id }}</td>
+                            <td>ID:{{ $order->receiving_id }}</td>
                             <td>{{ $order->supplier->company_name ?? '—' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($order->receiving_time)->format('M d, Y h:i A') }}</td>
-                            <td>{{ $order->items->count() }} items</td>
+                            <td>{{ \Carbon\Carbon::parse($order->receiving_time)->format('m/d/Y') }}</td>
+                            <td>{{ str_pad($order->items->count(), 2, '0', STR_PAD_LEFT) }}</td>
                             <td>
-                                <span class="status-badge status-open">
-                                    PO
+                                <span class="status-badge {{ $order->suspended ? 'status-closed' : 'status-open' }}">
+                                    {{ $order->suspended ? 'Closed' : 'Open' }}
                                 </span>
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <i class="bi bi-eye action-icon text-primary" title="View"></i>
+                                    <a href="{{ route('orders.edit', $order->receiving_id) }}" class="btn-action-icon" title="Edit">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn-action-icon dropdown-toggle-nocaret" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end action-dropdown-menu">
+                                            <li>
+                                                <button class="action-dropdown-item" onclick="approveOrder({{ $order->receiving_id }})">
+                                                    <i class="bi bi-check-circle text-success"></i> Approve Order
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <a href="{{ route('orders.show', $order->receiving_id) }}" class="action-dropdown-item">
+                                                    <i class="bi bi-eye text-primary"></i> View Details
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{{ route('orders.print', $order->receiving_id) }}" target="_blank" class="action-dropdown-item">
+                                                    <i class="bi bi-printer text-info"></i> Print Order
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="action-dropdown-item text-danger" onclick="deleteOrder({{ $order->receiving_id }})">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -569,6 +630,44 @@
         pullListStatus.textContent = '';
         mode = 'auto';
     });
+
+    window.approveOrder = async (id) => {
+        if (!confirm('Are you sure you want to approve this order?')) return;
+        try {
+            const response = await fetch(`/orders/${id}/approve`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error approving order');
+            }
+        } catch (error) {
+            alert('Server error occurred.');
+        }
+    };
+
+    window.deleteOrder = async (id) => {
+        if (!confirm('Are you sure you want to delete this order?')) return;
+        try {
+            const response = await fetch(`/orders/${id}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error deleting order');
+            }
+        } catch (error) {
+            alert('Server error occurred.');
+        }
+    };
 })();
 </script>
 @endpush

@@ -45,6 +45,11 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
     Route::get('/orders/pull-list', [OrderController::class, 'pullList'])->name('orders.pull-list');
     Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
+    Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
+    Route::post('/orders/{receivingId}/approve', [OrderController::class, 'approve'])->name('orders.approve');
+    Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
+    Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
 });
