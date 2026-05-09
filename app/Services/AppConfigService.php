@@ -27,9 +27,11 @@ class AppConfigService
 
     public function save(string $key, mixed $value): bool
     {
+        $stored = $this->normalizeScalarConfigValue($value);
+
         return (bool) PhpposAppConfig::query()->updateOrCreate(
             ['key' => $key],
-            ['value' => (string) $value],
+            ['value' => $stored],
         );
     }
 
@@ -46,6 +48,9 @@ class AppConfigService
 
         DB::transaction(function () use ($data): void {
             foreach ($data as $key => $value) {
+                if (is_array($value) || is_object($value)) {
+                    continue;
+                }
                 $this->save((string) $key, $value);
             }
         });
@@ -116,5 +121,18 @@ class AppConfigService
         }
 
         return false;
+    }
+
+    private function normalizeScalarConfigValue(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        return (string) $value;
     }
 }

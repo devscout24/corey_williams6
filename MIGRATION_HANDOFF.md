@@ -37,6 +37,9 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 10, 2026
+- **Store Config (`/config`):** Fixed `Array to string conversion` on save by excluding `locations_color` / `locations_secondary_color` (and denomination POST arrays) from `AppConfigService::batchSave`, and by skipping non-scalar values in batch saves. Hardened `AppConfigService::save` for bool/null. Ported currency tab closer to legacy `config.php`: exchange-rate decimals as dropdown (incl. “Let system decide”), base decimals dropdown, thousands separator and decimal point on the Currency tab, register **currency denominations** (CRUD + soft-delete via `deleted_denmos[]`), receipt text size **Extra large** option, and `disable_price_rules_dialog` loaded from app config. Fixed exchange-rate persistence: only truncate/rebuild when `config_exchange_rates_sync` is posted (so empty exchange tables no longer wipe rates on unrelated saves).
+
 ### May 6, 2026
 - **Transfers Sync (Backend):** Added peer-to-peer sync API endpoints with shared-token auth, transfer export endpoint, and import logic that creates a local Transfer In, inventory movements, and a Receiving record with source reference. Added external source/id fields to `phppos_transfers` for idempotent imports.
 - **Receivings UI:** Added manual “Sync Transfer” modal on the Receiving register page.

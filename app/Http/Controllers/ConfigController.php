@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhpposRegisterCurrencyDenomination;
 use App\Services\AppConfigService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class ConfigController extends Controller
             'label_sheet_background',
             'show_barcode_company_name', 'hide_barcode_on_barcode_labels',
             'phppos_session_expiration', 'speed_up_search_queries', 'enable_sounds',
-            'receipt_text_size'
+            'receipt_text_size', 'disable_price_rules_dialog',
         ];
 
         $values = [];
@@ -38,16 +39,38 @@ class ConfigController extends Controller
         }
 
         $exchange_rates = \App\Models\PhpposCurrencyExchangeRate::all();
+        $currency_denoms = PhpposRegisterCurrencyDenomination::query()
+            ->where('deleted', 0)
+            ->orderBy('id')
+            ->get();
         $locations = \App\Models\PhpposLocation::where('deleted', 0)->get();
 
-        return view('config.index', compact('values', 'exchange_rates', 'locations'));
+        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
     {
         // In a real app, you might want more specific validation per field
         // For now, we'll allow all keys provided in the request that match our config
-        $data = $request->except(['_token', '_method', 'ecommerce_locations', 'currency_exchange_rates_to', 'currency_exchange_rates_symbol', 'currency_exchange_rates_rate', 'currency_exchange_rates_symbol_location', 'currency_exchange_rates_number_of_decimals', 'currency_exchange_rates_thousands_separator', 'currency_exchange_rates_decimal_point']);
+        $data = $request->except([
+            '_token',
+            '_method',
+            'ecommerce_locations',
+            'currency_exchange_rates_to',
+            'currency_exchange_rates_symbol',
+            'currency_exchange_rates_rate',
+            'currency_exchange_rates_symbol_location',
+            'currency_exchange_rates_number_of_decimals',
+            'currency_exchange_rates_thousands_separator',
+            'currency_exchange_rates_decimal_point',
+            'locations_color',
+            'locations_secondary_color',
+            'currency_denoms_name',
+            'currency_denoms_value',
+            'currency_denoms_ids',
+            'deleted_denmos',
+            'config_exchange_rates_sync',
+        ]);
         
         // Handle checkboxes (convert missing values to 0)
         $checkboxes = [
@@ -86,26 +109,70 @@ class ConfigController extends Controller
 
 
 
-        \App\Models\PhpposCurrencyExchangeRate::truncate();
-        if ($request->has('currency_exchange_rates_to') && is_array($request->currency_exchange_rates_to)) {
-            $tos = $request->currency_exchange_rates_to;
-            $symbols = $request->currency_exchange_rates_symbol ?? [];
-            $rates = $request->currency_exchange_rates_rate ?? [];
-            $symbolLocations = $request->currency_exchange_rates_symbol_location ?? [];
-            $decimals = $request->currency_exchange_rates_number_of_decimals ?? [];
-            $thousands = $request->currency_exchange_rates_thousands_separator ?? [];
-            $decimalPoints = $request->currency_exchange_rates_decimal_point ?? [];
+        if ($request->boolean('config_exchange_rates_sync')) {
+            \App\Models\PhpposCurrencyExchangeRate::truncate();
+            $tos = (array) $request->input('currency_exchange_rates_to', []);
+            $symbols = (array) $request->input('currency_exchange_rates_symbol', []);
+            $rates = (array) $request->input('currency_exchange_rates_rate', []);
+            $symbolLocations = (array) $request->input('currency_exchange_rates_symbol_location', []);
+            $decimals = (array) $request->input('currency_exchange_rates_number_of_decimals', []);
+            $thousands = (array) $request->input('currency_exchange_rates_thousands_separator', []);
+            $decimalPoints = (array) $request->input('currency_exchange_rates_decimal_point', []);
 
-            for ($i = 0; $i < count($tos); $i++) {
-                if (!empty($tos[$i]) && !empty($rates[$i])) {
-                    \App\Models\PhpposCurrencyExchangeRate::create([
-                        'currency_code_to' => $tos[$i],
-                        'currency_symbol' => $symbols[$i] ?? '',
-                        'exchange_rate' => $rates[$i],
-                        'currency_symbol_location' => $symbolLocations[$i] ?? 'before',
-                        'number_of_decimals' => $decimals[$i] ?? '',
-                        'thousands_separator' => $thousands[$i] ?? '',
-                        'decimal_point' => $decimalPoints[$i] ?? '',
+            for ($i = 0, $n = count($tos); $i < $n; $i++) {
+                if (($tos[$i] ?? '') === '' || ($rates[$i] ?? '') === '') {
+                    continue;
+                }
+                \App\Models\PhpposCurrencyExchangeRate::create([
+                    'currency_code_to' => $tos[$i],
+                    'currency_symbol' => $symbols[$i] ?? '',
+                    'exchange_rate' => $rates[$i],
+                    'currency_symbol_location' => $symbolLocations[$i] ?? 'before',
+                    'number_of_decimals' => $decimals[$i] ?? '',
+                    'thousands_separator' => $thousands[$i] ?? '',
+                    'decimal_point' => $decimalPoints[$i] ?? '',
+                ]);
+            }
+        }
+
+        $deletedDenomIds = array_values(array_filter(
+            array_map(static fn ($v): int => (int) $v, (array) $request->input('deleted_denmos', [])),
+            static fn (int $id): bool => $id > 0
+        ));
+        if ($deletedDenomIds !== []) {
+            PhpposRegisterCurrencyDenomination::query()
+                ->whereIn('id', $deletedDenomIds)
+                ->update(['deleted' => 1]);
+        }
+
+        $denomNames = $request->input('currency_denoms_name', []);
+        $denomValues = $request->input('currency_denoms_value', []);
+        $denomIds = $request->input('currency_denoms_ids', []);
+        if (is_array($denomNames)) {
+            for ($k = 0, $denomCount = count($denomNames); $k < $denomCount; $k++) {
+                $name = trim((string) ($denomNames[$k] ?? ''));
+                $rawValue = $denomValues[$k] ?? '0';
+                $value = is_numeric($rawValue)
+                    ? (float) $rawValue
+                    : (float) preg_replace('/[^0-9.\-]/', '', (string) $rawValue);
+                $idRaw = $denomIds[$k] ?? '';
+                $id = is_numeric($idRaw) && (string) $idRaw !== '' ? (int) $idRaw : null;
+
+                if ($name === '') {
+                    continue;
+                }
+
+                if ($id !== null && PhpposRegisterCurrencyDenomination::query()->whereKey($id)->exists()) {
+                    PhpposRegisterCurrencyDenomination::query()->whereKey($id)->update([
+                        'name' => $name,
+                        'value' => $value,
+                        'deleted' => 0,
+                    ]);
+                } else {
+                    PhpposRegisterCurrencyDenomination::query()->create([
+                        'name' => $name,
+                        'value' => $value,
+                        'deleted' => 0,
                     ]);
                 }
             }

@@ -19,7 +19,7 @@
             <div class="alert alert-danger">{{ $message }}</div>
         @enderror
 
-        <form method="post" action="{{ route('config.update') }}" enctype="multipart/form-data">
+        <form id="storeConfigForm" method="post" action="{{ route('config.update') }}" enctype="multipart/form-data">
             @csrf
             
             <div class="sc-search-wrap" style="justify-content: flex-end; margin-bottom: 20px;">
@@ -133,6 +133,7 @@
                             <option value="small" @selected($values['receipt_text_size'] == 'small')>Small</option>
                             <option value="medium" @selected($values['receipt_text_size'] == 'medium')>Medium</option>
                             <option value="large" @selected($values['receipt_text_size'] == 'large')>Large</option>
+                            <option value="extra_large" @selected($values['receipt_text_size'] == 'extra_large')>Extra large</option>
                         </select>
                     </div>
                     <div class="sc-receipt-row">
@@ -255,38 +256,30 @@
                 </div>
             </div>
 
-            <!-- Currency -->
+            <!-- Currency (order matches legacy config: symbol/code → exchange rates → base formatting → denominations) -->
             <div class="sc-tab-panel" id="tab-currency">
+                <input type="hidden" name="config_exchange_rates_sync" value="1">
                 <div class="sc-currency-card">
                     <div class="sc-currency-grid" style="margin-bottom: 20px;">
-                        <label class="sc-currency-label" for="currencySymbol">Currency Symbol:</label>
+                        <label class="sc-currency-label" for="currencySymbol">Currency Symbol</label>
                         <input type="text" name="currency_symbol" class="sc-currency-control" id="currencySymbol" value="{{ $values['currency_symbol'] }}" />
-                        <label class="sc-currency-label" for="currencyCode">Currency Code (ISO):</label>
+                        <label class="sc-currency-label" for="currencyCode">Currency Code (ISO)</label>
                         <input type="text" name="currency_code" class="sc-currency-control" id="currencyCode" value="{{ $values['currency_code'] }}" />
                     </div>
-                    
-                    <div class="sc-currency-grid" style="margin-bottom: 20px;">
-                        <label class="sc-currency-label" for="currencySymbolLocation">Symbol Location:</label>
-                        <select name="currency_symbol_location" class="sc-currency-control" id="currencySymbolLocation">
-                            <option value="before" @selected($values['currency_symbol_location'] == 'before')>Before Amount</option>
-                            <option value="after" @selected($values['currency_symbol_location'] == 'after')>After Amount</option>
-                        </select>
-                        <label class="sc-currency-label" for="currencyDecimals">Decimals:</label>
-                        <input type="number" name="number_of_decimals" class="sc-currency-control" id="currencyDecimals" value="{{ $values['number_of_decimals'] }}" />
-                    </div>
 
-                    <div class="sc-currency-table-wrap">
+                    <h6 class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 600;">Currency exchange rates</h6>
+                    <div class="sc-currency-table-wrap mb-4">
                         <table class="sc-currency-table" id="exchangeRatesTable">
                             <thead>
                                 <tr>
-                                    <th>Currency Code To</th>
+                                    <th>Exchange to</th>
                                     <th>Symbol</th>
-                                    <th>Symbol Location</th>
+                                    <th>Symbol location</th>
                                     <th>Decimals</th>
-                                    <th>Thousands Separator</th>
-                                    <th>Decimal Point</th>
-                                    <th>Exchange Rate</th>
-                                    <th>Delete</th>
+                                    <th>Thousands separator</th>
+                                    <th>Decimal point</th>
+                                    <th>Exchange rate</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -300,16 +293,72 @@
                                             <option value="after" @selected($rate->currency_symbol_location == 'after')>After</option>
                                         </select>
                                     </td>
-                                    <td><input type="number" name="currency_exchange_rates_number_of_decimals[]" class="sc-currency-control" value="{{ $rate->number_of_decimals }}"></td>
+                                    <td>
+                                        <select name="currency_exchange_rates_number_of_decimals[]" class="sc-currency-control">
+                                            <option value="" @selected((string) $rate->number_of_decimals === '')>Let system decide</option>
+                                            @foreach (range(0, 5) as $d)
+                                                <option value="{{ $d }}" @selected((string) $rate->number_of_decimals === (string) $d)>{{ $d }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
                                     <td><input type="text" name="currency_exchange_rates_thousands_separator[]" class="sc-currency-control" value="{{ $rate->thousands_separator }}"></td>
                                     <td><input type="text" name="currency_exchange_rates_decimal_point[]" class="sc-currency-control" value="{{ $rate->decimal_point }}"></td>
-                                    <td><input type="text" name="currency_exchange_rates_rate[]" class="sc-currency-control" value="{{ (float)$rate->exchange_rate }}"></td>
+                                    <td><input type="text" name="currency_exchange_rates_rate[]" class="sc-currency-control" value="{{ $rate->exchange_rate }}"></td>
                                     <td><a class="sc-currency-link remove-rate" href="#" style="color: var(--danger);">Delete</a></td>
                                 </tr>
                                 @endforeach
                             </tbody>
                         </table>
-                        <a class="sc-currency-link" href="#" id="addExchangeRate">Add Currency Exchange Rate</a>
+                        <a class="sc-currency-link" href="#" id="addExchangeRate">Add currency exchange rate</a>
+                    </div>
+
+                    <div class="sc-currency-grid" style="margin-bottom: 20px;">
+                        <label class="sc-currency-label" for="currencySymbolLocation">Base symbol location</label>
+                        <select name="currency_symbol_location" class="sc-currency-control" id="currencySymbolLocation">
+                            <option value="before" @selected($values['currency_symbol_location'] == 'before')>Before amount</option>
+                            <option value="after" @selected($values['currency_symbol_location'] == 'after')>After amount</option>
+                        </select>
+                        <label class="sc-currency-label" for="currencyDecimals">Base number of decimals</label>
+                        <select name="number_of_decimals" class="sc-currency-control" id="currencyDecimals">
+                            <option value="" @selected((string) $values['number_of_decimals'] === '')>Let system decide</option>
+                            @foreach (range(0, 5) as $d)
+                                <option value="{{ $d }}" @selected((string) $values['number_of_decimals'] === (string) $d)>{{ $d }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="sc-currency-grid" style="margin-bottom: 24px;">
+                        <label class="sc-currency-label" for="thousandsSeparator">Thousands separator</label>
+                        <input type="text" name="thousands_separator" class="sc-currency-control" id="thousandsSeparator" value="{{ $values['thousands_separator'] !== '' && $values['thousands_separator'] !== null ? $values['thousands_separator'] : ',' }}" maxlength="8" />
+                        <label class="sc-currency-label" for="decimalPoint">Decimal point</label>
+                        <input type="text" name="decimal_point" class="sc-currency-control" id="decimalPoint" value="{{ $values['decimal_point'] !== '' && $values['decimal_point'] !== null ? $values['decimal_point'] : '.' }}" maxlength="8" />
+                    </div>
+
+                    <h6 class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 600;">Register currency denominations</h6>
+                    <p class="small text-muted mb-3">Cash denominations for the register (e.g. bills and coins), matching the legacy Store Config currency section.</p>
+                    <div class="sc-currency-table-wrap">
+                        <table class="sc-currency-table" id="currencyDenomsTable">
+                            <thead>
+                                <tr>
+                                    <th>Denomination</th>
+                                    <th>Value</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($currency_denoms as $denom)
+                                <tr>
+                                    <td><input type="text" name="currency_denoms_name[]" class="sc-currency-control" value="{{ $denom->name }}"></td>
+                                    <td><input type="text" name="currency_denoms_value[]" class="sc-currency-control" value="{{ $denom->value }}"></td>
+                                    <td>
+                                        <a class="sc-currency-link remove-denom" href="#" style="color: var(--danger);" data-id="{{ $denom->id }}">Delete</a>
+                                        <input type="hidden" name="currency_denoms_ids[]" value="{{ $denom->id }}" />
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <a class="sc-currency-link" href="#" id="addDenom">Add denomination</a>
                     </div>
                 </div>
             </div>
@@ -339,7 +388,7 @@
                 <div class="sc-price-rules-card">
                     <label class="sc-price-rules-row" for="disablePriceRulesDialog">
                         <span>Disable Price Rules Dialog:</span>
-                        <input id="disablePriceRulesDialog" name="disable_price_rules_dialog" class="sc-price-rules-check" type="checkbox" value="1" @checked($values['disable_price_rules_dialog'] ?? false) />
+                        <input id="disablePriceRulesDialog" name="disable_price_rules_dialog" class="sc-price-rules-check" type="checkbox" value="1" @checked($values['disable_price_rules_dialog']) />
                     </label>
                 </div>
             </div>
@@ -393,17 +442,27 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                                 <td><input type="text" name="currency_exchange_rates_to[]" class="sc-currency-control"></td>
-                                <td><input type="text" name="currency_exchange_rates_symbol[]" class="sc-currency-control"></td>
+                                <td><input type="text" name="currency_exchange_rates_symbol[]" class="sc-currency-control" value="$"></td>
                                 <td>
                                     <select name="currency_exchange_rates_symbol_location[]" class="sc-currency-control">
                                         <option value="before">Before</option>
                                         <option value="after">After</option>
                                     </select>
                                 </td>
-                                <td><input type="number" name="currency_exchange_rates_number_of_decimals[]" class="sc-currency-control" value="2"></td>
+                                <td>
+                                    <select name="currency_exchange_rates_number_of_decimals[]" class="sc-currency-control">
+                                        <option value="">Let system decide</option>
+                                        <option value="0">0</option>
+                                        <option value="1">1</option>
+                                        <option value="2" selected>2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </td>
                                 <td><input type="text" name="currency_exchange_rates_thousands_separator[]" class="sc-currency-control" value=","></td>
                                 <td><input type="text" name="currency_exchange_rates_decimal_point[]" class="sc-currency-control" value="."></td>
-                                <td><input type="text" name="currency_exchange_rates_rate[]" class="sc-currency-control" value="1"></td>
+                                <td><input type="text" name="currency_exchange_rates_rate[]" class="sc-currency-control" value=""></td>
                                 <td><a class="sc-currency-link remove-rate" href="#" style="color: var(--danger);">Delete</a></td>
                             `;
                     tbody.appendChild(tr);
@@ -415,6 +474,37 @@
                     e.preventDefault();
                     e.target.closest('tr').remove();
                 }
+            });
+
+            const denomsTable = document.querySelector('#currencyDenomsTable');
+            const storeConfigForm = document.getElementById('storeConfigForm');
+            document.getElementById('addDenom')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (!denomsTable) return;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" name="currency_denoms_name[]" class="sc-currency-control" value=""></td>
+                    <td><input type="text" name="currency_denoms_value[]" class="sc-currency-control" value=""></td>
+                    <td>
+                        <a class="sc-currency-link remove-denom" href="#" style="color: var(--danger);">Delete</a>
+                        <input type="hidden" name="currency_denoms_ids[]" value="" />
+                    </td>`;
+                denomsTable.querySelector('tbody').appendChild(tr);
+            });
+
+            denomsTable?.addEventListener('click', function (e) {
+                const link = e.target.closest('.remove-denom');
+                if (!link) return;
+                e.preventDefault();
+                const id = link.getAttribute('data-id');
+                if (id && storeConfigForm) {
+                    const hid = document.createElement('input');
+                    hid.type = 'hidden';
+                    hid.name = 'deleted_denmos[]';
+                    hid.value = id;
+                    storeConfigForm.appendChild(hid);
+                }
+                link.closest('tr').remove();
             });
             
             // Tab switching logic (can also be handled by store-config.js, but let's be safe)

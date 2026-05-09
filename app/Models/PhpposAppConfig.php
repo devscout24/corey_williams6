@@ -22,6 +22,9 @@ class PhpposAppConfig extends Model
     public static function batch_save($data)
     {
         foreach ($data as $key => $value) {
+            if (is_array($value) || is_object($value)) {
+                continue;
+            }
             self::updateOrCreate(['key' => $key], ['value' => (string) $value]);
         }
         return true;
