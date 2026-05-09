@@ -4,40 +4,13 @@
 @section('page-title', $kit ? 'Edit Item Kit' : 'New Item Kit')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" />
 <style>
-    .selectize-dropdown {
-        z-index: 1060 !important;
+    /* Fix tab text visibility */
+    .nav-tabs .nav-link {
+        color: #495057;
     }
-    .selectize-input {
-        min-height: 38px;
-        line-height: 24px;
-        display: block !important;
-        background: #fff !important;
-        color: #000 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        overflow: visible !important;
-    }
-    .selectize-input.full {
-        background-color: #fff !important;
-    }
-    .selectize-input .item {
-        color: #000 !important;
-        background: #f1f1f1 !important;
-        border: 1px solid #ccc !important;
-        padding: 0 6px !important;
-        margin: 0 2px 2px 0 !important;
-        display: inline-block !important;
-        border-radius: 3px !important;
-        float: left !important;
-    }
-    .selectize-input > input {
-        display: inline-block !important;
-        color: #000 !important;
-        opacity: 1 !important;
-        position: relative !important;
-        left: 0 !important;
+    .nav-tabs .nav-link.active {
+        color: #0d6efd !important;
     }
 </style>
 @endpush
@@ -455,49 +428,10 @@
 @endsection
 
 @push('scripts')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let kitItemIndex = {{ count($kitItems) }};
     let nestedKitIndex = {{ count($nestedKits) }};
-
-    function initSelectize(selector) {
-        if (!selector) {
-            return;
-        }
-        $(selector).selectize({
-            create: false,
-            sortField: 'text',
-            placeholder: $(selector).find('option:first').text() || 'Select an option',
-            onInitialize: function() {
-                this.$control.css({
-                    'background': '#fff',
-                    'color': '#000',
-                    'opacity': '1',
-                    'visibility': 'visible'
-                });
-                this.$control_input.css({
-                    'color': '#000',
-                    'opacity': '1',
-                    'position': 'relative'
-                });
-            },
-            onItemAdd: function() {
-                this.$control.find('.item').css({
-                    'color': '#000',
-                    'background': '#f1f1f1',
-                    'opacity': '1',
-                    'visibility': 'visible',
-                    'display': 'inline-block'
-                });
-            }
-        });
-    }
-
-    document.querySelectorAll('.searchable-dropdown').forEach((select) => {
-        initSelectize(select);
-    });
 
     // Toggle containers
     const overrideCheckbox = document.getElementById('override_default_tax');
@@ -518,13 +452,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add rows
     document.getElementById('add-kit-item')?.addEventListener('click', function() {
-        const row = addRow('kit-items-table', 'kit-item-row', kitItemIndex++);
-        initSelectize(row.querySelector('select'));
+        addRow('kit-items-table', 'kit-item-row', kitItemIndex++);
     });
 
     document.getElementById('add-nested-kit')?.addEventListener('click', function() {
-        const row = addRow('nested-kits-table', 'nested-kit-row', nestedKitIndex++);
-        initSelectize(row.querySelector('select'));
+        addRow('nested-kits-table', 'nested-kit-row', nestedKitIndex++);
     });
 
     document.getElementById('add-tax-row')?.addEventListener('click', function() {
@@ -535,10 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('secondary-suppliers-container');
         const template = document.getElementById('secondary-supplier-row').innerHTML;
         container.insertAdjacentHTML('beforeend', template);
-        const row = container.lastElementChild;
-        if (row) {
-            initSelectize(row.querySelector('select'));
-        }
     });
 
     function addRow(tableId, templateId, index) {
@@ -555,10 +483,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (removeBtn) {
             const row = removeBtn.closest('.input-group') || removeBtn.closest('tr');
             if (row) {
-                const select = row.querySelector('select');
-                if (select && select.selectize) {
-                    select.selectize.destroy();
-                }
                 row.remove();
             }
         }
