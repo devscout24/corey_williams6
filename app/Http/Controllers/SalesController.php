@@ -256,11 +256,19 @@ class SalesController extends Controller
 
         $itemIdStr = $request->item_id;
         $cart = $this->getCart();
+        $countBefore = count($cart['items']);
+        $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
         if (str_starts_with($itemIdStr, 'KIT ')) {
-            $kitId = str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items', 'nestedKits'])->findOrFail($kitId);
+            $kitId = (int) str_replace('KIT ', '', $itemIdStr);
+            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
             $this->addKitItemsToCart($kit, 1, $cart);
+
+            $countAfter = count($cart['items']);
+            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
+            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
+                $this->addKitAsLineItem($kit, 1, $cart);
+            }
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
@@ -274,17 +282,40 @@ class SalesController extends Controller
     private function addKitItemsToCart($kit, $quantity, &$cart): void
     {
         foreach ($kit->items as $kitItem) {
-            $item = PhpposItem::find($kitItem->item_id);
+            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
             if ($item) {
                 $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
             }
         }
 
         foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
+            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
             if ($nKit) {
                 $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
             }
+        }
+    }
+
+    private function addKitAsLineItem($kit, $quantity, &$cart): void
+    {
+        $kitLineId = 'KIT_' . $kit->id;
+        $existingKey = null;
+        foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+                $existingKey = $key;
+                break;
+            }
+        }
+        if ($existingKey !== null) {
+            $cart['items'][$existingKey]['quantity'] += $quantity;
+        } else {
+            $cart['items'][] = [
+                'item_id'    => $kitLineId,
+                'name'       => '[KIT] ' . $kit->name,
+                'quantity'   => $quantity,
+                'unit_price' => (float) ($kit->unit_price ?? 0),
+                'discount'   => 0,
+            ];
         }
     }
 
@@ -412,10 +443,17 @@ class SalesController extends Controller
         $comment = $request->input('comment');
 
         try {
+            // Strip kit-level fallback rows (KIT_*) — they have no real integer item_id
+            $saleItems = array_values(array_filter($cart['items'], static fn ($item) => !str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_')));
+
+            if (empty($saleItems)) {
+                return redirect()->back()->with('error', 'No valid items in cart. Add component items to the kit before selling.');
+            }
+
             $saleId = $this->salesService->createSaleFromCart(
                 (int) $cart['location_id'],
                 (int) auth('employee')->id(),
-                $cart['items'],
+                $saleItems,
                 $cart['payments'],
                 $customerName,
                 $comment,

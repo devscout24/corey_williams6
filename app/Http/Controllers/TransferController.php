@@ -87,14 +87,22 @@ class TransferController extends Controller
     public function addItem(Request $request): RedirectResponse
     {
         $request->validate(['item_id' => 'required|string']);
-        
+
         $itemIdStr = $request->item_id;
         $cart = $this->getCart();
+        $countBefore = count($cart['items']);
+        $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
         if (str_starts_with($itemIdStr, 'KIT ')) {
-            $kitId = str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items', 'nestedKits'])->findOrFail($kitId);
+            $kitId = (int) str_replace('KIT ', '', $itemIdStr);
+            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
             $this->addKitItemsToCart($kit, 1, $cart);
+
+            $countAfter = count($cart['items']);
+            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
+            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
+                $this->addKitAsLineItem($kit, 1, $cart);
+            }
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
@@ -104,19 +112,41 @@ class TransferController extends Controller
         return redirect()->route('transfers.create');
     }
 
-    private function addKitItemsToCart($kit, $quantity, &$cart)
+    private function addKitItemsToCart($kit, $quantity, &$cart): void
     {
         foreach ($kit->items as $kitItem) {
-            $item = PhpposItem::find($kitItem->item_id);
+            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
             if ($item) {
                 $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
             }
         }
         foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
+            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
             if ($nKit) {
                 $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
             }
+        }
+    }
+
+    private function addKitAsLineItem($kit, $quantity, &$cart): void
+    {
+        $kitLineId = 'KIT_' . $kit->id;
+        $existingKey = null;
+        foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+                $existingKey = $key;
+                break;
+            }
+        }
+        if ($existingKey !== null) {
+            $cart['items'][$existingKey]['quantity'] += $quantity;
+        } else {
+            $cart['items'][] = [
+                'item_id'    => $kitLineId,
+                'name'       => '[KIT] ' . $kit->name,
+                'quantity'   => $quantity,
+                'cost_price' => (float) ($kit->cost_price ?? 0),
+            ];
         }
     }
 
@@ -222,7 +252,11 @@ class TransferController extends Controller
         }
 
         try {
-            $lines = collect($cart['items'])->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])->toArray();
+            // Strip kit-level fallback rows — no real integer item_id
+            $lines = collect($cart['items'])
+                ->filter(fn($i) => !str_starts_with((string) ($i['item_id'] ?? ''), 'KIT_'))
+                ->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
+                ->toArray();
             
             if (isset($cart['transfer_id'])) {
                 $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
@@ -260,7 +294,15 @@ class TransferController extends Controller
 
         try {
             DB::transaction(function () use ($cart, $request) {
-                $lines = collect($cart['items'])->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])->toArray();
+                // Strip kit-level fallback rows — no real integer item_id
+                $realItems = collect($cart['items'])
+                    ->filter(fn($i) => !str_starts_with((string) ($i['item_id'] ?? ''), 'KIT_'))
+                    ->values()
+                    ->all();
+
+                $lines = collect($realItems)
+                    ->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
+                    ->toArray();
                 
                 if (isset($cart['transfer_id'])) {
                     $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
@@ -300,7 +342,7 @@ class TransferController extends Controller
                 ]);
                 $receiving->syncDocumentIdentity();
 
-                foreach ($cart['items'] as $index => $item) {
+                foreach ($realItems as $index => $item) {
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
                         'item_id' => $item['item_id'],

@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('phppos_receivings_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('receiving_id');
-            $table->unsignedBigInteger('item_id');
+            $table->unsignedBigInteger('item_id')->nullable();        // null when line is a kit
+            $table->unsignedBigInteger('item_kit_id')->nullable();    // set when line is a kit
             $table->unsignedBigInteger('item_variation_id')->nullable();
             $table->integer('line');
             $table->text('description')->nullable();
@@ -36,7 +37,8 @@ return new class extends Migration
                 ->references('receiving_id')
                 ->on('phppos_receivings')
                 ->cascadeOnDelete();
-            $table->foreign('item_id', 'receivings_items_item_fk')->references('item_id')->on('phppos_items');
+            $table->foreign('item_id', 'receivings_items_item_fk')->references('item_id')->on('phppos_items')->nullOnDelete();
+            $table->foreign('item_kit_id', 'receivings_items_kit_fk')->references('id')->on('phppos_item_kits')->nullOnDelete();
             $table->foreign('supplier_id', 'receivings_items_supplier_fk')->references('person_id')->on('phppos_suppliers');
         });
     }

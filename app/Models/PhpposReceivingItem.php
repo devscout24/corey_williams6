@@ -14,4 +14,20 @@ class PhpposReceivingItem extends Model
     {
         return $this->belongsTo(PhpposItem::class, 'item_id', 'item_id');
     }
+
+    public function kit(): BelongsTo
+    {
+        return $this->belongsTo(PhpposItemKit::class, 'item_kit_id', 'id');
+    }
+
+    /**
+     * Returns the display name for this line — item name, kit name, description, or fallback.
+     */
+    public function displayName(): string
+    {
+        if ($this->item_kit_id && $this->kit) {
+            return '[KIT] ' . $this->kit->name;
+        }
+        return $this->item->name ?? $this->description ?? 'Unknown Item';
+    }
 }

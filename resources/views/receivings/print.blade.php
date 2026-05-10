@@ -145,7 +145,10 @@
         <tbody>
             @foreach($receiving->items as $item)
             <tr>
-                <td>{{ $item->item->name ?? $item->description ?? 'Unknown Item' }}</td>
+                <td>
+                    {{ $item->displayName() }}
+                    @if($item->item_kit_id) <small style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-size:11px;margin-left:4px;">Kit</small> @endif
+                </td>
                 <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
                 <td class="text-center">{{ (float) $item->quantity_received }}</td>
                 <td class="text-end">${{ number_format($item->item_cost_price, 2) }}</td>

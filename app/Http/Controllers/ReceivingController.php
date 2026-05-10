@@ -400,14 +400,24 @@ class ReceivingController extends Controller
     public function addItem(Request $request): RedirectResponse
     {
         $request->validate(['item_id' => 'required|string']);
-        
+
         $itemIdStr = $request->item_id;
         $cart = $this->getCart();
+        $countBefore = count($cart['items']);
+        $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
         if (str_starts_with($itemIdStr, 'KIT ')) {
-            $kitId = str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items', 'nestedKits'])->findOrFail($kitId);
+            $kitId = (int) str_replace('KIT ', '', $itemIdStr);
+            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
             $this->addKitItemsToCart($kit, 1, $cart);
+
+            // If kit has no component items, add the kit itself as a single line
+            $countAfter = count($cart['items']);
+            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
+            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
+                // Fallback: add kit as a named line item using its own cost/price
+                $this->addKitAsLineItem($kit, 1, $cart);
+            }
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
@@ -417,20 +427,43 @@ class ReceivingController extends Controller
         return redirect()->route('purchases.create');
     }
 
-    private function addKitItemsToCart($kit, $quantity, &$cart)
+    private function addKitItemsToCart($kit, $quantity, &$cart): void
     {
         foreach ($kit->items as $kitItem) {
-            $item = PhpposItem::find($kitItem->item_id);
+            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
             if ($item) {
                 $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
             }
         }
-        
+
         foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
+            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
             if ($nKit) {
                 $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
             }
+        }
+    }
+
+    private function addKitAsLineItem($kit, $quantity, &$cart): void
+    {
+        $kitLineId = 'KIT_' . $kit->id;
+        $existingKey = null;
+        foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+                $existingKey = $key;
+                break;
+            }
+        }
+        if ($existingKey !== null) {
+            $cart['items'][$existingKey]['quantity'] += $quantity;
+        } else {
+            $cart['items'][] = [
+                'item_id'    => $kitLineId,
+                'name'       => '[KIT] ' . $kit->name,
+                'quantity'   => $quantity,
+                'cost_price' => (float) ($kit->cost_price ?? 0),
+                'discount'   => 0,
+            ];
         }
     }
 
@@ -529,17 +562,40 @@ class ReceivingController extends Controller
             $receiving->syncDocumentIdentity();
 
             foreach ($cart['items'] as $index => $item) {
+                $isKitFallback = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
+
+                if ($isKitFallback) {
+                    // Store as a kit-level line item
+                    $kitId = (int) str_replace('KIT_', '', $item['item_id']);
+                    PhpposReceivingItem::create([
+                        'receiving_id'   => $receiving->receiving_id,
+                        'item_id'        => null,
+                        'item_kit_id'    => $kitId,
+                        'line'           => $index,
+                        'description'    => $item['name'],
+                        'quantity_purchased' => $item['quantity'],
+                        'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                        'item_cost_price'    => $item['cost_price'],
+                        'item_unit_price'    => $item['cost_price'],
+                        'discount_percent'   => $item['discount'] ?? 0,
+                        'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
+                        'total'    => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
+                    ]);
+                    // Kits with no component items: no inventory movement (nothing to deduct)
+                    continue;
+                }
+
                 PhpposReceivingItem::create([
-                    'receiving_id' => $receiving->receiving_id,
-                    'item_id' => $item['item_id'],
-                    'line' => $index,
+                    'receiving_id'   => $receiving->receiving_id,
+                    'item_id'        => $item['item_id'],
+                    'line'           => $index,
                     'quantity_purchased' => $item['quantity'],
-                    'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
-                    'item_cost_price' => $item['cost_price'],
-                    'item_unit_price' => $item['cost_price'],
-                    'discount_percent' => $item['discount'],
+                    'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                    'item_cost_price'    => $item['cost_price'],
+                    'item_unit_price'    => $item['cost_price'],
+                    'discount_percent'   => $item['discount'],
                     'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
-                    'total' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
+                    'total'    => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
                 ]);
 
                 // Update inventory
@@ -553,17 +609,17 @@ class ReceivingController extends Controller
                     );
 
                 DB::table('phppos_inventory_movements')->insert([
-                    'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
-                    'item_id' => $item['item_id'],
-                    'from_location_id' => $cart['mode'] == 'return' ? $cart['location_id'] : null,
-                    'to_location_id' => $cart['mode'] == 'receive' ? $cart['location_id'] : null,
-                    'quantity' => abs($inventoryToMove),
-                    'reference_id' => $receiving->receiving_id,
-                    'reference_type' => 'receiving',
+                    'movement_type'      => $cart['mode'] == 'receive' ? 'receiving' : 'return',
+                    'item_id'            => $item['item_id'],
+                    'from_location_id'   => $cart['mode'] == 'return' ? $cart['location_id'] : null,
+                    'to_location_id'     => $cart['mode'] == 'receive' ? $cart['location_id'] : null,
+                    'quantity'           => abs($inventoryToMove),
+                    'reference_id'       => $receiving->receiving_id,
+                    'reference_type'     => 'receiving',
                     'created_by_person_id' => auth('employee')->id(),
-                    'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ') . $receiving->receiving_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'notes'       => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ') . $receiving->receiving_id,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
                 ]);
             }
 
@@ -674,13 +730,13 @@ class ReceivingController extends Controller
 
     public function show($receivingId): View
     {
-        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
         return view('receivings.show', compact('receiving'));
     }
 
     public function print($receivingId): View
     {
-        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
         return view('receivings.print', compact('receiving'));
     }
 }
