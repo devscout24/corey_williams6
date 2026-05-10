@@ -203,7 +203,7 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <button type="button" class="btn-action-icon" title="Edit" onclick="editOrder({{ $order->receiving_id }}, {{ json_encode($order->items->map(fn($i) => ['item_id' => $i->item_id, 'name' => $i->item->name ?? $i->description ?? 'Unknown', 'quantity' => (float)$i->quantity_purchased])) }})">
+                                    <button type="button" class="btn-action-icon" title="Edit" data-id="{{ $order->receiving_id }}" data-items="{{ json_encode($order->items->map(fn($i) => ['item_id' => $i->item_id, 'name' => $i->item->name ?? $i->description ?? 'Unknown', 'quantity' => (float)$i->quantity_purchased])) }}" onclick="editOrder(this.dataset.id, JSON.parse(this.dataset.items))">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <div class="dropdown">
@@ -494,38 +494,72 @@
     };
 
     const fetchScratchResults = async () => {
-        if (!selectedSupplier) return;
+        if (!selectedSupplier) {
+            console.warn('No supplier selected');
+            return;
+        }
         const term = scratchSearchInput.value.trim();
+        if (!term) {
+            scratchResults.innerHTML = '<div class="text-muted p-3">Please enter a search term.</div>';
+            return;
+        }
+        
+        scratchResults.innerHTML = '<div class="text-muted p-3">Searching...</div>';
+        
         const params = new URLSearchParams({
             supplier_id: selectedSupplier.id,
             q: term,
         });
-        const response = await fetch(`${searchEndpoint}?${params.toString()}`);
-        const data = await response.json();
-        scratchResults.innerHTML = '';
+        
+        try {
+            const response = await fetch(`${searchEndpoint}?${params.toString()}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            scratchResults.innerHTML = '';
 
-        const combined = [...data.items, ...data.kits];
-        if (!combined.length) {
-            scratchResults.innerHTML = '<div class="text-muted p-3">No matches found.</div>';
-            return;
-        }
+            const combined = [...data.items, ...data.kits];
+            if (!combined.length) {
+                scratchResults.innerHTML = '<div class="text-muted p-3">No matches found.</div>';
+                return;
+            }
 
-        combined.forEach((item) => {
-            const row = document.createElement('div');
-            row.className = 'pull-result-row';
-            row.innerHTML = `
-                <div>
-                    <div class="pull-result-title">${item.name}</div>
-                    <div class="pull-result-meta">${item.type === 'kit' ? 'Item Kit' : 'Item'} | ${item.sku || '—'}</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary" data-add="${item.type}-${item.id}">Add</button>
-            `;
-            row.querySelector('[data-add]').addEventListener('click', () => {
-                addToPullList(item, 1);
+            combined.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'pull-result-row';
+                row.innerHTML = `
+                    <div>
+                        <div class="pull-result-title">${item.name}</div>
+                        <div class="pull-result-meta">${item.type === 'kit' ? 'Item Kit' : 'Item'} | ${item.sku || '—'}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" data-add="${item.type}-${item.id}">Add</button>
+                `;
+                row.querySelector('[data-add]').addEventListener('click', () => {
+                    addToPullList(item, 1);
+                });
+                scratchResults.appendChild(row);
             });
-            scratchResults.appendChild(row);
-        });
+        } catch (error) {
+            console.error('Search error:', error);
+            scratchResults.innerHTML = '<div class="text-danger p-3">Error performing search.</div>';
+        }
     };
+
+    let searchTimeout;
+    scratchSearchInput?.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            fetchScratchResults();
+        }, 400);
+    });
+
+    scratchSearchBtn?.addEventListener('click', fetchScratchResults);
+    scratchSearchInput?.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            clearTimeout(searchTimeout);
+            fetchScratchResults();
+        }
+    });
 
     supplierList?.addEventListener('click', (event) => {
         const item = event.target.closest('.supplier-item');
@@ -575,14 +609,6 @@
             await fetchPullList();
         } else {
             await fetchScratchResults();
-        }
-    });
-
-    scratchSearchBtn?.addEventListener('click', fetchScratchResults);
-    scratchSearchInput?.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            fetchScratchResults();
         }
     });
 

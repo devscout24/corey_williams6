@@ -102,12 +102,8 @@
           '</span></td>' +
           '<td style="text-align:right;">' +
           '<div class="d-flex justify-content-end gap-1">' +
-          '<button type="button" class="btn btn-sm btn-light" style="padding:2px 8px;color:var(--primary);" data-act="edit" data-id="' +
-          rid +
-          '" title="Edit"><i class="bi bi-pencil"></i></button>' +
-          '<button type="button" class="btn btn-sm btn-light" style="padding:2px 8px;color:#ef4444;" data-act="del" data-id="' +
-          rid +
-          '" title="Delete"><i class="bi bi-trash3"></i></button>' +
+          '<a href="/purchases/' + rid + '" class="btn btn-sm btn-light" style="padding:2px 8px;color:var(--primary);" title="View Details"><i class="bi bi-eye"></i></a>' +
+          '<a href="/purchases/' + rid + '/print" target="_blank" class="btn btn-sm btn-light" style="padding:2px 8px;color:#0dcaf0;" title="Print"><i class="bi bi-printer"></i></a>' +
           '</div></td>' +
           '</tr>'
         );

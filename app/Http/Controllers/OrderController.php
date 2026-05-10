@@ -62,13 +62,18 @@ class OrderController extends Controller
             'suspended' => 0,
             'mode' => 'receive',
             'type' => 'receive',
+            'subtotal' => 0,
+            'total' => 0,
         ]);
         $receiving->syncDocumentIdentity();
+        $total = 0;
 
         foreach ($data['items'] as $line => $item) {
             if ($item['type'] === 'item') {
                 $dbItem = PhpposItem::find($item['item_id']);
                 if ($dbItem) {
+                    $lineTotal = $item['quantity'] * $dbItem->cost_price;
+                    $total += $lineTotal;
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
                         'item_id' => $item['item_id'],
@@ -80,6 +85,8 @@ class OrderController extends Controller
                         'item_cost_price' => $dbItem->cost_price,
                         'item_unit_price' => $dbItem->unit_price,
                         'discount_percent' => 0,
+                        'subtotal' => $lineTotal,
+                        'total' => $lineTotal,
                     ]);
                 }
             } else {
@@ -88,6 +95,8 @@ class OrderController extends Controller
                     foreach ($kit->items as $kitItem) {
                         $dbItem = PhpposItem::find($kitItem->item_id);
                         if ($dbItem) {
+                            $lineTotal = ($item['quantity'] * $kitItem->quantity) * $dbItem->cost_price;
+                            $total += $lineTotal;
                             PhpposReceivingItem::create([
                                 'receiving_id' => $receiving->receiving_id,
                                 'item_id' => $kitItem->item_id,
@@ -99,12 +108,19 @@ class OrderController extends Controller
                                 'item_cost_price' => $dbItem->cost_price,
                                 'item_unit_price' => $dbItem->unit_price,
                                 'discount_percent' => 0,
+                                'subtotal' => $lineTotal,
+                                'total' => $lineTotal,
                             ]);
                         }
                     }
                 }
             }
         }
+
+        $receiving->update([
+            'subtotal' => $total,
+            'total' => $total,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -202,10 +218,11 @@ class OrderController extends Controller
         $supplierId = (int) $data['supplier_id'];
         $term = trim((string) ($data['q'] ?? ''));
         $locationId = auth('employee')->user()?->location_id ?? 1;
+        
 
         $itemsQuery = PhpposItem::query()
             ->where('phppos_items.deleted', 0)
-            ->where('phppos_items.supplier_id', $supplierId)
+            // ->where('phppos_items.supplier_id', $supplierId)
             ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
                 $join->on('li.item_id', '=', 'phppos_items.item_id')
                     ->where('li.location_id', '=', $locationId);
@@ -230,7 +247,7 @@ class OrderController extends Controller
 
         $kitsQuery = PhpposItemKit::query()
             ->where('phppos_item_kits.deleted', 0)
-            ->where('phppos_item_kits.supplier_id', $supplierId)
+            // ->where('phppos_item_kits.supplier_id', $supplierId)
             ->select(
                 'phppos_item_kits.id as id',
                 'phppos_item_kits.name',
@@ -275,9 +292,10 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show($receivingId)
+    public function show($receivingId): View
     {
-        return redirect()->route('purchases.index', ['receiving_id' => $receivingId]);
+        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        return view('receivings.show', compact('receiving'));
     }
 
     public function edit($receivingId)
@@ -302,9 +320,15 @@ class OrderController extends Controller
                     if ($item) {
                         $item->quantity_purchased = $inputItem['quantity'];
                         $item->quantity_received = $inputItem['quantity'];
+                        $lineTotal = $item->item_cost_price * $inputItem['quantity'];
+                        $item->subtotal = $lineTotal;
+                        $item->total = $lineTotal;
                         $item->save();
                     }
                 }
+                
+                $total = $order->items()->sum('total');
+                $order->update(['subtotal' => $total, 'total' => $total]);
 
                 return response()->json(['success' => true, 'message' => 'Order items updated successfully']);
             } catch (\Exception $e) {
@@ -362,9 +386,10 @@ class OrderController extends Controller
         });
     }
 
-    public function print($receivingId)
+    public function print($receivingId): View
     {
-        return redirect()->route('purchases.index', ['receiving_id' => $receivingId, 'print' => 1]);
+        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        return view('receivings.print', compact('receiving'));
     }
 
     public function destroy($receivingId): JsonResponse

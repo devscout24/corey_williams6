@@ -665,5 +665,17 @@ class ReceivingController extends Controller
         Session::forget('receiving_cart');
         return redirect()->route('purchases.index');
     }
+
+    public function show($receivingId): View
+    {
+        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        return view('receivings.show', compact('receiving'));
+    }
+
+    public function print($receivingId): View
+    {
+        $receiving = PhpposReceiving::with(['items.item', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+        return view('receivings.print', compact('receiving'));
+    }
 }
 

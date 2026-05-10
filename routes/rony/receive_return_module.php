@@ -8,6 +8,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/purchases', [ReceivingController::class, 'index'])->name('purchases.index');
     Route::get('/purchases/history-data', [ReceivingController::class, 'purchasesHistoryData'])->name('purchases.history-data');
     Route::get('/purchases/create', [ReceivingController::class, 'create'])->name('purchases.create');
+    Route::get('/purchases/{receivingId}', [ReceivingController::class, 'show'])->name('purchases.show');
+    Route::get('/purchases/{receivingId}/print', [ReceivingController::class, 'print'])->name('purchases.print');
 
     // receivings (legacy URLs; same handlers as purchases)
     Route::get('/receivings', [ReceivingController::class, 'index'])->name('receivings.index');
