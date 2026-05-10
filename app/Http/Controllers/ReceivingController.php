@@ -61,12 +61,18 @@ class ReceivingController extends Controller
             $this->applyPurchasesListSearch($query, $q, $criteria);
         }
 
-        $rows = $query->orderByDesc('receiving_time')->limit(250)->get();
+        $paginator = $query->orderByDesc('receiving_time')->paginate(15);
 
         return response()->json([
             'success' => true,
-            'items' => $rows->map(fn (PhpposReceiving $r): array => $this->mapReceivingHistoryRow($r))->values(),
-            'count' => $rows->count(),
+            'items' => collect($paginator->items())->map(fn (PhpposReceiving $r): array => $this->mapReceivingHistoryRow($r))->values(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+            ],
+            'count' => count($paginator->items()),
         ]);
     }
 

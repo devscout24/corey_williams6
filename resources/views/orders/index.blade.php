@@ -161,10 +161,11 @@
 @section('content')
 <div class="container-fluid p-0">
     <div class="customers-toolbar">
-        <div class="search-wrap">
-            <input type="text" class="search-input" placeholder="Search orders by supplier / order #" />
-            <button class="btn-search"><i class="bi bi-search"></i> Search</button>
-        </div>
+        <form class="search-wrap" method="GET" action="{{ route('orders.index') }}">
+            <input type="hidden" name="status" value="{{ $currentStatus }}">
+            <input type="text" name="q" class="search-input" value="{{ request('q') }}" placeholder="Search orders by supplier / order #" />
+            <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
+        </form>
         <button class="btn-new-order" data-bs-toggle="modal" data-bs-target="#newOrderModal">
             <i class="bi bi-plus-lg"></i> New Order
         </button>
@@ -246,6 +247,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="p-3 border-top">
+            {{ $orders->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>

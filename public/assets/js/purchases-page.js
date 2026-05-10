@@ -6,6 +6,7 @@
   const cfg = window.PURCHASES_PAGE_CONFIG || {};
   const historyUrl = cfg.historyUrl || '';
   let currentMode = cfg.initialMode === 'Return' ? 'Return' : 'Receive';
+  let currentPage = 1;
 
   const TABLE_COLS = 10;
 
@@ -35,6 +36,7 @@
       ph.placeholder = mode === 'Receive' ? 'Search purchases…' : 'Search returns…';
     }
 
+    currentPage = 1;
     loadHistoryFromApi();
   }
 
@@ -123,6 +125,61 @@
     return d.innerHTML;
   }
 
+  function renderPagination(pagination) {
+    const pc = el('paginationControls');
+    if (!pc || !pagination) return;
+    
+    if (pagination.last_page <= 1) {
+      pc.innerHTML = '';
+      return;
+    }
+
+    let html = '<ul class="pagination pagination-sm m-0">';
+    
+    html += '<li class="page-item ' + (pagination.current_page === 1 ? 'disabled' : '') + '">';
+    html += '<a class="page-link" href="#" data-page="' + (pagination.current_page - 1) + '">Previous</a></li>';
+
+    const maxPages = 5;
+    let startPage = Math.max(1, pagination.current_page - Math.floor(maxPages / 2));
+    let endPage = startPage + maxPages - 1;
+    if (endPage > pagination.last_page) {
+      endPage = pagination.last_page;
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+
+    if (startPage > 1) {
+      html += '<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>';
+      if (startPage > 2) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      html += '<li class="page-item ' + (pagination.current_page === i ? 'active' : '') + '">';
+      html += '<a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+    }
+
+    if (endPage < pagination.last_page) {
+      if (endPage < pagination.last_page - 1) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+      html += '<li class="page-item"><a class="page-link" href="#" data-page="' + pagination.last_page + '">' + pagination.last_page + '</a></li>';
+    }
+
+    html += '<li class="page-item ' + (pagination.current_page === pagination.last_page ? 'disabled' : '') + '">';
+    html += '<a class="page-link" href="#" data-page="' + (pagination.current_page + 1) + '">Next</a></li>';
+
+    html += '</ul>';
+    pc.innerHTML = html;
+
+    pc.querySelectorAll('.page-link[data-page]').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const p = parseInt(this.getAttribute('data-page'), 10);
+        if (!isNaN(p)) {
+          currentPage = p;
+          loadHistoryFromApi();
+        }
+      });
+    });
+  }
+
   async function loadHistoryFromApi() {
     const tbody = el('historyBody');
     if (!tbody || !historyUrl) return;
@@ -136,7 +193,7 @@
     const q = el('historySearchInput') ? el('historySearchInput').value.trim() : '';
     const type = currentMode === 'Return' ? 'return' : 'receive';
 
-    const params = new URLSearchParams({ type: type, criteria: criteria, q: q });
+    const params = new URLSearchParams({ type: type, criteria: criteria, q: q, page: currentPage });
 
     try {
       const res = await fetch(historyUrl + '?' + params.toString(), {
@@ -148,6 +205,12 @@
         throw new Error(data.message || 'Request failed');
       }
       renderHistory(data.items || []);
+      if (data.pagination) {
+          renderPagination(data.pagination);
+      } else {
+          const pc = el('paginationControls');
+          if (pc) pc.innerHTML = '';
+      }
     } catch (e) {
       tbody.innerHTML =
         '<tr><td colspan="' +
@@ -159,12 +222,14 @@
   }
 
   function searchHistory() {
+    currentPage = 1;
     loadHistoryFromApi();
   }
 
   function clearSearch() {
     const inp = el('historySearchInput');
     if (inp) inp.value = '';
+    currentPage = 1;
     loadHistoryFromApi();
   }
 

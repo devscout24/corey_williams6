@@ -92,6 +92,7 @@
 
                 <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
                     <span id="historyCount" class="purchases-history-meta"></span>
+                    <div id="paginationControls"></div>
                 </div>
             </div>
         </div>

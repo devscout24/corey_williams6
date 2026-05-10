@@ -17,6 +17,7 @@ class OrderController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status', 'open');
+        $q = trim((string) $request->query('q', ''));
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
 
         $query = PhpposReceiving::query()
@@ -31,7 +32,17 @@ class OrderController extends Controller
             $query->where('suspended', 1);
         }
 
-        $orders = $query->get();
+        if ($q !== '') {
+            $query->where(function ($sq) use ($q) {
+                $sq->where('internal_code', 'like', "%{$q}%")
+                   ->orWhere('receiving_id', 'like', "%{$q}%")
+                   ->orWhereHas('supplier', function ($sq2) use ($q) {
+                       $sq2->where('company_name', 'like', "%{$q}%");
+                   });
+            });
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
 
         return view('orders.index', [
             'suppliers' => $suppliers,
