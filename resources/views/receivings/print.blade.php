@@ -174,5 +174,16 @@
     </div>
     @endif
 
+    <div style="margin-top: 40px; text-align: center;">
+        @php
+            $generator = new Picqer\Barcode\BarcodeGeneratorSVG();
+            $barcodeData = $receiving->internal_code ?? $receiving->receiving_id;
+        @endphp
+        <div style="display: inline-block; padding: 10px; background: white;">
+            {!! $generator->getBarcode($barcodeData, $generator::TYPE_CODE_128, 2, 60, 'black') !!}
+        </div>
+        <p style="margin: 5px 0 0; font-size: 14px; letter-spacing: 2px;">{{ $barcodeData }}</p>
+    </div>
+
 </body>
 </html>
