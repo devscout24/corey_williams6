@@ -339,13 +339,18 @@ class TransferController extends Controller
                     'total_quantity_received' => 0, // Mode is return
                     'mode' => 'return',
                     'type' => 'return',
+                    'source' => 'transfer',
+                    'reference_id' => $transferOutId,
                 ]);
                 $receiving->syncDocumentIdentity();
 
-                foreach ($realItems as $index => $item) {
+                foreach ($cart['items'] as $index => $item) {
+                    $isKit = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
+                    
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
-                        'item_id' => $item['item_id'],
+                        'item_id' => $isKit ? null : $item['item_id'],
+                        'item_kit_id' => $isKit ? (int) str_replace('KIT_', '', $item['item_id']) : null,
                         'line' => $index,
                         'quantity_purchased' => $item['quantity'],
                         'quantity_received' => 0,
