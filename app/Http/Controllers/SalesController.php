@@ -7,6 +7,7 @@ use App\Models\PhpposCustomer;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
+use App\Models\PhpposSupplier;
 use App\Services\AppConfigService;
 use App\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
@@ -21,8 +22,7 @@ class SalesController extends Controller
     public function __construct(
         private readonly SalesService $salesService,
         private readonly AppConfigService $configService,
-    )
-    {
+    ) {
     }
 
     private function getCart(): array
@@ -102,10 +102,10 @@ class SalesController extends Controller
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
 
-        if ($categoryId && ! $isRootCategory) {
+        if ($categoryId && !$isRootCategory) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -123,7 +123,7 @@ class SalesController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -175,7 +175,7 @@ class SalesController extends Controller
         if ($categoryId && $categories->isEmpty()) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -193,7 +193,7 @@ class SalesController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -255,7 +255,7 @@ class SalesController extends Controller
                     ->orWhere('item_id', $term)
                     ->orWhere('product_id', $term);
             });
-        
+
         if ($supplierId) {
             $itemsQuery->where('supplier_id', $supplierId);
         }
@@ -269,7 +269,7 @@ class SalesController extends Controller
                     ->orWhere('item_kit_number', $term)
                     ->orWhere('product_id', $term);
             });
-        
+
         if ($supplierId) {
             $kitsQuery->where('supplier_id', $supplierId);
         }
@@ -347,11 +347,11 @@ class SalesController extends Controller
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
             $cart['items'][] = [
-                'item_id'    => $kitLineId,
-                'name'       => '[KIT] ' . $kit->name,
-                'quantity'   => $quantity,
+                'item_id' => $kitLineId,
+                'name' => '[KIT] ' . $kit->name,
+                'quantity' => $quantity,
                 'unit_price' => (float) ($kit->unit_price ?? 0),
-                'discount'   => 0,
+                'discount' => 0,
             ];
         }
     }
@@ -489,7 +489,7 @@ class SalesController extends Controller
 
         try {
             // Strip kit-level fallback rows (KIT_*) — they have no real integer item_id
-            $saleItems = array_values(array_filter($cart['items'], static fn ($item) => !str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_')));
+            $saleItems = array_values(array_filter($cart['items'], static fn($item) => !str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_')));
 
             if (empty($saleItems)) {
                 return redirect()->back()->with('error', 'No valid items in cart. Add component items to the kit before selling.');
@@ -577,7 +577,7 @@ class SalesController extends Controller
         $payments = DB::table('phppos_sales_payments')
             ->where('sale_id', $sale)
             ->get()
-            ->map(static fn ($row): array => (array) $row)
+            ->map(static fn($row): array => (array) $row)
             ->values()
             ->all();
 
@@ -622,11 +622,11 @@ class SalesController extends Controller
         ]);
 
         $lines = collect($data['returns'])
-            ->map(static fn (array $row): array => [
+            ->map(static fn(array $row): array => [
                 'sale_item_id' => (int) $row['sale_item_id'],
                 'quantity' => (float) $row['quantity'],
             ])
-            ->filter(static fn (array $row): bool => $row['quantity'] > 0)
+            ->filter(static fn(array $row): bool => $row['quantity'] > 0)
             ->values()
             ->all();
 
