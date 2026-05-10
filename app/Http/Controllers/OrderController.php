@@ -20,7 +20,7 @@ class OrderController extends Controller
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
 
         $query = PhpposReceiving::query()
-            ->with(['supplier', 'items'])
+            ->with(['supplier', 'items.item'])
             ->where('is_po', 1)
             ->where('deleted', 0)
             ->orderBy('receiving_time', 'desc');

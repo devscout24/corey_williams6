@@ -203,9 +203,9 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a href="{{ route('orders.edit', $order->receiving_id) }}" class="btn-action-icon" title="Edit">
+                                    <button type="button" class="btn-action-icon" title="Edit" onclick="editOrder({{ $order->receiving_id }}, {{ json_encode($order->items->map(fn($i) => ['item_id' => $i->item_id, 'name' => $i->item->name ?? $i->description ?? 'Unknown', 'quantity' => (float)$i->quantity_purchased])) }})">
                                         <i class="bi bi-pencil-square"></i>
-                                    </a>
+                                    </button>
                                     <div class="dropdown">
                                         <button class="btn-action-icon dropdown-toggle-nocaret" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="bi bi-three-dots"></i>
@@ -365,6 +365,38 @@
                     <div class="d-flex gap-2">
                         <button type="button" class="btn-cancel-custom" data-bs-dismiss="modal">Close</button>
                         <button type="button" class="btn-primary-custom" id="savePullList">Save Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-content-custom">
+            <div class="modal-header-custom">
+                <h5 class="modal-title-custom">Edit Order Items</h5>
+                <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editOrderId" />
+                <div class="table-responsive">
+                    <table class="pull-table" id="editOrderTable">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <div class="text-muted small" id="editOrderStatus"></div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn-cancel-custom" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn-primary-custom" id="saveEditOrderBtn">Save Changes</button>
                     </div>
                 </div>
             </div>
@@ -662,6 +694,64 @@
             Swal.fire('Error', 'Server error occurred.', 'error');
         }
     };
+
+    const editOrderModal = new bootstrap.Modal(document.getElementById('editOrderModal'));
+    const editOrderTableBody = document.querySelector('#editOrderTable tbody');
+    const editOrderIdInput = document.getElementById('editOrderId');
+    const saveEditOrderBtn = document.getElementById('saveEditOrderBtn');
+    const editOrderStatus = document.getElementById('editOrderStatus');
+
+    window.editOrder = (id, items) => {
+        editOrderIdInput.value = id;
+        editOrderTableBody.innerHTML = '';
+        
+        items.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td><input type="number" step="0.001" class="form-control form-control-sm edit-item-qty" data-id="${item.item_id}" value="${item.quantity}" /></td>
+            `;
+            editOrderTableBody.appendChild(row);
+        });
+
+        editOrderStatus.textContent = '';
+        editOrderModal.show();
+    };
+
+    saveEditOrderBtn.addEventListener('click', async () => {
+        const id = editOrderIdInput.value;
+        const inputs = editOrderTableBody.querySelectorAll('.edit-item-qty');
+        const items = Array.from(inputs).map(input => ({
+            item_id: input.dataset.id,
+            quantity: parseFloat(input.value || '0')
+        }));
+
+        saveEditOrderBtn.disabled = true;
+        editOrderStatus.textContent = 'Saving...';
+
+        try {
+            const response = await fetch(`/orders/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ items })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                editOrderStatus.textContent = 'Updated successfully!';
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                editOrderStatus.textContent = data.message || 'Error updating order.';
+                saveEditOrderBtn.disabled = false;
+            }
+        } catch (error) {
+            editOrderStatus.textContent = 'Server error occurred.';
+            saveEditOrderBtn.disabled = false;
+        }
+    });
 
     window.deleteOrder = async (id) => {
         if (!confirm('Are you sure you want to delete this order?')) return;
