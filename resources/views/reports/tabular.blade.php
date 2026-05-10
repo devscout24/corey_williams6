@@ -21,6 +21,9 @@
         <p class="mb-0 text-muted small">Range: {{ $startDate }} to {{ $endDate }}</p>
     </div>
     <div class="actions">
+        <a href="{{ route('reports.index') }}" class="btn btn-sm btn-light me-2">
+            <i class="bi bi-arrow-left me-1"></i> Back to Reports
+        </a>
         <button onclick="window.print()" class="btn btn-sm btn-outline-secondary me-2">
             <i class="bi bi-printer me-1"></i> Print
         </button>
