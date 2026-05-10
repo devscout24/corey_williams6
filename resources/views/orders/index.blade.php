@@ -171,9 +171,9 @@
     </div>
 
     <div class="order-tabs">
-        <button class="btn-tab">Open</button>
-        <button class="btn-tab">Closed</button>
-        <button class="btn-tab active">All</button>
+        <a href="{{ route('orders.index', ['status' => 'open']) }}" class="btn-tab {{ $currentStatus === 'open' ? 'active' : '' }}" style="text-decoration:none;">Open</a>
+        <a href="{{ route('orders.index', ['status' => 'closed']) }}" class="btn-tab {{ $currentStatus === 'closed' ? 'active' : '' }}" style="text-decoration:none;">Closed</a>
+        <a href="{{ route('orders.index', ['status' => 'all']) }}" class="btn-tab {{ $currentStatus === 'all' ? 'active' : '' }}" style="text-decoration:none;">All</a>
     </div>
 
     <div class="table-card">
@@ -192,7 +192,7 @@
                 <tbody>
                     @forelse($orders as $order)
                         <tr>
-                            <td>ID:{{ $order->receiving_id }}</td>
+                            <td>{{ $order->internal_code ?? 'PO-'.str_pad($order->receiving_id, 8, '0', STR_PAD_LEFT) }}</td>
                             <td>{{ $order->supplier->company_name ?? '—' }}</td>
                             <td>{{ \Carbon\Carbon::parse($order->receiving_time)->format('m/d/Y') }}</td>
                             <td>{{ str_pad($order->items->count(), 2, '0', STR_PAD_LEFT) }}</td>
@@ -211,11 +211,13 @@
                                             <i class="bi bi-three-dots"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end action-dropdown-menu">
+                                            @if(!$order->suspended)
                                             <li>
-                                                <button class="action-dropdown-item" onclick="approveOrder({{ $order->receiving_id }})">
-                                                    <i class="bi bi-check-circle text-success"></i> Approve Order
+                                                <button class="action-dropdown-item" onclick="closeOrder({{ $order->receiving_id }}, '{{ $order->internal_code ?? 'PO-'.str_pad($order->receiving_id, 8, '0', STR_PAD_LEFT) }}')">
+                                                    <i class="bi bi-check-circle text-success"></i> Close Order
                                                 </button>
                                             </li>
+                                            @endif
                                             <li>
                                                 <a href="{{ route('orders.show', $order->receiving_id) }}" class="action-dropdown-item">
                                                     <i class="bi bi-eye text-primary"></i> View Details
@@ -631,22 +633,33 @@
         mode = 'auto';
     });
 
-    window.approveOrder = async (id) => {
-        if (!confirm('Are you sure you want to approve this order?')) return;
+    window.closeOrder = async (id, code) => {
+        const { value: confirmClose } = await Swal.fire({
+            title: 'Close Order?',
+            text: `Are you sure you want to close order ${code}? This will generate a receiving and update inventory based on received quantities.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, close it!'
+        });
+
+        if (!confirmClose) return;
+
         try {
-            const response = await fetch(`/orders/${id}/approve`, {
+            const response = await fetch(`/orders/${id}/close`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
             });
             const data = await response.json();
             if (data.success) {
-                alert(data.message);
+                await Swal.fire('Closed!', data.message, 'success');
                 window.location.reload();
             } else {
-                alert(data.message || 'Error approving order');
+                Swal.fire('Error', data.message || 'Error closing order', 'error');
             }
         } catch (error) {
-            alert('Server error occurred.');
+            Swal.fire('Error', 'Server error occurred.', 'error');
         }
     };
 

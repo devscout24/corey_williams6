@@ -468,6 +468,8 @@ class InventoryFlowService
                 'total_quantity_received' => $totalQty,
                 'mode' => 'receive',
                 'type' => 'receive',
+                'source' => 'transfer',
+                'reference_id' => $externalTransferId,
             ]);
             $receiving->syncDocumentIdentity();
 

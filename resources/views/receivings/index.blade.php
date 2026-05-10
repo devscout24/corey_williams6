@@ -77,13 +77,14 @@
                                 <th>Supplier</th>
                                 <th style="text-align:center;">Items</th>
                                 <th>Total</th>
+                                <th>Source</th>
                                 <th>Status</th>
                                 <th style="text-align:right;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="historyBody">
                             <tr>
-                                <td colspan="9" class="text-center py-4 purchases-history-meta">Loading…</td>
+                                <td colspan="10" class="text-center py-4 purchases-history-meta">Loading…</td>
                             </tr>
                         </tbody>
                     </table>

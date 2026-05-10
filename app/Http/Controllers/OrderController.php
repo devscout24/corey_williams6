@@ -14,20 +14,29 @@ use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $status = $request->query('status', 'open');
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
 
-        $orders = PhpposReceiving::query()
+        $query = PhpposReceiving::query()
             ->with(['supplier', 'items'])
             ->where('is_po', 1)
             ->where('deleted', 0)
-            ->orderBy('receiving_time', 'desc')
-            ->get();
+            ->orderBy('receiving_time', 'desc');
+
+        if ($status === 'open') {
+            $query->where('suspended', 0);
+        } elseif ($status === 'closed') {
+            $query->where('suspended', 1);
+        }
+
+        $orders = $query->get();
 
         return view('orders.index', [
             'suppliers' => $suppliers,
             'orders' => $orders,
+            'currentStatus' => $status,
         ]);
     }
 
@@ -43,7 +52,6 @@ class OrderController extends Controller
 
         $employee = auth('employee')->user();
 
-        // An "Order" in PHP POS is typically a receiving that might be suspended or a Purchase Order
         $receiving = PhpposReceiving::create([
             'receiving_time' => now(),
             'supplier_id' => $data['supplier_id'],
@@ -68,17 +76,33 @@ class OrderController extends Controller
                         'serialnumber' => '',
                         'line' => $line + 1,
                         'quantity_purchased' => $item['quantity'],
-                        'quantity_received' => 0,
+                        'quantity_received' => $item['quantity'], // Set received to purchased initially
                         'item_cost_price' => $dbItem->cost_price,
                         'item_unit_price' => $dbItem->unit_price,
                         'discount_percent' => 0,
                     ]);
                 }
             } else {
-                // Handle item kits if necessary or treat them identically inside items list
-                // PHPPOS usually splits item kits into their base items when receiving or leaves it depending on settings.
-                // We'll just skip kits if there is no direct table mapping or handle based on logic needed.
-                // Currently only logging items directly is standard for POS.
+                $kit = PhpposItemKit::with('items')->find($item['item_id']);
+                if ($kit) {
+                    foreach ($kit->items as $kitItem) {
+                        $dbItem = PhpposItem::find($kitItem->item_id);
+                        if ($dbItem) {
+                            PhpposReceivingItem::create([
+                                'receiving_id' => $receiving->receiving_id,
+                                'item_id' => $kitItem->item_id,
+                                'description' => $dbItem->description ?? '',
+                                'serialnumber' => '',
+                                'line' => $line + 1,
+                                'quantity_purchased' => $item['quantity'] * $kitItem->quantity,
+                                'quantity_received' => $item['quantity'] * $kitItem->quantity,
+                                'item_cost_price' => $dbItem->cost_price,
+                                'item_unit_price' => $dbItem->unit_price,
+                                'discount_percent' => 0,
+                            ]);
+                        }
+                    }
+                }
             }
         }
 
@@ -261,19 +285,81 @@ class OrderController extends Controller
         return redirect()->route('purchases.index', ['receiving_id' => $receivingId]);
     }
 
-    public function approve($receivingId): JsonResponse
+    public function update(Request $request, $receivingId): JsonResponse
     {
-        try {
-            $receiving = PhpposReceiving::findOrFail($receivingId);
-            $receiving->update([
-                'suspended' => 0,
-                'is_po' => 0,
-                'receiving_time' => now()
-            ]);
-            return response()->json(['success' => true, 'message' => 'Order approved successfully']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $data = $request->validate([
+            'items' => 'required|array',
+            'items.*.item_id' => 'required|integer',
+            'items.*.quantity' => 'required|numeric|min:0',
+        ]);
+
+        return DB::transaction(function () use ($receivingId, $data) {
+            try {
+                $order = PhpposReceiving::with('items')->findOrFail($receivingId);
+                
+                foreach ($data['items'] as $inputItem) {
+                    $item = $order->items->where('item_id', $inputItem['item_id'])->first();
+                    if ($item) {
+                        $item->quantity_purchased = $inputItem['quantity'];
+                        $item->quantity_received = $inputItem['quantity'];
+                        $item->save();
+                    }
+                }
+
+                return response()->json(['success' => true, 'message' => 'Order items updated successfully']);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+        });
+    }
+
+    public function close($receivingId): JsonResponse
+    {
+        return DB::transaction(function () use ($receivingId) {
+            try {
+                $order = PhpposReceiving::with('items')->findOrFail($receivingId);
+                
+                $receive = $order->replicate();
+                $receive->is_po = 0;
+                $receive->suspended = 0;
+                $receive->source = 'order';
+                $receive->reference_id = $order->internal_code ?? $order->receiving_id;
+                $receive->receiving_time = now();
+                $receive->save();
+                $receive->syncDocumentIdentity();
+
+                foreach ($order->items as $item) {
+                    $new_item = $item->replicate();
+                    $new_item->receiving_id = $receive->receiving_id;
+                    $new_item->save();
+                    
+                    DB::table('phppos_location_items')
+                        ->updateOrInsert(
+                            ['item_id' => $new_item->item_id, 'location_id' => $receive->location_id],
+                            ['quantity' => DB::raw("quantity + " . $new_item->quantity_received)]
+                        );
+                        
+                    DB::table('phppos_inventory_movements')->insert([
+                        'movement_type' => 'receiving',
+                        'item_id' => $new_item->item_id,
+                        'to_location_id' => $receive->location_id,
+                        'quantity' => $new_item->quantity_received,
+                        'reference_id' => $receive->receiving_id,
+                        'reference_type' => 'receiving',
+                        'created_by_person_id' => auth('employee')->id(),
+                        'notes' => 'Generated from Order ' . ($order->internal_code ?? $order->receiving_id),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $order->update(['suspended' => 1]);
+
+                return response()->json(['success' => true, 'message' => 'Order closed and receiving generated successfully']);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+        });
     }
 
     public function print($receivingId)

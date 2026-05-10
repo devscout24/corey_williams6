@@ -125,7 +125,7 @@ class ReceivingController extends Controller
     }
 
     /**
-     * @return array{receiving_id: int, internal_code: string, type: string, date: string, supplier: string, items: int, total: string, status_label: string, status_tone: string}
+     * @return array{receiving_id: int, internal_code: string, type: string, date: string, supplier: string, items: int, total: string, status_label: string, status_tone: string, source: string|null, reference_id: string|null}
      */
     private function mapReceivingHistoryRow(PhpposReceiving $r): array
     {
@@ -144,6 +144,8 @@ class ReceivingController extends Controller
             'total' => '$'.number_format((float) $r->total, 2),
             'status_label' => $st['label'],
             'status_tone' => $st['tone'],
+            'source' => $r->source,
+            'reference_id' => $r->reference_id,
         ];
     }
 
@@ -516,6 +518,7 @@ class ReceivingController extends Controller
                 'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
                 'mode' => $cart['mode'],
                 'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
+                'source' => 'manual',
             ]);
             $receiving->syncDocumentIdentity();
 

@@ -7,7 +7,7 @@
   const historyUrl = cfg.historyUrl || '';
   let currentMode = cfg.initialMode === 'Return' ? 'Return' : 'Receive';
 
-  const TABLE_COLS = 9;
+  const TABLE_COLS = 10;
 
   function el(id) {
     return document.getElementById(id);
@@ -91,6 +91,10 @@
           '<td class="history-total-cell">' +
           escapeHtml(r.total) +
           '</td>' +
+          '<td><span class="purchases-history-meta">' +
+          (r.source ? escapeHtml(r.source) : '—') +
+          (r.reference_id ? ' (' + escapeHtml(r.reference_id) + ')' : '') +
+          '</span></td>' +
           '<td><span class="' +
           badgeClass +
           '">' +

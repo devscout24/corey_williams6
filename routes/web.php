@@ -49,7 +49,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
     Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
-    Route::post('/orders/{receivingId}/approve', [OrderController::class, 'approve'])->name('orders.approve');
+    Route::put('/orders/{receivingId}', [OrderController::class, 'update'])->name('orders.update');
+    Route::post('/orders/{receivingId}/close', [OrderController::class, 'close'])->name('orders.close');
     Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
     Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
 

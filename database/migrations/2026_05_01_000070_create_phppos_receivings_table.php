@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('mode', 20)->default('receive');
             $table->string('type', 20)->default('receive')->comment('receive|return|transfer — business document type');
             $table->string('internal_code', 40)->nullable()->unique()->comment('RCV-xxxxxxxx or RTV-xxxxxxxx');
+            $table->string('source', 50)->nullable()->comment('manual, order, transfer');
+            $table->string('reference_id', 50)->nullable()->comment('ID of source order or transfer');
             $table->decimal('subtotal', 23, 10)->default(0);
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('tax', 23, 10)->default(0);
