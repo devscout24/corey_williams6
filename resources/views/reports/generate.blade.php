@@ -29,6 +29,45 @@
                     </div>
 
                     <div class="mb-4">
+                        <label class="form-label font-weight-bold">Sale Type</label>
+                        <select name="sale_type" class="form-select">
+                            <option value="all">All</option>
+                            <option value="sales">Sales</option>
+                            <option value="returns">Returns</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Payment Type</label>
+                        <select name="payment_type" class="form-select">
+                            <option value="all">All</option>
+                            @foreach($paymentTypes as $type)
+                                <option value="{{ $type }}">{{ $type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Location</label>
+                        <select name="location_id" class="form-select">
+                            <option value="all">All Locations</option>
+                            @foreach($locations as $loc)
+                                <option value="{{ $loc->location_id }}">{{ $loc->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Group By</label>
+                        <select name="group_by" class="form-select">
+                            <option value="day">Day</option>
+                            <option value="week">Week</option>
+                            <option value="month">Month</option>
+                            <option value="year">Year</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
                         <label class="form-label font-weight-bold">Export Options</label>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="export_excel" id="exportExcel">
