@@ -52,7 +52,10 @@ class OrderController extends Controller
             'is_po' => 1,
             'deleted' => 0,
             'suspended' => 0,
+            'mode' => 'receive',
+            'type' => 'receive',
         ]);
+        $receiving->syncDocumentIdentity();
 
         foreach ($data['items'] as $line => $item) {
             if ($item['type'] === 'item') {

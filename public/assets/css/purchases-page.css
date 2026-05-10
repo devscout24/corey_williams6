@@ -1,0 +1,314 @@
+/**
+ * Purchases list — ported from corey-dashboard/pages/purchases.html (inline styles).
+ * Scoped under .purchases-dashboard-root where useful.
+ */
+
+/* Hide default Laravel page header when purchases dashboard is shown */
+main.page-content > .page-header:has(+ .purchases-dashboard-root) {
+  display: none;
+}
+
+.purchases-dashboard-root .recv-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--gray-200, #e2e8f0);
+}
+
+[data-theme='dark'] .purchases-dashboard-root .recv-card {
+  background: var(--gray-900, #0f172a);
+  border-color: var(--gray-700, #334155);
+}
+
+.purchases-dashboard-root .recv-mode-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .recv-mode-toggle {
+  background: var(--gray-800, #1e293b);
+}
+
+.purchases-dashboard-root .btn-mode-toggle {
+  padding: 5px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.purchases-dashboard-root .btn-mode-toggle.active {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .purchases-dashboard-root .btn-mode-toggle.active {
+  background: var(--gray-700, #334155);
+  color: #fff;
+}
+
+.purchases-dashboard-root .btn-mode-toggle#modeReturn.active {
+  color: #d97706;
+}
+
+.purchases-dashboard-root .history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.purchases-dashboard-root .history-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-title {
+  color: #cbd5e1;
+}
+
+.purchases-dashboard-root .history-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 4px 10px;
+}
+
+.purchases-dashboard-root .history-search-input {
+  flex: 1;
+  min-width: 180px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 12px;
+  outline: none;
+  background: #fff;
+  color: #1e293b;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-search-input {
+  background: var(--gray-800, #1e293b);
+  border-color: var(--gray-600, #475569);
+  color: #f1f5f9;
+}
+
+.purchases-dashboard-root .history-criteria-select {
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 0 8px;
+  font-size: 12px;
+  outline: none;
+  color: #475569;
+  cursor: pointer;
+  background: #fff;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-criteria-select {
+  background: var(--gray-800, #1e293b);
+  border-color: var(--gray-600, #475569);
+  color: #e2e8f0;
+}
+
+.purchases-dashboard-root .btn-history-search {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.purchases-dashboard-root .btn-recv-action.btn-blue {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--primary-light, #dbeafe);
+  color: var(--primary);
+}
+
+.purchases-dashboard-root .btn-add-Purchases {
+  height: 32px;
+  padding: 0 14px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  border: none;
+  text-decoration: none;
+}
+
+.purchases-dashboard-root .btn-add-Purchases:hover {
+  opacity: 0.92;
+  color: #fff;
+}
+
+.purchases-dashboard-root .btn-add-Purchases.btn-return-accent {
+  background: #d97706;
+}
+
+.purchases-dashboard-root .btn-add-Purchases.btn-return-accent:hover {
+  color: #fff;
+}
+
+.purchases-dashboard-root .history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.purchases-dashboard-root .history-table thead tr {
+  background: #f8fafc;
+}
+
+.purchases-dashboard-root .history-table th {
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  background: #eef0ff;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-table th {
+  background: #1e293b;
+  color: #cbd5e1;
+  border-bottom-color: #475569;
+}
+
+.purchases-dashboard-root .history-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-table td {
+  border-bottom-color: #334155;
+  color: #e2e8f0;
+}
+
+.purchases-dashboard-root .history-table tbody tr:hover {
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-table tbody tr:hover {
+  background: #1e293b;
+}
+
+.purchases-dashboard-root .history-id {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: underline dashed;
+}
+
+.purchases-dashboard-root .badge-open {
+  background: #dcfce7;
+  color: #166534;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.purchases-dashboard-root .badge-closed {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.purchases-dashboard-root .badge-neutral {
+  background: #e2e8f0;
+  color: #334155;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.purchases-dashboard-root .purchases-history-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.purchases-dashboard-root .purchase-type-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.purchases-dashboard-root .purchase-type-pill-receive {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.purchases-dashboard-root .purchase-type-pill-return {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.purchases-dashboard-root .purchase-type-pill-transfer {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.purchases-dashboard-root .history-total-cell {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+[data-theme='dark'] .purchases-dashboard-root .history-total-cell {
+  color: #f1f5f9;
+}
+
+.purchases-dashboard-root .purchases-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}

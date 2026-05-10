@@ -467,7 +467,9 @@ class InventoryFlowService
                 'total_quantity_purchased' => $totalQty,
                 'total_quantity_received' => $totalQty,
                 'mode' => 'receive',
+                'type' => 'receive',
             ]);
+            $receiving->syncDocumentIdentity();
 
             $lineNumber = 0;
             foreach ($lines as $line) {

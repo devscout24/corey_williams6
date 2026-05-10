@@ -12,6 +12,44 @@ class PhpposReceiving extends Model
     protected $primaryKey = 'receiving_id';
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'receiving_time' => 'datetime',
+        ];
+    }
+
+    /**
+     * Document type aligned with `mode`: receive, return, or transfer.
+     */
+    public static function documentTypeFromMode(?string $mode): string
+    {
+        $mode = $mode ?? 'receive';
+
+        return in_array($mode, ['receive', 'return', 'transfer'], true) ? $mode : 'receive';
+    }
+
+    public static function internalCodePrefixFromMode(?string $mode): string
+    {
+        return ($mode ?? 'receive') === 'return' ? 'RTV' : 'RCV';
+    }
+
+    public static function formatInternalCode(?string $mode, int $receivingId): string
+    {
+        return self::internalCodePrefixFromMode($mode).'-'.str_pad((string) $receivingId, 8, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Persist `type` and `internal_code` from `mode` + primary key (call right after insert).
+     */
+    public function syncDocumentIdentity(): void
+    {
+        $mode = $this->mode ?? 'receive';
+        $this->type = self::documentTypeFromMode($mode);
+        $this->internal_code = self::formatInternalCode($mode, (int) $this->receiving_id);
+        $this->saveQuietly();
+    }
+
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(PhpposSupplier::class, 'supplier_id', 'person_id');

@@ -25,6 +25,8 @@ return new class extends Migration
             $table->decimal('total_quantity_purchased', 23, 10)->default(0);
             $table->decimal('total_quantity_received', 23, 10)->default(0);
             $table->string('mode', 20)->default('receive');
+            $table->string('type', 20)->default('receive')->comment('receive|return|transfer — business document type');
+            $table->string('internal_code', 40)->nullable()->unique()->comment('RCV-xxxxxxxx or RTV-xxxxxxxx');
             $table->decimal('subtotal', 23, 10)->default(0);
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('tax', 23, 10)->default(0);
@@ -53,6 +55,7 @@ return new class extends Migration
             $table->foreign('transfer_to_location_id', 'receivings_transfer_loc_fk')->references('location_id')->on('phppos_locations');
             $table->index('receiving_time');
             $table->index('deleted');
+            $table->index('type');
         });
     }
 

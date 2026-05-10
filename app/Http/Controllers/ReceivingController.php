@@ -12,6 +12,7 @@ use App\Models\PhpposLocation;
 use App\Models\PhpposSupplierStoreAccount;
 use App\Services\InventoryFlowService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,38 +36,115 @@ class ReceivingController extends Controller
 
     public function index(Request $request): View
     {
+        $initialListMode = $request->query('tab') === 'return' ? 'Return' : 'Receive';
+
+        return view('receivings.index', [
+            'purchasesHistoryUrl' => route('purchases.history-data'),
+            'purchasesCreateUrl' => route('purchases.create', ['mode' => 'receive']),
+            'purchasesCreateReturnUrl' => route('purchases.create', ['mode' => 'return']),
+            'initialListMode' => $initialListMode,
+        ]);
+    }
+
+    public function purchasesHistoryData(Request $request): JsonResponse
+    {
+        $type = $request->query('type', 'receive') === 'return' ? 'return' : 'receive';
+
         $q = trim((string) $request->query('q', ''));
         $criteria = $request->query('criteria', 'id');
         if (! in_array($criteria, ['id', 'supplier', 'date', 'status'], true)) {
             $criteria = 'id';
         }
 
-        $purchasesQuery = PhpposReceiving::query()
-            ->with(['supplier', 'items'])
-            ->where('deleted', 0)
-            ->where(function (Builder $modeQuery): void {
-                $modeQuery->whereNull('mode')->orWhere('mode', '<>', 'return');
-            });
-
-        $returnsQuery = PhpposReceiving::query()
-            ->with(['supplier', 'items'])
-            ->where('deleted', 0)
-            ->where('mode', 'return');
-
+        $query = $this->purchasesHistoryBaseQuery($type);
         if ($q !== '') {
-            $this->applyPurchasesListSearch($purchasesQuery, $q, $criteria);
-            $this->applyPurchasesListSearch($returnsQuery, $q, $criteria);
+            $this->applyPurchasesListSearch($query, $q, $criteria);
         }
 
-        $purchases = $purchasesQuery->orderByDesc('receiving_time')->get();
-        $returns = $returnsQuery->orderByDesc('receiving_time')->get();
+        $rows = $query->orderByDesc('receiving_time')->limit(250)->get();
 
-        return view('receivings.index', [
-            'purchases' => $purchases,
-            'returns' => $returns,
-            'criteria' => $criteria,
-            'q' => $q,
+        return response()->json([
+            'success' => true,
+            'items' => $rows->map(fn (PhpposReceiving $r): array => $this->mapReceivingHistoryRow($r))->values(),
+            'count' => $rows->count(),
         ]);
+    }
+
+    private function purchasesHistoryBaseQuery(string $type): Builder
+    {
+        $query = PhpposReceiving::query()
+            ->with(['supplier', 'items'])
+            ->where('deleted', 0);
+
+        if ($type === 'return') {
+            $query->where(function (Builder $q): void {
+                $q->where('type', 'return')->orWhere(function (Builder $q2): void {
+                    $q2->whereNull('type')->where('mode', 'return');
+                });
+            });
+        } else {
+            $query->where(function (Builder $q): void {
+                $q->whereIn('type', ['receive', 'transfer'])
+                    ->orWhere(function (Builder $q2): void {
+                        $q2->whereNull('type')->where(function (Builder $q3): void {
+                            $q3->whereNull('mode')->orWhere('mode', '<>', 'return');
+                        });
+                    });
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array{label: string, tone: string}
+     */
+    private function receivingHistoryUiStatus(PhpposReceiving $r): array
+    {
+        if ($r->mode === 'transfer') {
+            return ['label' => 'Transfer', 'tone' => 'neutral'];
+        }
+
+        if ($r->mode === 'return') {
+            if ($r->suspended) {
+                return ['label' => 'Suspended', 'tone' => 'open'];
+            }
+
+            return ['label' => 'Returned', 'tone' => 'closed'];
+        }
+
+        if ($r->is_po) {
+            return ['label' => 'PO', 'tone' => 'open'];
+        }
+
+        if ($r->suspended) {
+            return ['label' => 'Suspended', 'tone' => 'open'];
+        }
+
+        return ['label' => 'Closed', 'tone' => 'closed'];
+    }
+
+    /**
+     * @return array{receiving_id: int, internal_code: string, type: string, date: string, supplier: string, items: int, total: string, status_label: string, status_tone: string}
+     */
+    private function mapReceivingHistoryRow(PhpposReceiving $r): array
+    {
+        $st = $this->receivingHistoryUiStatus($r);
+        $mode = $r->mode ?? 'receive';
+        $internalCode = $r->internal_code ?? PhpposReceiving::formatInternalCode($mode, (int) $r->receiving_id);
+        $docType = $r->type ?? PhpposReceiving::documentTypeFromMode($mode);
+
+        return [
+            'receiving_id' => (int) $r->receiving_id,
+            'internal_code' => $internalCode,
+            'type' => $docType,
+            'date' => $r->receiving_time?->format('M d, Y h:i A') ?? '',
+            'supplier' => $r->supplier?->company_name ?? '—',
+            'items' => $r->items->count(),
+            'total' => '$'.number_format((float) $r->total, 2),
+            'status_label' => $st['label'],
+            'status_tone' => $st['tone'],
+        ];
     }
 
     private function applyPurchasesListSearch(Builder $query, string $q, string $criteria): void
@@ -77,10 +155,26 @@ class ReceivingController extends Controller
             }),
             'date' => $query->where('receiving_time', 'like', '%'.$q.'%'),
             'status' => $this->applyPurchasesStatusSearch($query, $q),
-            default => ctype_digit($q)
-                ? $query->where('receiving_id', (int) $q)
-                : $query->where('receiving_id', 'like', '%'.$q.'%'),
+            default => $this->applyReceivingIdOrCodeSearch($query, $q),
         };
+    }
+
+    private function applyReceivingIdOrCodeSearch(Builder $query, string $q): void
+    {
+        $t = trim($q);
+        if ($t === '') {
+            return;
+        }
+
+        $query->where(function (Builder $sub) use ($t): void {
+            if (ctype_digit($t)) {
+                $sub->where('receiving_id', (int) $t)
+                    ->orWhere('internal_code', 'like', '%'.$t.'%');
+            } else {
+                $sub->where('receiving_id', 'like', '%'.$t.'%')
+                    ->orWhere('internal_code', 'like', '%'.$t.'%');
+            }
+        });
     }
 
     private function applyPurchasesStatusSearch(Builder $query, string $q): void
@@ -99,8 +193,15 @@ class ReceivingController extends Controller
         $query->where('suspended', 0)->where('is_po', false);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $mode = $request->query('mode');
+        if (in_array($mode, ['receive', 'return', 'transfer'], true)) {
+            $cart = $this->getCart();
+            $cart['mode'] = $mode;
+            Session::put('receiving_cart', $cart);
+        }
+
         $cart = $this->getCart();
 
         $suppliers = PhpposSupplier::with('person')->get();
@@ -414,7 +515,9 @@ class ReceivingController extends Controller
                 'total_quantity_purchased' => $totalQty,
                 'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
                 'mode' => $cart['mode'],
+                'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
             ]);
+            $receiving->syncDocumentIdentity();
 
             foreach ($cart['items'] as $index => $item) {
                 PhpposReceivingItem::create([
@@ -460,7 +563,7 @@ class ReceivingController extends Controller
                 ? 'Return completed successfully.'
                 : 'Purchase completed successfully.';
 
-            $to = route('purchases.index').($cart['mode'] === 'return' ? '#returns-list' : '');
+            $to = route('purchases.index', $cart['mode'] === 'return' ? ['tab' => 'return'] : []);
 
             return redirect()->to($to)->with('status', $msg);
         });

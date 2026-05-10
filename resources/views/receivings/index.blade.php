@@ -4,11 +4,12 @@
 @section('page-title', 'Purchases')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('assets/css/purchases-index.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/purchases-page.css') }}">
 @endpush
 
 @section('content')
-    <div class="container-fluid pidx-page">
+    {{-- Structure from corey-dashboard/pages/purchases.html (#viewPurchasesList); data via /purchases/history-data --}}
+    <div class="purchases-dashboard-root">
         @if (session('status'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('status') }}
@@ -16,140 +17,92 @@
             </div>
         @endif
 
-        <div class="recv-card mb-3">
-            <div class="history-header">
-                <div class="history-title">
-                    <i class="bi bi-truck"></i>
-                    <span>Purchases &amp; returns</span>
+        <div id="viewPurchasesList">
+            <div class="recv-card">
+                <div class="history-header">
+                    <div class="history-title">
+                        <i class="bi bi-clock-history"></i>
+                        <span id="historyTitle">Recent Purchases</span>
+                    </div>
+                    <div class="purchases-header-actions">
+                        <a href="{{ $purchasesCreateUrl }}" class="btn-add-Purchases text-decoration-none">
+                            <i class="bi bi-plus-lg"></i> Add Purchases
+                        </a>
+                        <a href="{{ $purchasesCreateReturnUrl }}" class="btn-add-Purchases btn-return-accent text-decoration-none">
+                            <i class="bi bi-plus-lg"></i> Add Return
+                        </a>
+                    </div>
                 </div>
-                <a href="{{ route('purchases.create') }}" class="btn-add-Purchases text-decoration-none">
-                    <i class="bi bi-plus-lg"></i> Add purchases
-                </a>
-            </div>
-            <p class="pidx-list-meta px-1 mb-2">Receiving (stock in), transfers, and supplier returns (stock out) share one register — history is split below like the POS HTML Dashboard.</p>
 
-            <form method="get" action="{{ route('purchases.index') }}" class="history-search-bar">
-                <select class="history-criteria-select" name="criteria" aria-label="Search field">
-                    <option value="id" @selected($criteria === 'id')>ID</option>
-                    <option value="supplier" @selected($criteria === 'supplier')>Supplier</option>
-                    <option value="date" @selected($criteria === 'date')>Date</option>
-                    <option value="status" @selected($criteria === 'status')>Status</option>
-                </select>
-                <input type="text" name="q" class="history-search-input" value="{{ $q }}"
-                    placeholder="Search both lists…" />
-                <button type="submit" class="btn-history-search">
-                    <i class="bi bi-search"></i> Search
-                </button>
-                <a href="{{ route('purchases.index') }}" class="btn-recv-clear text-decoration-none">
-                    <i class="bi bi-x-circle"></i> Clear
-                </a>
-            </form>
-        </div>
-
-        <div class="recv-card mb-3" id="purchases-list">
-            <div class="history-header">
-                <div class="history-title">
-                    <i class="bi bi-cart"></i>
-                    <span>Purchases / receiving</span>
+                <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                    <div class="recv-mode-toggle" role="group" aria-label="List mode">
+                        <button type="button" class="btn-mode-toggle active" id="modeReceive"
+                            onclick="window.purchasesSetListMode('Receive')">
+                            <i class="bi bi-cart"></i> Purchases
+                        </button>
+                        <button type="button" class="btn-mode-toggle" id="modeReturn"
+                            onclick="window.purchasesSetListMode('Return')">
+                            <i class="bi bi-arrow-return-left"></i> Return
+                        </button>
+                    </div>
+                    <span id="listModeLabel" class="purchases-history-meta">Showing: Purchases</span>
                 </div>
-                <span class="pidx-list-meta">{{ $purchases->count() }} record(s)</span>
-            </div>
-            <div class="table-responsive">
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Supplier</th>
-                            <th class="text-center">Items</th>
-                            <th>Total</th>
-                            <th>Mode</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($purchases as $receiving)
-                            <tr>
-                                <td><span class="history-id">#{{ $receiving->receiving_id }}</span></td>
-                                <td>{{ \Carbon\Carbon::parse($receiving->receiving_time)->format('M d, Y h:i A') }}</td>
-                                <td>{{ $receiving->supplier->company_name ?? '—' }}</td>
-                                <td class="text-center">{{ $receiving->items->count() }}</td>
-                                <td>${{ number_format((float) $receiving->total, 2) }}</td>
-                                <td>
-                                    @if ($receiving->mode === 'transfer')
-                                        <span class="badge-pidx-transfer">Transfer</span>
-                                    @else
-                                        <span class="badge-pidx-closed">Receive</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if ($receiving->is_po)
-                                        <span class="badge-pidx-open">PO</span>
-                                    @elseif ($receiving->suspended)
-                                        <span class="badge-pidx-open">Suspended</span>
-                                    @else
-                                        <span class="badge-pidx-closed">Completed</span>
-                                    @endif
-                                </td>
-                                <td class="text-end text-muted small">—</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">No purchases yet.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <div class="recv-card" id="returns-list">
-            <div class="history-header">
-                <div class="history-title">
-                    <i class="bi bi-arrow-return-left"></i>
-                    <span>Returns</span>
+                <div class="history-search-bar">
+                    <select class="history-criteria-select" id="searchCriteria" aria-label="Search field">
+                        <option value="id">ID / Code</option>
+                        <option value="supplier">Supplier</option>
+                        <option value="date">Date</option>
+                        <option value="status">Status</option>
+                    </select>
+                    <input type="text" class="history-search-input" id="historySearchInput" placeholder="Search purchases…" />
+                    <button type="button" class="btn-history-search" onclick="window.purchasesSearchHistory()">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <button type="button" class="btn-recv-action btn-blue" onclick="window.purchasesClearSearch()">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </button>
                 </div>
-                <span class="pidx-list-meta">{{ $returns->count() }} record(s)</span>
-            </div>
-            <div class="table-responsive">
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Supplier</th>
-                            <th class="text-center">Items</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($returns as $receiving)
+
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
                             <tr>
-                                <td><span class="history-id">#{{ $receiving->receiving_id }}</span></td>
-                                <td>{{ \Carbon\Carbon::parse($receiving->receiving_time)->format('M d, Y h:i A') }}</td>
-                                <td>{{ $receiving->supplier->company_name ?? '—' }}</td>
-                                <td class="text-center">{{ $receiving->items->count() }}</td>
-                                <td>${{ number_format((float) $receiving->total, 2) }}</td>
-                                <td>
-                                    @if ($receiving->suspended)
-                                        <span class="badge-pidx-open">Suspended</span>
-                                    @else
-                                        <span class="badge-pidx-return">Returned</span>
-                                    @endif
-                                </td>
-                                <td class="text-end text-muted small">—</td>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="selectAllPurchases" title="Select all">
+                                </th>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Supplier</th>
+                                <th style="text-align:center;">Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th style="text-align:right;">Action</th>
                             </tr>
-                        @empty
+                        </thead>
+                        <tbody id="historyBody">
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">No returns yet.</td>
+                                <td colspan="9" class="text-center py-4 purchases-history-meta">Loading…</td>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <span id="historyCount" class="purchases-history-meta"></span>
+                </div>
             </div>
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        window.PURCHASES_PAGE_CONFIG = {
+            historyUrl: @json($purchasesHistoryUrl),
+            initialMode: @json($initialListMode),
+        };
+    </script>
+    <script src="{{ asset('assets/js/purchases-page.js') }}"></script>
+@endpush

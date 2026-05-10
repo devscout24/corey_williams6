@@ -296,7 +296,9 @@ class TransferController extends Controller
                     'total_quantity_purchased' => $totalQty,
                     'total_quantity_received' => 0, // Mode is return
                     'mode' => 'return',
+                    'type' => 'return',
                 ]);
+                $receiving->syncDocumentIdentity();
 
                 foreach ($cart['items'] as $index => $item) {
                     PhpposReceivingItem::create([

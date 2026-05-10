@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:employee')->group(function (): void {
     Route::get('/purchases', [ReceivingController::class, 'index'])->name('purchases.index');
+    Route::get('/purchases/history-data', [ReceivingController::class, 'purchasesHistoryData'])->name('purchases.history-data');
     Route::get('/purchases/create', [ReceivingController::class, 'create'])->name('purchases.create');
 
     // receivings (legacy URLs; same handlers as purchases)

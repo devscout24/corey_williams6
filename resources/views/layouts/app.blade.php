@@ -78,7 +78,7 @@
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 radius-lg mt-2">
                             <li><a class="dropdown-item py-2 px-3" href="{{ route('sales.index') }}"><i class="bi bi-cart me-2"></i> New Sale</a></li>
                             <li><a class="dropdown-item py-2 px-3" href="{{ route('orders.index') }}"><i class="bi bi-file-earmark-text me-2"></i> New Order</a></li>
-                            <li><a class="dropdown-item py-2 px-3" href="{{ route('purchases.create') }}"><i class="bi bi-truck me-2"></i> New purchase</a></li>
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('purchases.create', ['mode' => 'receive']) }}"><i class="bi bi-truck me-2"></i> New purchase</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item py-2 px-3" href="{{ route('customers.index') }}"><i class="bi bi-person-plus me-2"></i> New Customer</a></li>
                             <li><a class="dropdown-item py-2 px-3" href="{{ route('items.index') }}"><i class="bi bi-box-seam me-2"></i> New Item</a></li>
