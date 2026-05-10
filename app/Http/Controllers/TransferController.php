@@ -8,6 +8,7 @@ use App\Models\PhpposCategory;
 use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
+use App\Models\PhpposSupplier;
 use App\Services\InventoryFlowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class TransferController extends Controller
             'items' => [],
             'from_location_id' => auth('employee')->user()?->location_id ?? 1,
             'to_location_id' => null,
+            'supplier_id' => null,
             'comment' => '',
         ];
         $cart = Session::get('transfer_cart');
@@ -69,6 +71,7 @@ class TransferController extends Controller
     {
         $cart = $this->getCart();
         $locations = PhpposLocation::where('deleted', 0)->get();
+        $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
         $categories = PhpposCategory::where('deleted', 0)
             ->where('hide_from_grid', 0)
             ->whereNull('parent_id')
@@ -81,7 +84,7 @@ class TransferController extends Controller
         }
         $total = $subtotal;
 
-        return view('transfers.create', compact('cart', 'locations', 'categories', 'subtotal', 'total'));
+        return view('transfers.create', compact('cart', 'locations', 'suppliers', 'categories', 'subtotal', 'total'));
     }
 
     public function addItem(Request $request): RedirectResponse
@@ -191,6 +194,217 @@ class TransferController extends Controller
             Session::put('transfer_cart', $cart);
         }
         return redirect()->route('transfers.create');
+    }
+
+    public function setSupplier(Request $request): RedirectResponse
+    {
+        $cart = $this->getCart();
+        $cart['supplier_id'] = $request->supplier_id;
+        Session::put('transfer_cart', $cart);
+        return redirect()->route('transfers.create');
+    }
+
+    public function categories(Request $request)
+    {
+        $categoryId = $request->input('category_id');
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(8, (int) $request->input('per_page', 8)));
+        $currentCategory = null;
+
+        if ($categoryId) {
+            $currentCategory = PhpposCategory::where('deleted', 0)
+                ->select('id', 'name', 'parent_id')
+                ->find($categoryId);
+        }
+
+        $isRootCategory = $currentCategory && $currentCategory->parent_id === null;
+
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
+
+        if ($categoryId && ! $isRootCategory) {
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
+                ->get(['item_id', 'name', 'cost_price'])
+                ->map(function ($item) {
+                    return [
+                        'type' => 'item',
+                        'id' => $item->item_id,
+                        'name' => $item->name,
+                        'price' => $item->cost_price,
+                    ];
+                });
+
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
+                ->get(['id', 'name', 'cost_price'])
+                ->map(function ($kit) {
+                    return [
+                        'type' => 'kit',
+                        'id' => $kit->id,
+                        'name' => '[KIT] ' . $kit->name,
+                        'price' => $kit->cost_price,
+                    ];
+                });
+
+            $products = $items->concat($kits)->sortBy('name')->values();
+            $total = $products->count();
+            $lastPage = (int) max(1, (int) ceil($total / $perPage));
+            $page = min($page, $lastPage);
+            $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+            return response()->json([
+                'level' => 'items',
+                'categories' => [],
+                'products' => $paged,
+                'current' => $currentCategory,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        }
+
+        $categoryQuery = PhpposCategory::where('deleted', 0)
+            ->where('hide_from_grid', 0)
+            ->orderBy('name');
+
+        if ($categoryId && $isRootCategory) {
+            $categoryQuery->where('parent_id', $categoryId);
+        } else {
+            $categoryQuery->whereNull('parent_id');
+        }
+
+        $categoryPage = $categoryQuery->paginate($perPage, ['id', 'name', 'parent_id'], 'page', $page);
+        $categories = collect($categoryPage->items());
+
+        if ($categoryId && $categories->isEmpty()) {
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
+                ->get(['item_id', 'name', 'cost_price'])
+                ->map(function ($item) {
+                    return [
+                        'type' => 'item',
+                        'id' => $item->item_id,
+                        'name' => $item->name,
+                        'price' => $item->cost_price,
+                    ];
+                });
+
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
+                ->get(['id', 'name', 'cost_price'])
+                ->map(function ($kit) {
+                    return [
+                        'type' => 'kit',
+                        'id' => $kit->id,
+                        'name' => '[KIT] ' . $kit->name,
+                        'price' => $kit->cost_price,
+                    ];
+                });
+
+            $products = $items->concat($kits)->sortBy('name')->values();
+            $total = $products->count();
+            $lastPage = (int) max(1, (int) ceil($total / $perPage));
+            $page = min($page, $lastPage);
+            $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+            return response()->json([
+                'level' => 'items',
+                'categories' => [],
+                'products' => $paged,
+                'current' => $currentCategory,
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'level' => 'categories',
+            'categories' => $categories,
+            'products' => [],
+            'current' => $currentCategory,
+            'pagination' => [
+                'page' => $categoryPage->currentPage(),
+                'per_page' => $categoryPage->perPage(),
+                'total' => $categoryPage->total(),
+                'last_page' => $categoryPage->lastPage(),
+            ],
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $term = $request->input('term');
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
+        
+        $itemsQuery = PhpposItem::where('deleted', 0)
+            ->where(function($query) use ($term) {
+                $query->where('name', 'LIKE', "%$term%")
+                      ->orWhere('item_id', $term)
+                      ->orWhere('product_id', $term);
+            });
+        
+        if ($supplierId) {
+            $itemsQuery->where('supplier_id', $supplierId);
+        }
+
+        $items = $itemsQuery->limit(10)
+            ->get(['item_id', 'name', 'cost_price']);
+
+        $kitsQuery = PhpposItemKit::where('deleted', 0)
+            ->where(function($query) use ($term) {
+                $query->where('name', 'LIKE', "%$term%")
+                      ->orWhere('item_kit_number', $term)
+                      ->orWhere('product_id', $term);
+            });
+        
+        if ($supplierId) {
+            $kitsQuery->where('supplier_id', $supplierId);
+        }
+
+        $kits = $kitsQuery->limit(10)
+            ->get(['id', 'name', 'cost_price'])
+            ->map(function ($kit) {
+                $kit->item_id = 'KIT ' . $kit->id;
+                $kit->name = '[KIT] ' . $kit->name;
+                return $kit;
+            });
+
+        $results = $items->concat($kits)->sortBy('name')->values();
+
+        return response()->json($results);
     }
 
     public function setLocation(Request $request): RedirectResponse

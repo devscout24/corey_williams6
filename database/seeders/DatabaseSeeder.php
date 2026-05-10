@@ -19,5 +19,6 @@ class DatabaseSeeder extends Seeder
         if ((bool) env('POS_SEED_DEMO', false)) {
             $this->call(PosDemoSeeder::class);
         }
+        $this->call(RegisterCurrencyDenominationSeeder::class);
     }
 }

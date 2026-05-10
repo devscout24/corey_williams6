@@ -176,9 +176,29 @@
                             </select>
                         </div>
 
-                        <div class="mb-1">
+                        <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase text-muted">Notes</label>
                             <textarea name="comment" class="form-control form-control-sm" placeholder="Optional comments" onchange="this.form.submit()">{{ $cart['comment'] ?? '' }}</textarea>
+                        </div>
+                    </form>
+
+                    <form action="{{ route('transfers.supplier.set') }}" method="POST">
+                        @csrf
+                        <div class="mb-1">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Filter by Supplier</label>
+                            <div class="input-group">
+                                <select name="supplier_id" class="form-select border-primary" onchange="this.form.submit()">
+                                    <option value="">— All Suppliers —</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->person_id }}" @selected($cart['supplier_id'] == $supplier->person_id)>
+                                            {{ $supplier->person?->first_name }} {{ $supplier->person?->last_name }} {{ $supplier->company_name ? '('.$supplier->company_name.')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($cart['supplier_id'])
+                                    <button type="submit" name="supplier_id" value="" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
+                                @endif
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -247,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const grid = document.getElementById('category-grid');
     const paginationEl = document.getElementById('category-grid-pagination');
-    const browseUrl = "{{ route('receivings.categories') }}"; // Reusing receiving api
+    const browseUrl = "{{ route('transfers.categories') }}";
     const categoryStack = [];
     const defaultPageSize = 8;
     const childPageSize = 7;
@@ -408,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         timer = setTimeout(() => {
-            fetch(`{{ route('receivings.search') }}?term=${term}`)
+            fetch(`{{ route('transfers.search') }}?term=${term}`)
                 .then(res => res.json())
                 .then(data => {
                     resultsDiv.innerHTML = '';

@@ -244,10 +244,18 @@ class ReceivingController extends Controller
 
         $isRootCategory = $currentCategory && $currentCategory->parent_id === null;
 
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
+
         if ($categoryId && !$isRootCategory) {
-            $items = PhpposItem::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
                 ->get(['item_id', 'name', 'cost_price'])
                 ->map(function ($item) {
                     return [
@@ -258,9 +266,14 @@ class ReceivingController extends Controller
                     ];
                 });
 
-            $kits = PhpposItemKit::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
                 ->get(['id', 'name', 'cost_price'])
                 ->map(function ($kit) {
                     return [
@@ -305,9 +318,14 @@ class ReceivingController extends Controller
         $categories = collect($categoryPage->items());
 
         if ($categoryId && $categories->isEmpty()) {
-            $items = PhpposItem::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
                 ->get(['item_id', 'name', 'cost_price'])
                 ->map(function ($item) {
                     return [
@@ -318,9 +336,14 @@ class ReceivingController extends Controller
                     ];
                 });
 
-            $kits = PhpposItemKit::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
                 ->get(['id', 'name', 'cost_price'])
                 ->map(function ($kit) {
                     return [
@@ -368,23 +391,35 @@ class ReceivingController extends Controller
     public function search(Request $request)
     {
         $term = $request->input('term');
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
         
-        $items = PhpposItem::where('deleted', 0)
+        $itemsQuery = PhpposItem::where('deleted', 0)
             ->where(function($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                       ->orWhere('item_id', $term)
                       ->orWhere('product_id', $term);
-            })
-            ->limit(10)
+            });
+        
+        if ($supplierId) {
+            $itemsQuery->where('supplier_id', $supplierId);
+        }
+
+        $items = $itemsQuery->limit(10)
             ->get(['item_id', 'name', 'cost_price']);
 
-        $kits = PhpposItemKit::where('deleted', 0)
+        $kitsQuery = PhpposItemKit::where('deleted', 0)
             ->where(function($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                       ->orWhere('item_kit_number', $term)
                       ->orWhere('product_id', $term);
-            })
-            ->limit(10)
+            });
+        
+        if ($supplierId) {
+            $kitsQuery->where('supplier_id', $supplierId);
+        }
+
+        $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'cost_price'])
             ->map(function ($kit) {
                 $kit->item_id = 'KIT ' . $kit->id; // Using item_id for frontend compatibility

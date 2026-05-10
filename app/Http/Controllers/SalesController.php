@@ -31,6 +31,7 @@ class SalesController extends Controller
             'items' => [],
             'payments' => [],
             'customer_id' => null,
+            'supplier_id' => null,
             'location_id' => auth('employee')->user()?->location_id ?? 1,
         ];
 
@@ -45,6 +46,7 @@ class SalesController extends Controller
 
         $locations = PhpposLocation::where('deleted', 0)->orderBy('location_id')->get();
         $customers = PhpposCustomer::with('person')->orderBy('person_id')->get();
+        $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
         $categories = PhpposCategory::where('deleted', 0)
             ->where('hide_from_grid', 0)
             ->whereNull('parent_id')
@@ -73,6 +75,7 @@ class SalesController extends Controller
             'cart',
             'locations',
             'customers',
+            'suppliers',
             'categories',
             'paymentTypes',
             'subtotal',
@@ -96,11 +99,18 @@ class SalesController extends Controller
         }
 
         $isRootCategory = $currentCategory && $currentCategory->parent_id === null;
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
 
         if ($categoryId && ! $isRootCategory) {
-            $items = PhpposItem::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
                 ->get(['item_id', 'name', 'unit_price'])
                 ->map(function ($item) {
                     return [
@@ -111,9 +121,14 @@ class SalesController extends Controller
                     ];
                 });
 
-            $kits = PhpposItemKit::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
                 ->get(['id', 'name', 'unit_price'])
                 ->map(function ($kit) {
                     return [
@@ -158,9 +173,14 @@ class SalesController extends Controller
         $categories = collect($categoryPage->items());
 
         if ($categoryId && $categories->isEmpty()) {
-            $items = PhpposItem::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $itemsQuery = PhpposItem::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $itemsQuery->where('supplier_id', $supplierId);
+            }
+
+            $items = $itemsQuery->orderBy('name')
                 ->get(['item_id', 'name', 'unit_price'])
                 ->map(function ($item) {
                     return [
@@ -171,9 +191,14 @@ class SalesController extends Controller
                     ];
                 });
 
-            $kits = PhpposItemKit::where('deleted', 0)
-                ->where('category_id', $categoryId)
-                ->orderBy('name')
+            $kitsQuery = PhpposItemKit::where('deleted', 0)
+                ->where('category_id', $categoryId);
+            
+            if ($supplierId) {
+                $kitsQuery->where('supplier_id', $supplierId);
+            }
+
+            $kits = $kitsQuery->orderBy('name')
                 ->get(['id', 'name', 'unit_price'])
                 ->map(function ($kit) {
                     return [
@@ -221,23 +246,35 @@ class SalesController extends Controller
     public function search(Request $request)
     {
         $term = $request->input('term');
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
 
-        $items = PhpposItem::where('deleted', 0)
+        $itemsQuery = PhpposItem::where('deleted', 0)
             ->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                     ->orWhere('item_id', $term)
                     ->orWhere('product_id', $term);
-            })
-            ->limit(10)
+            });
+        
+        if ($supplierId) {
+            $itemsQuery->where('supplier_id', $supplierId);
+        }
+
+        $items = $itemsQuery->limit(10)
             ->get(['item_id', 'name', 'unit_price']);
 
-        $kits = PhpposItemKit::where('deleted', 0)
+        $kitsQuery = PhpposItemKit::where('deleted', 0)
             ->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                     ->orWhere('item_kit_number', $term)
                     ->orWhere('product_id', $term);
-            })
-            ->limit(10)
+            });
+        
+        if ($supplierId) {
+            $kitsQuery->where('supplier_id', $supplierId);
+        }
+
+        $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'unit_price'])
             ->map(function ($kit) {
                 $kit->item_id = 'KIT ' . $kit->id;
@@ -372,6 +409,14 @@ class SalesController extends Controller
             Session::put('sales_cart', $cart);
         }
 
+        return redirect()->route('sales.index');
+    }
+
+    public function setSupplier(Request $request): RedirectResponse
+    {
+        $cart = $this->getCart();
+        $cart['supplier_id'] = $request->supplier_id;
+        Session::put('sales_cart', $cart);
         return redirect()->route('sales.index');
     }
 

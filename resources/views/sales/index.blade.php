@@ -192,6 +192,28 @@
 
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
+                    <form action="{{ route('sales.supplier.set') }}" method="POST">
+                        @csrf
+                        <label class="form-label small fw-bold text-uppercase text-muted">Filter by Supplier</label>
+                        <div class="input-group">
+                            <select name="supplier_id" class="form-select select2-supplier" onchange="this.form.submit()">
+                                <option value="">— All Suppliers —</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->person_id }}" @selected($cart['supplier_id'] == $supplier->person_id)>
+                                        {{ $supplier->person?->first_name }} {{ $supplier->person?->last_name }} {{ $supplier->company_name ? '('.$supplier->company_name.')' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if($cart['supplier_id'])
+                                <button type="submit" name="supplier_id" value="" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
                     <h6 class="text-uppercase small fw-bold text-muted">Payments</h6>
                     <form action="{{ route('sales.payment.add') }}" method="POST" class="mb-3">
                         @csrf
@@ -470,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const div = document.createElement('div');
                             div.className = 'p-2 border-bottom cursor-pointer hover-bg-light';
                             div.style.cursor = 'pointer';
-                            div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.unit_price})</small>`;
+                            div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.unit_price || item.cost_price})</small>`;
                             div.onclick = () => addItem(item.item_id);
                             resultsDiv.appendChild(div);
                         });
