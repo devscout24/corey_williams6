@@ -43,6 +43,9 @@ class SalesService
             $subtotal = 0.0;
             $lineRows = [];
 
+            // Fetch config once before processing items
+            $config = DB::table('phppos_app_config')->get()->keyBy('key');
+
             foreach ($normalized as $line) {
                 $itemId = $line['item_id'];
                 $qty = $line['quantity'];
@@ -81,6 +84,36 @@ class SalesService
                     'item_unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                 ];
+
+                // Calculate commission for this line item
+                $commission = $this->calculateCommission($item, $soldByEmployeeId ?? $employeeId, $lineTotal, $qty, $config);
+
+                // Insert sales item record
+                DB::table('phppos_sales_items')->insert([
+                    'sale_id' => null, // Will be set after sale is created
+                    'item_id' => $itemId,
+                    'quantity_purchased' => $qty,
+                    'item_unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                    'commission' => $commission,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Log inventory movement
+                DB::table('phppos_inventory_movements')->insert([
+                    'movement_type' => 'sale',
+                    'item_id' => $itemId,
+                    'from_location_id' => $locationId,
+                    'to_location_id' => null,
+                    'quantity' => $qty,
+                    'reference_id' => null, // Will be updated after sale is created
+                    'reference_type' => 'sale',
+                    'created_by_person_id' => $employeeId,
+                    'notes' => 'Sale stock out',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
 
             $paymentRows = collect($payments)
@@ -115,70 +148,23 @@ class SalesService
                 'updated_at' => now(),
             ], 'sale_id');
 
-                $item = $itemRows->get($lineRow['item_id']);
-                $commission = 0;
-                $lineTotal = $lineRow['line_total'];
-                $qty = $lineRow['quantity_purchased'];
-                
-                // Fetch salesperson and config for commission
-                $salesPerson = DB::table('phppos_employees')->where('person_id', $soldByEmployeeId ?? $employeeId)->first();
-                $config = DB::table('phppos_app_config')->get()->keyBy('key');
-                
-                if ($item->commission_fixed !== null) {
-                    $commission = $qty * $item->commission_fixed;
-                } elseif ($item->commission_percent !== null) {
-                    $type = ($config->get('commission_percent_type')->value ?? 'selling_price') === 'profit' ? 'profit' : 'selling_price';
-                    if ($type === 'selling_price') {
-                        $commission = $lineTotal * ($item->commission_percent / 100);
-                    } else {
-                        $profit = $lineTotal - ($item->cost_price * $qty);
-                        $commission = $profit * ($item->commission_percent / 100);
-                    }
-                } elseif ($salesPerson && ($salesPerson->commission_percent ?? 0) > 0) {
-                    $type = ($config->get('commission_percent_type')->value ?? 'selling_price') === 'profit' ? 'profit' : 'selling_price';
-                    if ($type === 'selling_price') {
-                        $commission = $lineTotal * ($salesPerson->commission_percent / 100);
-                    } else {
-                        $profit = $lineTotal - ($item->cost_price * $qty);
-                        $commission = $profit * ($salesPerson->commission_percent / 100);
-                    }
-                } else {
-                    $defaultRate = (float)($config->get('commission_default_rate')->value ?? 0);
-                    $type = ($config->get('commission_percent_type')->value ?? 'selling_price') === 'profit' ? 'profit' : 'selling_price';
-                    if ($type === 'selling_price') {
-                        $commission = $lineTotal * ($defaultRate / 100);
-                    } else {
-                        $profit = $lineTotal - ($item->cost_price * $qty);
-                        $commission = $profit * ($defaultRate / 100);
-                    }
-                }
+            // Update sales items and inventory movements with the sale ID
+            foreach ($lineRows as $lineRow) {
+                DB::table('phppos_sales_items')
+                    ->where('item_id', $lineRow['item_id'])
+                    ->whereNull('sale_id')
+                    ->limit(1)
+                    ->update(['sale_id' => $saleId]);
 
-                DB::table('phppos_sales_items')->insert([
-                    'sale_id' => $saleId,
-                    'item_id' => $lineRow['item_id'],
-                    'quantity_purchased' => $lineRow['quantity_purchased'],
-                    'item_unit_price' => $lineRow['item_unit_price'],
-                    'line_total' => $lineRow['line_total'],
-                    'commission' => $commission,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                DB::table('phppos_inventory_movements')->insert([
-                    'movement_type' => 'sale',
-                    'item_id' => $lineRow['item_id'],
-                    'from_location_id' => $locationId,
-                    'to_location_id' => null,
-                    'quantity' => $lineRow['quantity_purchased'],
-                    'reference_id' => $saleId,
-                    'reference_type' => 'sale',
-                    'created_by_person_id' => $employeeId,
-                    'notes' => 'Sale stock out',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                DB::table('phppos_inventory_movements')
+                    ->where('item_id', $lineRow['item_id'])
+                    ->where('reference_type', 'sale')
+                    ->whereNull('reference_id')
+                    ->limit(1)
+                    ->update(['reference_id' => $saleId]);
             }
 
+            // Insert payment records
             foreach ($paymentRows as $paymentRow) {
                 DB::table('phppos_sales_payments')->insert([
                     'sale_id' => $saleId,
@@ -191,6 +177,85 @@ class SalesService
 
             return $saleId;
         });
+    }
+
+    /**
+     * Calculate commission for a sale line item
+     */
+    private function calculateCommission(
+        $item,
+        int $employeeId,
+        float $lineTotal,
+        float $quantity,
+        $config
+    ): float {
+        $commission = 0;
+
+        // Item-level fixed commission
+        if ($item->commission_fixed !== null) {
+            $commission = $quantity * $item->commission_fixed;
+        }
+        // Item-level percentage commission
+        elseif ($item->commission_percent !== null) {
+            $commission = $this->calculatePercentCommission(
+                $lineTotal,
+                $quantity,
+                $item->cost_price,
+                $item->commission_percent,
+                $config
+            );
+        }
+        // Employee-level commission
+        else {
+            $employee = DB::table('phppos_employees')
+                ->where('person_id', $employeeId)
+                ->first();
+
+            if ($employee && ($employee->commission_percent ?? 0) > 0) {
+                $commission = $this->calculatePercentCommission(
+                    $lineTotal,
+                    $quantity,
+                    $item->cost_price,
+                    $employee->commission_percent,
+                    $config
+                );
+            }
+            // Default commission
+            else {
+                $defaultRate = (float) ($config->get('commission_default_rate')->value ?? 0);
+                $commission = $this->calculatePercentCommission(
+                    $lineTotal,
+                    $quantity,
+                    $item->cost_price,
+                    $defaultRate,
+                    $config
+                );
+            }
+        }
+
+        return $commission;
+    }
+
+    /**
+     * Calculate percentage-based commission
+     */
+    private function calculatePercentCommission(
+        float $lineTotal,
+        float $quantity,
+        float $costPrice,
+        float $percent,
+        $config
+    ): float {
+        $type = ($config->get('commission_percent_type')->value ?? 'selling_price') === 'profit'
+            ? 'profit'
+            : 'selling_price';
+
+        if ($type === 'selling_price') {
+            return $lineTotal * ($percent / 100);
+        }
+
+        $profit = $lineTotal - ($costPrice * $quantity);
+        return $profit * ($percent / 100);
     }
 
     /**
