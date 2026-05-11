@@ -1070,6 +1070,805 @@ class ReportController extends Controller
                 $title = "Summary Gift Card Sales Report";
                 break;
 
+            case 'customer_invoices':
+                $query = DB::table('phppos_sales')
+                    ->leftJoin('phppos_people as customer', 'phppos_sales.customer_id', '=', 'customer.person_id')
+                    ->selectRaw('phppos_sales.sale_id, phppos_sales.created_at, COALESCE(CONCAT(customer.first_name, " ", customer.last_name), phppos_sales.customer_name, "Walk-in") as customer_name, phppos_sales.subtotal, phppos_sales.total, phppos_sales.tax, phppos_sales.payment_type')
+                    ->where('phppos_sales.deleted', 0)
+                    ->whereNotNull('phppos_sales.customer_id');
+                $data = $applySalesFilters($query)
+                    ->orderBy('phppos_sales.created_at', 'desc')
+                    ->get();
+
+                $headers = ['Invoice ID', 'Date', 'Customer', 'Subtotal', 'Tax', 'Total', 'Payment'];
+                $title = "Customer Invoices Report";
+                break;
+
+            case 'supplier_invoices':
+                $query = DB::table('phppos_receivings')
+                    ->leftJoin('phppos_suppliers', 'phppos_receivings.supplier_id', '=', 'phppos_suppliers.person_id')
+                    ->selectRaw('phppos_receivings.receiving_id, phppos_receivings.receiving_time, phppos_suppliers.company_name as supplier, phppos_receivings.subtotal, phppos_receivings.total, phppos_receivings.tax, phppos_receivings.payment_type')
+                    ->where('phppos_receivings.deleted', 0)
+                    ->whereNotNull('phppos_receivings.supplier_id');
+                
+                $query->whereBetween('phppos_receivings.receiving_time', [$startDateTime, $endDateTime]);
+                if ($locationId !== 'all') $query->where('phppos_receivings.location_id', $locationId);
+
+                $data = $query->orderBy('phppos_receivings.receiving_time', 'desc')->get();
+
+                $headers = ['Invoice ID', 'Date', 'Supplier', 'Subtotal', 'Tax', 'Total', 'Payment'];
+                $title = "Supplier Invoices Report";
+                break;
+
+            case 'graphical_summary_items':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw('phppos_items.name as item, SUM(phppos_sales_items.line_total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $rawData = $query->groupBy('phppos_items.item_id', 'phppos_items.name')
+                    ->orderBy('total', 'desc')
+                    ->limit(10)
+                    ->get();
+
+                $chartData = [
+                    'labels' => $rawData->pluck('item')->toArray(),
+                    'values' => $rawData->pluck('total')->toArray(),
+                ];
+                $summary = [
+                    'Total Sales (Top 10)' => $rawData->sum('total'),
+                    'Top Item' => $rawData->first() ? $rawData->first()->item : 'N/A',
+                ];
+                $title = "Graphical Summary Items (Top 10)";
+                $chartType = 'bar';
+                return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+
+            case 'graphical_summary_item_kits':
+                $query = DB::table('phppos_sales_item_kits')
+                    ->join('phppos_sales', 'phppos_sales_item_kits.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_item_kits', 'phppos_sales_item_kits.item_kit_id', '=', 'phppos_item_kits.id')
+                    ->selectRaw('phppos_item_kits.name as item_kit, SUM(phppos_sales_item_kits.total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $rawData = $query->groupBy('phppos_item_kits.id', 'phppos_item_kits.name')
+                    ->orderBy('total', 'desc')
+                    ->get();
+
+                $chartData = [
+                    'labels' => $rawData->pluck('item_kit')->toArray(),
+                    'values' => $rawData->pluck('total')->toArray(),
+                ];
+                $summary = [
+                    'Total Sales' => $rawData->sum('total'),
+                    'Top Item Kit' => $rawData->first() ? $rawData->first()->item_kit : 'N/A',
+                ];
+                $title = "Graphical Summary Item Kits";
+                $chartType = 'pie';
+                return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+
+            case 'graphical_summary_manufacturers':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->leftJoin('phppos_manufacturers', 'phppos_items.manufacturer_id', '=', 'phppos_manufacturers.id')
+                    ->selectRaw('COALESCE(phppos_manufacturers.name, "Unknown") as manufacturer, SUM(phppos_sales_items.line_total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $rawData = $query->groupBy('phppos_items.manufacturer_id', 'phppos_manufacturers.name')
+                    ->orderBy('total', 'desc')
+                    ->get();
+
+                $chartData = [
+                    'labels' => $rawData->pluck('manufacturer')->toArray(),
+                    'values' => $rawData->pluck('total')->toArray(),
+                ];
+                $summary = [
+                    'Total Sales' => $rawData->sum('total'),
+                    'Top Manufacturer' => $rawData->first() ? $rawData->first()->manufacturer : 'N/A',
+                ];
+                $title = "Graphical Summary Manufacturers";
+                $chartType = 'pie';
+                return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+
+            case 'graphical_summary_payments':
+                $query = DB::table('phppos_sales_payments')
+                    ->join('phppos_sales', 'phppos_sales_payments.sale_id', '=', 'phppos_sales.sale_id')
+                    ->selectRaw('phppos_sales_payments.payment_type, SUM(phppos_sales_payments.payment_amount) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $rawData = $query->groupBy('phppos_sales_payments.payment_type')
+                    ->orderBy('total', 'desc')
+                    ->get();
+
+                $chartData = [
+                    'labels' => $rawData->pluck('payment_type')->toArray(),
+                    'values' => $rawData->pluck('total')->toArray(),
+                ];
+                $summary = [
+                    'Total Payments' => $rawData->sum('total'),
+                    'Top Payment Type' => $rawData->first() ? $rawData->first()->payment_type : 'N/A',
+                ];
+                $title = "Graphical Summary Payments";
+                $chartType = 'pie';
+                return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+
+            case 'summary_payments':
+                $query = DB::table('phppos_sales_payments')
+                    ->join('phppos_sales', 'phppos_sales_payments.sale_id', '=', 'phppos_sales.sale_id')
+                    ->selectRaw('phppos_sales_payments.payment_type, SUM(phppos_sales_payments.payment_amount) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_sales_payments.payment_type')
+                    ->orderBy('total', 'desc')
+                    ->get();
+
+                $headers = ['Payment Type', 'Total'];
+                $title = "Summary Payments Report";
+                break;
+
+            case 'summary_payments_registers':
+                $query = DB::table('phppos_sales_payments')
+                    ->join('phppos_sales', 'phppos_sales_payments.sale_id', '=', 'phppos_sales.sale_id')
+                    ->leftJoin('phppos_registers', 'phppos_sales.register_id', '=', 'phppos_registers.register_id')
+                    ->selectRaw('COALESCE(phppos_registers.name, "Unknown") as register_name, phppos_sales_payments.payment_type, SUM(phppos_sales_payments.payment_amount) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_sales.register_id', 'phppos_registers.name', 'phppos_sales_payments.payment_type')
+                    ->orderBy('register_name', 'asc')
+                    ->orderBy('phppos_sales_payments.payment_type', 'asc')
+                    ->get();
+
+                $headers = ['Register', 'Payment Type', 'Total'];
+                $title = "Summary Payments Registers Report";
+                break;
+
+            case 'detailed_payments':
+                $query = DB::table('phppos_sales_payments')
+                    ->join('phppos_sales', 'phppos_sales_payments.sale_id', '=', 'phppos_sales.sale_id')
+                    ->leftJoin('phppos_people as employee', 'phppos_sales.employee_id', '=', 'employee.person_id')
+                    ->leftJoin('phppos_people as customer', 'phppos_sales.customer_id', '=', 'customer.person_id')
+                    ->selectRaw('phppos_sales_payments.sale_id, phppos_sales.created_at as sale_date, phppos_sales_payments.payment_type, phppos_sales_payments.payment_amount, CONCAT(employee.first_name, " ", employee.last_name) as employee_name, CONCAT(customer.first_name, " ", customer.last_name) as customer_name')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->orderBy('phppos_sales.created_at', 'desc')
+                    ->get();
+
+                $headers = ['Sale ID', 'Date', 'Payment Type', 'Payment Amount', 'Employee', 'Customer'];
+                $title = "Detailed Payments Report";
+                break;
+
+            case 'summary_manufacturers':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->leftJoin('phppos_manufacturers', 'phppos_items.manufacturer_id', '=', 'phppos_manufacturers.id')
+                    ->selectRaw('COALESCE(phppos_manufacturers.name, "Unknown") as manufacturer, SUM(phppos_sales_items.subtotal) as subtotal, SUM(phppos_sales_items.line_total) as total, SUM(phppos_sales_items.tax) as tax, SUM(phppos_sales_items.profit) as profit')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.manufacturer_id', 'phppos_manufacturers.name')
+                    ->orderBy('manufacturer', 'asc')
+                    ->get();
+
+                $headers = ['Manufacturer', 'Subtotal', 'Total', 'Tax', 'Profit'];
+                $title = "Summary Manufacturers Report";
+                break;
+
+            case 'summary_price_rules':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_price_rules', 'phppos_sales_items.rule_id', '=', 'phppos_price_rules.id')
+                    ->selectRaw('phppos_price_rules.name as price_rule, SUM(phppos_sales_items.subtotal) as subtotal, SUM(phppos_sales_items.line_total) as total, SUM(phppos_sales_items.tax) as tax, SUM(phppos_sales_items.profit) as profit')
+                    ->where('phppos_sales.deleted', 0)
+                    ->whereNotNull('phppos_sales_items.rule_id');
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_price_rules.id', 'phppos_price_rules.name')
+                    ->orderBy('phppos_price_rules.name', 'asc')
+                    ->get();
+
+                $headers = ['Price Rule', 'Subtotal', 'Total', 'Tax', 'Profit'];
+                $title = "Summary Price Rules Report";
+                break;
+
+            case 'summary_item_kits':
+                $query = DB::table('phppos_sales_item_kits')
+                    ->join('phppos_sales', 'phppos_sales_item_kits.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_item_kits', 'phppos_sales_item_kits.item_kit_id', '=', 'phppos_item_kits.id')
+                    ->selectRaw('phppos_item_kits.name as item_kit, SUM(phppos_sales_item_kits.quantity_purchased) as quantity, SUM(phppos_sales_item_kits.subtotal) as subtotal, SUM(phppos_sales_item_kits.total) as total, SUM(phppos_sales_item_kits.tax) as tax, SUM(phppos_sales_item_kits.profit) as profit')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_item_kits.id', 'phppos_item_kits.name')
+                    ->orderBy('phppos_item_kits.name', 'asc')
+                    ->get();
+
+                $headers = ['Item Kit Name', 'Quantity', 'Subtotal', 'Total', 'Tax', 'Profit'];
+                $title = "Summary Item Kits Report";
+                break;
+
+            case 'summary_item_kits_variance':
+                $query = DB::table('phppos_sales_item_kits')
+                    ->join('phppos_sales', 'phppos_sales_item_kits.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_item_kits', 'phppos_sales_item_kits.item_kit_id', '=', 'phppos_item_kits.id')
+                    ->selectRaw('phppos_item_kits.name as item_kit, SUM(phppos_sales_item_kits.quantity_purchased) as qty_sold, SUM(phppos_item_kits.unit_price * phppos_sales_item_kits.quantity_purchased) as expected_total, SUM(phppos_sales_item_kits.line_total) as actual_total, SUM((phppos_item_kits.unit_price * phppos_sales_item_kits.quantity_purchased) - phppos_sales_item_kits.line_total) as variance')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_item_kits.id', 'phppos_item_kits.name')
+                    ->orderBy('variance', 'desc')
+                    ->get();
+
+                $headers = ['Item Kit Name', 'Qty Sold', 'Expected Total', 'Actual Total', 'Variance'];
+                $title = "Summary Item Kits Variance Report";
+                break;
+
+            case 'enhanced_summary_items':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->leftJoin('phppos_categories', 'phppos_items.category_id', '=', 'phppos_categories.id')
+                    ->selectRaw('phppos_items.item_id, phppos_items.name, phppos_categories.name as category, SUM(phppos_sales_items.quantity_purchased) as qty_sold, SUM(phppos_sales_items.subtotal) as subtotal, SUM(phppos_sales_items.tax) as tax, SUM(phppos_sales_items.line_total) as total, SUM(phppos_sales_items.profit) as profit')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name', 'phppos_categories.name')
+                    ->orderBy('total', 'desc')
+                    ->get();
+
+                $headers = ['Item ID', 'Item Name', 'Category', 'Qty Sold', 'Subtotal', 'Tax', 'Total', 'Profit'];
+                $title = "Enhanced Summary Items Report";
+                break;
+
+            case 'top_sellers':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw('phppos_items.name, SUM(phppos_sales_items.quantity_purchased) as qty_sold, SUM(phppos_sales_items.line_total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name')
+                    ->orderBy('qty_sold', 'desc')
+                    ->limit(25)
+                    ->get();
+
+                $headers = ['Item Name', 'Qty Sold', 'Total Sales'];
+                $title = "Top Sellers Report (Top 25)";
+                break;
+
+            case 'worse_sellers':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw('phppos_items.name, SUM(phppos_sales_items.quantity_purchased) as qty_sold, SUM(phppos_sales_items.line_total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name')
+                    ->orderBy('qty_sold', 'asc')
+                    ->limit(25)
+                    ->get();
+
+                $headers = ['Item Name', 'Qty Sold', 'Total Sales'];
+                $title = "Worse Sellers Report (Bottom 25)";
+                break;
+
+            case 'summary_items_variance':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw('phppos_items.name, SUM(phppos_sales_items.quantity_purchased) as qty_sold, SUM(phppos_items.unit_price * phppos_sales_items.quantity_purchased) as expected_total, SUM(phppos_sales_items.line_total) as actual_total, SUM((phppos_items.unit_price * phppos_sales_items.quantity_purchased) - phppos_sales_items.line_total) as variance')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name')
+                    ->orderBy('variance', 'desc')
+                    ->get();
+
+                $headers = ['Item Name', 'Qty Sold', 'Expected Total', 'Actual Total', 'Variance'];
+                $title = "Summary Items Variance Report";
+                break;
+
+            case 'item_price_history':
+                $query = DB::table('phppos_items_pricing_history')
+                    ->join('phppos_items', 'phppos_items_pricing_history.item_id', '=', 'phppos_items.item_id')
+                    ->leftJoin('phppos_people as employee', 'phppos_items_pricing_history.employee_id', '=', 'employee.person_id')
+                    ->leftJoin('phppos_locations', 'phppos_items_pricing_history.location_id', '=', 'phppos_locations.location_id')
+                    ->selectRaw('phppos_items_pricing_history.on_date as date, CONCAT(employee.first_name, " ", employee.last_name) as employee_name, phppos_items.name as item_name, phppos_locations.name as location_name, phppos_items_pricing_history.cost_price, phppos_items_pricing_history.unit_price')
+                    ->whereBetween('phppos_items_pricing_history.on_date', [$startDateTime, $endDateTime]);
+
+                if ($locationId !== 'all') {
+                    $query->where(function($q) use ($locationId) {
+                        $q->where('phppos_items_pricing_history.location_id', $locationId)
+                          ->orWhereNull('phppos_items_pricing_history.location_id');
+                    });
+                }
+
+                $data = $query->orderBy('phppos_items_pricing_history.on_date', 'desc')->get();
+
+                $headers = ['Date', 'Employee', 'Item Name', 'Location', 'Cost Price', 'Unit Price'];
+                $title = "Item Pricing History Report";
+                break;
+
+            case 'item_kit_price_history':
+                $query = DB::table('phppos_item_kits_pricing_history')
+                    ->join('phppos_item_kits', 'phppos_item_kits_pricing_history.item_kit_id', '=', 'phppos_item_kits.id')
+                    ->leftJoin('phppos_people as employee', 'phppos_item_kits_pricing_history.employee_id', '=', 'employee.person_id')
+                    ->leftJoin('phppos_locations', 'phppos_item_kits_pricing_history.location_id', '=', 'phppos_locations.location_id')
+                    ->selectRaw('phppos_item_kits_pricing_history.on_date as date, CONCAT(employee.first_name, " ", employee.last_name) as employee_name, phppos_item_kits.name as item_name, phppos_locations.name as location_name, phppos_item_kits_pricing_history.cost_price, phppos_item_kits_pricing_history.unit_price')
+                    ->whereBetween('phppos_item_kits_pricing_history.on_date', [$startDateTime, $endDateTime]);
+
+                if ($locationId !== 'all') {
+                    $query->where(function($q) use ($locationId) {
+                        $q->where('phppos_item_kits_pricing_history.location_id', $locationId)
+                          ->orWhereNull('phppos_item_kits_pricing_history.location_id');
+                    });
+                }
+
+                $data = $query->orderBy('phppos_item_kits_pricing_history.on_date', 'desc')->get();
+
+                $headers = ['Date', 'Employee', 'Item Kit Name', 'Location', 'Cost Price', 'Unit Price'];
+                $title = "Item Kit Pricing History Report";
+                break;
+
+            case 'serial_number_history':
+                $serialNumber = request('serial_number');
+
+                $receivingsQuery = DB::table('phppos_receivings')
+                    ->join('phppos_receivings_items', 'phppos_receivings.receiving_id', '=', 'phppos_receivings_items.receiving_id')
+                    ->selectRaw("'receiving' as type, phppos_receivings.receiving_id as id, phppos_receivings.created_at as action_date")
+                    ->whereRaw("TRIM(TRAILING '\n' FROM phppos_receivings_items.serialnumber) = ?", [$serialNumber]);
+
+                $salesQuery = DB::table('phppos_sales')
+                    ->join('phppos_sales_items', 'phppos_sales.sale_id', '=', 'phppos_sales_items.sale_id')
+                    ->selectRaw("'sale' as type, phppos_sales.sale_id as id, phppos_sales.created_at as action_date")
+                    ->whereRaw("TRIM(TRAILING '\n' FROM phppos_sales_items.serialnumber) = ?", [$serialNumber]);
+
+                $data = $receivingsQuery->unionAll($salesQuery)->orderBy('action_date', 'asc')->get();
+
+                $headers = ['Date', 'Type', 'ID'];
+                $title = "Serial Number History Report";
+                break;
+
+            case 'serial_numbers_sold':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->selectRaw('phppos_sales_items.serialnumber as serial_number, count(DISTINCT(phppos_sales_items.sale_id)) as count')
+                    ->where('phppos_sales.deleted', 0)
+                    ->whereNotNull('phppos_sales_items.serialnumber')
+                    ->where('phppos_sales_items.serialnumber', '!=', '');
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_sales_items.serialnumber')
+                    ->orderBy('count', 'desc')
+                    ->get();
+
+                $headers = ['Serial Number', 'Count'];
+                $title = "Serial Numbers Sold Report";
+                break;
+
+                        case 'graphical_summary_suppliers':
+            case 'summary_suppliers':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->join('phppos_suppliers', 'phppos_items.supplier_id', '=', 'phppos_suppliers.person_id')
+                    ->selectRaw('phppos_suppliers.company_name as supplier, SUM(phppos_sales_items.line_total) as total, SUM(phppos_sales_items.subtotal) as subtotal, SUM(phppos_sales_items.tax) as tax, SUM(phppos_sales_items.profit) as profit')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_items.supplier_id', 'phppos_suppliers.company_name')->orderBy('total', 'desc')->get();
+
+                if (str_starts_with($report, 'graphical_')) {
+                    $chartData = ['labels' => $data->pluck('supplier')->toArray(), 'values' => $data->pluck('total')->toArray()];
+                    $summary = ['Total Sales' => $data->sum('total'), 'Top Supplier' => $data->first() ? $data->first()->supplier : 'N/A'];
+                    $title = "Graphical Summary Suppliers";
+                    $chartType = 'pie';
+                    return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+                }
+                
+                $headers = ['Supplier', 'Subtotal', 'Total', 'Tax', 'Profit'];
+                $title = "Summary Suppliers Report";
+                break;
+
+            case 'specific_supplier':
+                $supplierId = request('supplier_id');
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw('phppos_sales.sale_id, phppos_sales.created_at as sale_date, phppos_items.name as item_name, phppos_sales_items.line_total as total')
+                    ->where('phppos_sales.deleted', 0)
+                    ->where('phppos_items.supplier_id', $supplierId);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->orderBy('sale_date', 'desc')->get();
+
+                $headers = ['Sale ID', 'Date', 'Item Name', 'Total'];
+                $title = "Detailed Supplier Report";
+                break;
+
+            case 'graphical_summary_tags':
+            case 'summary_tags':
+                $query = DB::table('phppos_sales_items')
+                    ->join('phppos_sales', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->join('phppos_items_tags', 'phppos_sales_items.item_id', '=', 'phppos_items_tags.item_id')
+                    ->join('phppos_tags', 'phppos_items_tags.tag_id', '=', 'phppos_tags.id')
+                    ->selectRaw('phppos_tags.name as tag, SUM(phppos_sales_items.line_total) as total, SUM(phppos_sales_items.subtotal) as subtotal, SUM(phppos_sales_items.tax) as tax, SUM(phppos_sales_items.profit) as profit')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_tags.id', 'phppos_tags.name')->orderBy('total', 'desc')->get();
+
+                if (str_starts_with($report, 'graphical_')) {
+                    $chartData = ['labels' => $data->pluck('tag')->toArray(), 'values' => $data->pluck('total')->toArray()];
+                    $summary = ['Total Sales' => $data->sum('total'), 'Top Tag' => $data->first() ? $data->first()->tag : 'N/A'];
+                    $title = "Graphical Summary Tags";
+                    $chartType = 'pie';
+                    return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+                }
+                
+                $headers = ['Tag', 'Subtotal', 'Total', 'Tax', 'Profit'];
+                $title = "Summary Tags Report";
+                break;
+
+            case 'summary_taxes':
+                $query = DB::table('phppos_sales')
+                    ->selectRaw('SUM(phppos_sales.tax) as tax, SUM(phppos_sales.subtotal) as subtotal, SUM(phppos_sales.total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->get();
+
+                $headers = ['Tax', 'Subtotal', 'Total'];
+                $title = "Summary Taxes Report";
+                break;
+
+            case 'graphical_summary_registers':
+            case 'summary_registers':
+                $query = DB::table('phppos_sales')
+                    ->leftJoin('phppos_registers', 'phppos_sales.register_id', '=', 'phppos_registers.register_id')
+                    ->selectRaw('COALESCE(phppos_registers.name, "Unknown") as register_name, SUM(phppos_sales.total) as total')
+                    ->where('phppos_sales.deleted', 0);
+
+                if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+                $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
+
+                $data = $query->groupBy('phppos_sales.register_id', 'phppos_registers.name')->orderBy('total', 'desc')->get();
+
+                if (str_starts_with($report, 'graphical_')) {
+                    $chartData = ['labels' => $data->pluck('register_name')->toArray(), 'values' => $data->pluck('total')->toArray()];
+                    $summary = ['Total Sales' => $data->sum('total'), 'Top Register' => $data->first() ? $data->first()->register_name : 'N/A'];
+                    $title = "Graphical Summary Registers";
+                    $chartType = 'pie';
+                    return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
+                }
+
+                $headers = ['Register', 'Total'];
+                $title = "Summary Registers Report";
+                break;
+
+            case 'summary_profit_and_loss':
+                $salesQuery = DB::table('phppos_sales')
+                    ->where('deleted', 0)
+                    ->whereBetween('created_at', [$startDateTime, $endDateTime]);
+                if ($locationId !== 'all') $salesQuery->where('location_id', $locationId);
+                $totalSales = $salesQuery->sum('total');
+                $totalProfit = $salesQuery->sum('profit');
+                $totalTax = $salesQuery->sum('tax');
+
+                $data = collect([
+                    (object)['category' => 'Sales', 'amount' => $totalSales],
+                    (object)['category' => 'Tax', 'amount' => $totalTax],
+                    (object)['category' => 'Profit', 'amount' => $totalProfit]
+                ]);
+
+                $headers = ['Category', 'Amount'];
+                $title = "Summary Profit and Loss";
+                break;
+
+            case 'sales_generator':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Sales Generator Report (Under Construction)';
+                break;
+
+            case 'summary_appointments':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Appointments Report (Under Construction)';
+                break;
+
+            case 'detailed_appointments':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Detailed Appointments Report (Under Construction)';
+                break;
+
+            case 'closeout':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Closeout Report (Under Construction)';
+                break;
+
+            case 'closeout_condensed':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Closeout Condensed Report (Under Construction)';
+                break;
+
+            case 'detailed_profit_and_loss':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Detailed Profit And Loss Report (Under Construction)';
+                break;
+
+            case 'transfers':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Transfers Report (Under Construction)';
+                break;
+
+            case 'detailed_suspended_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Detailed Suspended Receivings Report (Under Construction)';
+                break;
+
+            case 'deleted_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Deleted Receivings Report (Under Construction)';
+                break;
+
+            case 'summary_taxes_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Taxes Receivings Report (Under Construction)';
+                break;
+
+            case 'graphical_summary_taxes_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Graphical Summary Taxes Receivings Report (Under Construction)';
+                break;
+
+            case 'cheapest_supplier':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Cheapest Supplier Report (Under Construction)';
+                break;
+
+            case 'graphical_summary_items_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Graphical Summary Items Receivings Report (Under Construction)';
+                break;
+
+            case 'summary_items_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Items Receivings Report (Under Construction)';
+                break;
+
+            case 'receivings_graphical_summary_payments':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Receivings Graphical Summary Payments Report (Under Construction)';
+                break;
+
+            case 'receivings_summary_payments':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Receivings Summary Payments Report (Under Construction)';
+                break;
+
+            case 'receivings_detailed_payments':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Receivings Detailed Payments Report (Under Construction)';
+                break;
+
+            case 'detailed_register_log':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Detailed Register Log Report (Under Construction)';
+                break;
+
+            case 'store_account_statements':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Store Account Statements Report (Under Construction)';
+                break;
+
+            case 'summary_store_accounts':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Store Accounts Report (Under Construction)';
+                break;
+
+            case 'specific_customer_store_account':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Specific Customer Store Account Report (Under Construction)';
+                break;
+
+            case 'store_account_activity':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Store Account Activity Report (Under Construction)';
+                break;
+
+            case 'store_account_activity_summary':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Store Account Activity Summary Report (Under Construction)';
+                break;
+
+            case 'store_account_outstanding':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Store Account Outstanding Report (Under Construction)';
+                break;
+
+            case 'supplier_store_account_statements':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Store Account Statements Report (Under Construction)';
+                break;
+
+            case 'supplier_summary_store_accounts':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Summary Store Accounts Report (Under Construction)';
+                break;
+
+            case 'supplier_specific_store_account':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Specific Store Account Report (Under Construction)';
+                break;
+
+            case 'supplier_store_account_activity':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Store Account Activity Report (Under Construction)';
+                break;
+
+            case 'supplier_store_account_activity_summary':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Store Account Activity Summary Report (Under Construction)';
+                break;
+
+            case 'supplier_store_account_outstanding':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Supplier Store Account Outstanding Report (Under Construction)';
+                break;
+
+            case 'specific_supplier_summary':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Specific Supplier Summary Report (Under Construction)';
+                break;
+
+            case 'graphical_summary_suppliers_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Graphical Summary Suppliers Receivings Report (Under Construction)';
+                break;
+
+            case 'summary_suppliers_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Suppliers Receivings Report (Under Construction)';
+                break;
+
+            case 'specific_supplier_receivings':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Specific Supplier Receivings Report (Under Construction)';
+                break;
+
+            case 'layaway_statements':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Layaway Statements Report (Under Construction)';
+                break;
+
+            case 'summary_tiers':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Tiers Report (Under Construction)';
+                break;
+
+            case 'time_off':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Time Off Report (Under Construction)';
+                break;
+
+            case 'summary_timeclock':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Summary Timeclock Report (Under Construction)';
+                break;
+
+            case 'detailed_timeclock':
+                $data = collect([]);
+                $headers = ['Notice'];
+                $title = 'Detailed Timeclock Report (Under Construction)';
+                break;
+
             default:
                 return redirect()->back()->with('error', 'Report type not implemented yet.');
         }
