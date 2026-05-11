@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::middleware('auth:employee')->group(function (): void {
-    
+
     Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
     Route::get('/sales/categories', [SalesController::class, 'categories'])->name('sales.categories');
     Route::get('/sales/search', [SalesController::class, 'search'])->name('sales.search');

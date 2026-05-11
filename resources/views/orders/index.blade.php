@@ -226,7 +226,7 @@
                                             </li>
                                             <li>
                                                 <a href="{{ route('orders.print', $order->receiving_id) }}" target="_blank" class="action-dropdown-item">
-                                                    <i class="bi bi-printer text-info"></i> Print Order
+                                                    <i class="bi bi-printer text-primary"></i> Print Order
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>

@@ -5,8 +5,8 @@
 
 @push('styles')
 <style>
-    .report-meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 16px; background: var(--primary-light); border-radius: 12px; border: 1px solid var(--primary-border); }
-    .report-meta h4 { margin: 0; color: var(--primary); font-size: 1.1rem; }
+    .report-meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 16px; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200); }
+    .report-meta h4 { margin: 0; color: var(--gray-900); font-size: 1.1rem; }
     .table-container { background: #fff; border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
     .table thead th { background: var(--gray-50); border-top: none; color: var(--gray-500); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 16px; }
     .table tbody td { padding: 16px; vertical-align: middle; color: var(--gray-700); border-bottom: 1px solid var(--gray-100); }

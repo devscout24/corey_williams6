@@ -39,7 +39,7 @@
             return '#' . $color;
         }
         
-        $primaryLight = adjustBrightness($primaryColor, 180);
+        $primaryLight = '#F8FAFC'; // Neutral light gray (gray-50)
         $primaryDark = adjustBrightness($primaryColor, -40);
     @endphp
 

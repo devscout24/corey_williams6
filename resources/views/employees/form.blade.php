@@ -157,7 +157,7 @@
                                             </label>
                                             <!-- Location Override for Action -->
                                             @if(count($locations) > 1)
-                                                <a href="javascript:void(0);" class="ms-2 text-info small" 
+                                                <a href="javascript:void(0);" class="ms-2 text-primary small" 
                                                    onclick="toggleLocationOverride('action-{{ $moduleId }}-{{ $action->action_id }}')">
                                                     <i class="bi bi-geo-alt"></i> Locations
                                                 </a>
@@ -183,7 +183,7 @@
                             <!-- Module Location Override -->
                             @if(count($locations) > 1)
                                 <div class="card-footer bg-white border-top-0">
-                                    <a href="javascript:void(0);" class="text-info small" 
+                                    <a href="javascript:void(0);" class="text-primary small" 
                                        onclick="toggleLocationOverride('module-{{ $moduleId }}')">
                                         <i class="bi bi-geo-alt"></i> Override Locations
                                     </a>

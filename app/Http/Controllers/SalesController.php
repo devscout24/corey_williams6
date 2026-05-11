@@ -32,6 +32,7 @@ class SalesController extends Controller
             'payments' => [],
             'customer_id' => null,
             'supplier_id' => null,
+            'sold_by_employee_id' => null,
             'location_id' => auth('employee')->user()?->location_id ?? 1,
         ];
 
@@ -429,6 +430,15 @@ class SalesController extends Controller
         return redirect()->route('sales.index');
     }
 
+    public function setSoldBy(Request $request): RedirectResponse
+    {
+        $cart = $this->getCart();
+        $cart['sold_by_employee_id'] = $request->sold_by_employee_id ?: null;
+        Session::put('sales_cart', $cart);
+
+        return redirect()->route('sales.index');
+    }
+
     public function setLocation(Request $request): RedirectResponse
     {
         $cart = $this->getCart();
@@ -502,6 +512,7 @@ class SalesController extends Controller
                 $cart['payments'],
                 $customerName,
                 $comment,
+                (int) ($cart['sold_by_employee_id'] ?? auth('employee')->id()),
             );
 
             Session::forget('sales_cart');

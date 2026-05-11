@@ -4,548 +4,662 @@
 @section('page-title', 'Sales Register')
 
 @push('styles')
-<style>
-    .category-tabs { display: inline-flex; border: 1px solid #d7e0ea; border-radius: 10px; overflow: hidden; background: #fff; }
-    .category-tabs .tab-btn { border: 0; background: transparent; padding: 8px 16px; font-weight: 600; color: #334155; }
-    .category-tabs .tab-btn + .tab-btn { border-left: 1px solid #e2e8f0; }
-    .category-tabs .tab-btn.is-active { background: #0ea5e9; color: #fff; }
-    .category-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; }
-    @media (max-width: 1600px) { .category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-    @media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-    @media (max-width: 992px) { .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 576px) { .category-grid { grid-template-columns: 1fr; } }
-    .category-card { border: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-radius: 12px; background: #fff; text-align: left; padding: 0; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease; }
-    .category-card:hover { border-color: #bae6fd; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
-    .category-name { padding: 14px 12px; font-weight: 600; color: #0f172a; text-align: center; }
-    .category-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 12px; }
-    .category-pagination .page-btn { border: 1px solid #d7e0ea; background: #fff; padding: 4px 10px; border-radius: 8px; font-weight: 600; color: #334155; }
-    .category-pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .category-pagination .page-info { font-size: 0.9rem; color: #64748b; }
-</style>
+    <style>
+        .category-tabs {
+            display: inline-flex;
+            border: 1px solid #d7e0ea;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .category-tabs .tab-btn {
+            border: 0;
+            background: transparent;
+            padding: 8px 16px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .category-tabs .tab-btn+.tab-btn {
+            border-left: 1px solid #e2e8f0;
+        }
+
+        .category-tabs .tab-btn.is-active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (max-width: 1600px) {
+            .category-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .category-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 992px) {
+            .category-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 576px) {
+            .category-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .category-card {
+            border: 1px solid #e2e8f0;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+            text-align: left;
+            padding: 0;
+            overflow: hidden;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .category-card:hover {
+            border-color: var(--primary-soft);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+        }
+
+        .category-name {
+            padding: 14px 12px;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: center;
+        }
+
+        .category-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 12px;
+        }
+
+        .category-pagination .page-btn {
+            border: 1px solid #d7e0ea;
+            background: #fff;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .category-pagination .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .category-pagination .page-info {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+    </style>
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    @if(session('status'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('status') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @foreach($errors->all() as $message)
-                <div>{{ $message }}</div>
-            @endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="card shadow-sm border-0 mb-4" id="category-grid-card">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="category-tabs" role="tablist" aria-label="Category tabs">
-                <button type="button" class="tab-btn is-active" role="tab" aria-selected="true">Categories</button>
-                <button type="button" class="tab-btn" role="tab" aria-selected="false">Tags</button>
-                <button type="button" class="tab-btn" role="tab" aria-selected="false">Favorites</button>
+    <div class="container-fluid">
+        @if(session('status'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('status') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-info" id="toggle-category-grid" data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
-        </div>
-        <div class="card-body" id="category-grid-body">
-            <div class="category-grid" id="category-grid">
-                @forelse($categories as $category)
-                    <button type="button" class="category-card" data-category-id="{{ $category->id }}" data-category-name="{{ $category->name }}">
-                        <div class="category-name">{{ $category->name }}</div>
-                    </button>
-                @empty
-                    <div class="text-muted">No categories available.</div>
-                @endforelse
-            </div>
-            <div class="category-pagination" id="category-grid-pagination"></div>
-        </div>
-    </div>
+        @endif
 
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-info">Item Selection</h6>
-                    <div class="input-group input-group-sm w-50">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" id="item_search" class="form-control bg-light border-start-0" placeholder="Search item or scan barcode..." autocomplete="off">
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @foreach($errors->all() as $message)
+                    <div>{{ $message }}</div>
+                @endforeach
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        <div class="card shadow-sm border-0 mb-4" id="category-grid-card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="category-tabs" role="tablist" aria-label="Category tabs">
+                    <button type="button" class="tab-btn is-active" role="tab" aria-selected="true">Categories</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false">Tags</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false">Favorites</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="toggle-category-grid"
+                    data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
+            </div>
+            <div class="card-body" id="category-grid-body">
+                <div class="category-grid" id="category-grid">
+                    @forelse($categories as $category)
+                        <button type="button" class="category-card" data-category-id="{{ $category->id }}"
+                            data-category-name="{{ $category->name }}">
+                            <div class="category-name">{{ $category->name }}</div>
+                        </button>
+                    @empty
+                        <div class="text-muted">No categories available.</div>
+                    @endforelse
+                </div>
+                <div class="category-pagination" id="category-grid-pagination"></div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Item Selection</h6>
+                        <div class="input-group input-group-sm w-50">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                            <input type="text" id="item_search" class="form-control bg-light border-start-0"
+                                placeholder="Search item or scan barcode..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="min-height: 400px;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4" width="50">#</th>
+                                        <th>Item Name</th>
+                                        <th width="120">Unit Price</th>
+                                        <th width="100">Qty</th>
+                                        <th width="100">Disc %</th>
+                                        <th class="text-end" width="120">Total</th>
+                                        <th class="text-end pe-4" width="50"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($cart['items'] as $index => $item)
+                                        <tr>
+                                            <td class="ps-4">{{ $index + 1 }}</td>
+                                            <td>
+                                                <div class="fw-bold text-primary">{{ $item['name'] }}</div>
+                                                <small class="text-muted">ID: {{ $item['item_id'] }}</small>
+                                            </td>
+                                            <td>
+                                                <form action="{{ route('sales.item.edit', $index) }}" method="POST">
+                                                    @csrf
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text">$</span>
+                                                        <input type="number" step="0.01" name="unit_price" class="form-control"
+                                                            value="{{ $item['unit_price'] }}" onchange="this.form.submit()">
+                                                    </div>
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <form action="{{ route('sales.item.edit', $index) }}" method="POST">
+                                                    @csrf
+                                                    <input type="number" step="0.001" name="quantity"
+                                                        class="form-control form-control-sm" value="{{ $item['quantity'] }}"
+                                                        onchange="this.form.submit()">
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <form action="{{ route('sales.item.edit', $index) }}" method="POST">
+                                                    @csrf
+                                                    <input type="number" step="0.1" name="discount"
+                                                        class="form-control form-control-sm" value="{{ $item['discount'] }}"
+                                                        onchange="this.form.submit()">
+                                                </form>
+                                            </td>
+                                            <td class="text-end fw-bold">
+                                                ${{ number_format($item['unit_price'] * $item['quantity'] * (1 - $item['discount'] / 100), 2) }}
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <form action="{{ route('sales.item.remove', $index) }}" method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm text-danger"><i
+                                                            class="bi bi-x-circle"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7" class="text-center py-5 text-muted">
+                                                <i class="bi bi-cart fs-1 d-block mb-2"></i>
+                                                Your sales cart is empty.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive" style="min-height: 400px;">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4" width="50">#</th>
-                                    <th>Item Name</th>
-                                    <th width="120">Unit Price</th>
-                                    <th width="100">Qty</th>
-                                    <th width="100">Disc %</th>
-                                    <th class="text-end" width="120">Total</th>
-                                    <th class="text-end pe-4" width="50"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($cart['items'] as $index => $item)
-                                    <tr>
-                                        <td class="ps-4">{{ $index + 1 }}</td>
-                                        <td>
-                                            <div class="fw-bold text-info">{{ $item['name'] }}</div>
-                                            <small class="text-muted">ID: {{ $item['item_id'] }}</small>
-                                        </td>
-                                        <td>
-                                            <form action="{{ route('sales.item.edit', $index) }}" method="POST">
-                                                @csrf
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text">$</span>
-                                                    <input type="number" step="0.01" name="unit_price" class="form-control" value="{{ $item['unit_price'] }}" onchange="this.form.submit()">
-                                                </div>
-                                            </form>
-                                        </td>
-                                        <td>
-                                            <form action="{{ route('sales.item.edit', $index) }}" method="POST">
-                                                @csrf
-                                                <input type="number" step="0.001" name="quantity" class="form-control form-control-sm" value="{{ $item['quantity'] }}" onchange="this.form.submit()">
-                                            </form>
-                                        </td>
-                                        <td>
-                                            <form action="{{ route('sales.item.edit', $index) }}" method="POST">
-                                                @csrf
-                                                <input type="number" step="0.1" name="discount" class="form-control form-control-sm" value="{{ $item['discount'] }}" onchange="this.form.submit()">
-                                            </form>
-                                        </td>
-                                        <td class="text-end fw-bold">
-                                            ${{ number_format($item['unit_price'] * $item['quantity'] * (1 - $item['discount'] / 100), 2) }}
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <form action="{{ route('sales.item.remove', $index) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm text-danger"><i class="bi bi-x-circle"></i></button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="text-center py-5 text-muted">
-                                            <i class="bi bi-cart fs-1 d-block mb-2"></i>
-                                            Your sales cart is empty.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <form action="{{ route('sales.location.set') }}" method="POST">
-                        @csrf
-                        <label class="form-label small fw-bold text-uppercase text-muted">Location</label>
-                        <select name="location_id" class="form-select" onchange="this.form.submit()">
-                            @foreach($locations as $location)
-                                <option value="{{ $location->location_id }}" @selected($cart['location_id'] == $location->location_id)>
-                                    {{ $location->name }} ({{ $location->location_id }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <form action="{{ route('sales.customer.set') }}" method="POST">
-                        @csrf
-                        <label class="form-label small fw-bold text-uppercase text-muted">Select Customer</label>
-                        <div class="input-group">
-                            <select name="customer_id" class="form-select" onchange="this.form.submit()">
-                                <option value="">— Walk-in Customer —</option>
-                                @foreach($customers as $customer)
-                                    <option value="{{ $customer->person_id }}" @selected($cart['customer_id'] == $customer->person_id)>
-                                        {{ $customer->person?->first_name }} {{ $customer->person?->last_name }}
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <form action="{{ route('sales.location.set') }}" method="POST">
+                            @csrf
+                            <label class="form-label small fw-bold text-uppercase text-muted">Location</label>
+                            <select name="location_id" class="form-select" onchange="this.form.submit()">
+                                @foreach($locations as $location)
+                                    <option value="{{ $location->location_id }}"
+                                        @selected($cart['location_id'] == $location->location_id)>
+                                        {{ $location->name }} ({{ $location->location_id }})
                                     </option>
                                 @endforeach
                             </select>
-                            @if($cart['customer_id'])
-                                <button type="submit" name="customer_id" value="" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
-                            @endif
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <form action="{{ route('sales.supplier.set') }}" method="POST">
-                        @csrf
-                        <label class="form-label small fw-bold text-uppercase text-muted">Filter by Supplier</label>
-                        <div class="input-group">
-                            <select name="supplier_id" class="form-select select2-supplier" onchange="this.form.submit()">
-                                <option value="">— All Suppliers —</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->person_id }}" @selected($cart['supplier_id'] == $supplier->person_id)>
-                                        {{ $supplier->person?->first_name }} {{ $supplier->person?->last_name }} {{ $supplier->company_name ? '('.$supplier->company_name.')' : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @if($cart['supplier_id'])
-                                <button type="submit" name="supplier_id" value="" class="btn btn-outline-danger"><i class="bi bi-x"></i></button>
-                            @endif
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <h6 class="text-uppercase small fw-bold text-muted">Payments</h6>
-                    <form action="{{ route('sales.payment.add') }}" method="POST" class="mb-3">
-                        @csrf
-                        <div class="mb-2">
-                            <select name="payment_type" class="form-select form-select-sm" required>
-                                @foreach($paymentTypes as $type)
-                                    <option value="{{ $type }}">{{ $type }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text">$</span>
-                            <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
-                            <button type="submit" class="btn btn-outline-info">Add</button>
-                        </div>
-                    </form>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <tbody>
-                                @forelse($cart['payments'] as $index => $payment)
-                                    <tr>
-                                        <td>{{ $payment['type'] }}</td>
-                                        <td class="text-end">${{ number_format($payment['amount'], 2) }}</td>
-                                        <td class="text-end">
-                                            <form action="{{ route('sales.payment.remove', $index) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm text-danger"><i class="bi bi-x-circle"></i></button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-muted">No payments added yet.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                        </form>
                     </div>
                 </div>
-            </div>
 
-            <div class="card shadow-sm border-0 bg-secondary text-white">
-                <div class="card-body">
-                    <h6 class="text-uppercase small mb-4 opacity-75 fw-bold">Order Summary</h6>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal</span>
-                        <span class="fw-bold">${{ number_format($subtotal, 2) }}</span>
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <form action="{{ route('sales.customer.set') }}" method="POST">
+                            @csrf
+                            <label class="form-label small fw-bold text-uppercase text-muted">Select Customer</label>
+                            <div class="input-group">
+                                <select name="customer_id" class="form-select" onchange="this.form.submit()">
+                                    <option value="">— Walk-in Customer —</option>
+                                    @foreach($customers as $customer)
+                                        <option value="{{ $customer->person_id }}"
+                                            @selected($cart['customer_id'] == $customer->person_id)>
+                                            {{ $customer->person?->first_name }} {{ $customer->person?->last_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($cart['customer_id'])
+                                    <button type="submit" name="customer_id" value="" class="btn btn-outline-danger"><i
+                                            class="bi bi-x"></i></button>
+                                @endif
+                            </div>
+                        </form>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Payments</span>
-                        <span class="fw-bold">${{ number_format($paymentTotal, 2) }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-4 fs-5 border-top pt-3 mt-3">
-                        <span class="fw-bold">Amount Due</span>
-                        <span class="fw-bold">${{ number_format($amountDue, 2) }}</span>
-                    </div>
+                </div>
 
-                    <form action="{{ route('sales.complete') }}" method="POST">
-                        @csrf
-                        <div class="mb-3">
-                            <textarea name="comment" class="form-control form-control-sm bg-dark border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <form action="{{ route('sales.supplier.set') }}" method="POST">
+                            @csrf
+                            <label class="form-label small fw-bold text-uppercase text-muted">Filter by Supplier</label>
+                            <div class="input-group">
+                                <select name="supplier_id" class="form-select select2-supplier"
+                                    onchange="this.form.submit()">
+                                    <option value="">— All Suppliers —</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->person_id }}"
+                                            @selected($cart['supplier_id'] == $supplier->person_id)>
+                                            {{ $supplier->person?->first_name }} {{ $supplier->person?->last_name }}
+                                            {{ $supplier->company_name ? '(' . $supplier->company_name . ')' : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($cart['supplier_id'])
+                                    <button type="submit" name="supplier_id" value="" class="btn btn-outline-danger"><i
+                                            class="bi bi-x"></i></button>
+                                @endif
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <h6 class="text-uppercase small fw-bold text-muted">Payments</h6>
+                        <form action="{{ route('sales.payment.add') }}" method="POST" class="mb-3">
+                            @csrf
+                            <div class="mb-2">
+                                <select name="payment_type" class="form-select form-select-sm" required>
+                                    @foreach($paymentTypes as $type)
+                                        <option value="{{ $type }}">{{ $type }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount"
+                                    required>
+                                <button type="submit" class="btn btn-outline-primary">Add</button>
+                            </div>
+                        </form>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <tbody>
+                                    @forelse($cart['payments'] as $index => $payment)
+                                        <tr>
+                                            <td>{{ $payment['type'] }}</td>
+                                            <td class="text-end">${{ number_format($payment['amount'], 2) }}</td>
+                                            <td class="text-end">
+                                                <form action="{{ route('sales.payment.remove', $index) }}" method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm text-danger"><i
+                                                            class="bi bi-x-circle"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-muted">No payments added yet.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
-                        <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-dark mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
-                            <i class="bi bi-check2-circle me-2"></i> COMPLETE SALE
-                        </button>
-                    </form>
+                    </div>
+                </div>
 
-                    <form action="{{ route('sales.cancel') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-link btn-sm w-100 text-white opacity-75 text-decoration-none mt-2" onclick="return confirm('Clear cart?')">
-                            <i class="bi bi-trash"></i> Cancel Sale
-                        </button>
-                    </form>
+                <div class="card shadow-sm border-0 bg-secondary text-white">
+                    <div class="card-body">
+                        <h6 class="text-uppercase small mb-4 opacity-75 fw-bold">Order Summary</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span class="fw-bold">${{ number_format($subtotal, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Payments</span>
+                            <span class="fw-bold">${{ number_format($paymentTotal, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-4 fs-5 border-top pt-3 mt-3">
+                            <span class="fw-bold">Amount Due</span>
+                            <span class="fw-bold">${{ number_format($amountDue, 2) }}</span>
+                        </div>
+
+                        <form action="{{ route('sales.complete') }}" method="POST">
+                            @csrf
+                            <div class="mb-3">
+                                <textarea name="comment"
+                                    class="form-control form-control-sm bg-dark border-white border-opacity-25 text-white placeholder-white"
+                                    placeholder="Add notes/comments..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-dark mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
+                                <i class="bi bi-check2-circle me-2"></i> COMPLETE SALE
+                            </button>
+                        </form>
+
+                        <form action="{{ route('sales.cancel') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="btn btn-link btn-sm w-100 text-white opacity-75 text-decoration-none mt-2"
+                                onclick="return confirm('Clear cart?')">
+                                <i class="bi bi-trash"></i> Cancel Sale
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom" style="display:none; z-index: 1000; width: 300px;"></div>
+    <div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom"
+        style="display:none; z-index: 1000; width: 300px;"></div>
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.category-tabs').forEach((tabList) => {
-        const tabs = tabList.querySelectorAll('.tab-btn');
-        tabs.forEach((tab) => {
-            tab.addEventListener('click', () => {
-                tabs.forEach((btn) => {
-                    btn.classList.remove('is-active');
-                    btn.setAttribute('aria-selected', 'false');
-                });
-                tab.classList.add('is-active');
-                tab.setAttribute('aria-selected', 'true');
-            });
-        });
-    });
-
-    const toggleButton = document.getElementById('toggle-category-grid');
-    const gridBody = document.getElementById('category-grid-body');
-    const storageKey = 'salesCategoryGridHidden';
-
-    const grid = document.getElementById('category-grid');
-    const paginationEl = document.getElementById('category-grid-pagination');
-    const browseUrl = "{{ route('sales.categories') }}";
-    const categoryStack = [];
-    const defaultPageSize = 8;
-    const childPageSize = 7;
-
-    const renderBackTile = () => {
-        if (!categoryStack.length) return '';
-        return `
-            <button type="button" class="category-card" data-action="back">
-                <div class="category-name">Back</div>
-            </button>
-        `;
-    };
-
-    const renderCategoryTile = (category) => {
-        return `
-            <button type="button" class="category-card" data-category-id="${category.id}" data-category-name="${category.name}">
-                <div class="category-name">${category.name}</div>
-            </button>
-        `;
-    };
-
-    const renderProductTile = (product) => {
-        return `
-            <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
-                <div class="category-name">${product.name}</div>
-            </button>
-        `;
-    };
-
-    const renderPagination = (pagination) => {
-        if (!paginationEl) return;
-        if (!pagination || pagination.last_page <= 1) {
-            paginationEl.innerHTML = '';
-            return;
-        }
-
-        paginationEl.innerHTML = `
-            <button type="button" class="page-btn" data-page="${pagination.page - 1}" ${pagination.page <= 1 ? 'disabled' : ''}>Prev</button>
-            <span class="page-info">Page ${pagination.page} of ${pagination.last_page}</span>
-            <button type="button" class="page-btn" data-page="${pagination.page + 1}" ${pagination.page >= pagination.last_page ? 'disabled' : ''}>Next</button>
-        `;
-    };
-
-    const renderGrid = (data) => {
-        if (!grid) return;
-        const tiles = [];
-        tiles.push(renderBackTile());
-
-        if (data.level === 'categories') {
-            if (data.categories.length) {
-                data.categories.forEach((category) => tiles.push(renderCategoryTile(category)));
-            } else {
-                tiles.push('<div class="text-muted">No categories available.</div>');
-            }
-        } else {
-            if (data.products.length) {
-                data.products.forEach((product) => tiles.push(renderProductTile(product)));
-            } else {
-                tiles.push('<div class="text-muted">No products found.</div>');
-            }
-        }
-
-        grid.innerHTML = tiles.join('');
-        renderPagination(data.pagination);
-    };
-
-    const loadLevel = (categoryId, pushStack, page = 1) => {
-        const params = new URLSearchParams();
-        const perPage = categoryId ? childPageSize : defaultPageSize;
-        params.set('page', String(page));
-        params.set('per_page', String(perPage));
-        if (categoryId) params.set('category_id', categoryId);
-        const url = `${browseUrl}?${params.toString()}`;
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                if (pushStack && data.current) {
-                    const last = categoryStack[categoryStack.length - 1];
-                    if (!last || last.id !== data.current.id) {
-                        categoryStack.push({ id: data.current.id, name: data.current.name, page: 1 });
-                    }
-                } else if (categoryStack.length) {
-                    categoryStack[categoryStack.length - 1].page = data.pagination?.page || 1;
-                }
-                renderGrid(data);
-            })
-            .catch(() => {
-                if (grid) grid.innerHTML = '<div class="text-muted">Unable to load categories.</div>';
-            });
-    };
-
-    if (grid) {
-        grid.addEventListener('click', (event) => {
-            const backTile = event.target.closest('[data-action="back"]');
-            if (backTile) {
-                categoryStack.pop();
-                const prev = categoryStack[categoryStack.length - 1];
-                loadLevel(prev ? prev.id : null, false, prev?.page || 1);
-                return;
-            }
-
-            const categoryTile = event.target.closest('[data-category-id]');
-            if (categoryTile) {
-                const categoryId = categoryTile.getAttribute('data-category-id');
-                loadLevel(categoryId, true, 1);
-                return;
-            }
-
-            const productTile = event.target.closest('[data-product-id]');
-            if (productTile) {
-                const productId = productTile.getAttribute('data-product-id');
-                const productType = productTile.getAttribute('data-product-type');
-                const itemId = productType === 'kit' ? `KIT ${productId}` : productId;
-                addItem(itemId);
-            }
-        });
-    }
-
-    if (paginationEl) {
-        paginationEl.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-page]');
-            if (!button || button.disabled) return;
-            const page = parseInt(button.getAttribute('data-page'), 10);
-            const current = categoryStack[categoryStack.length - 1];
-            loadLevel(current ? current.id : null, false, page);
-        });
-    }
-
-    if (toggleButton && gridBody) {
-        const showText = toggleButton.getAttribute('data-show-text') || 'Show Grid';
-        const hideText = toggleButton.getAttribute('data-hide-text') || 'Hide Grid';
-
-        const applyGridState = (isHidden) => {
-            gridBody.style.display = isHidden ? 'none' : '';
-            toggleButton.textContent = isHidden ? showText : hideText;
-        };
-
-        const initialHidden = localStorage.getItem(storageKey) === '1';
-        applyGridState(initialHidden);
-
-        toggleButton.addEventListener('click', () => {
-            const isHidden = gridBody.style.display === 'none';
-            const nextHidden = !isHidden;
-            applyGridState(nextHidden);
-            localStorage.setItem(storageKey, nextHidden ? '1' : '0');
-        });
-    }
-
-    const searchInput = document.getElementById('item_search');
-    const resultsDiv = document.getElementById('search_results');
-    let timer;
-
-    searchInput.addEventListener('input', function() {
-        clearTimeout(timer);
-        const term = this.value;
-        if (term.length < 2) {
-            resultsDiv.style.display = 'none';
-            return;
-        }
-
-        timer = setTimeout(() => {
-            fetch(`{{ route('sales.search') }}?term=${term}`)
-                .then(res => res.json())
-                .then(data => {
-                    resultsDiv.innerHTML = '';
-                    if (data.length > 0) {
-                        data.forEach(item => {
-                            const div = document.createElement('div');
-                            div.className = 'p-2 border-bottom cursor-pointer hover-bg-light';
-                            div.style.cursor = 'pointer';
-                            div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.unit_price || item.cost_price})</small>`;
-                            div.onclick = () => addItem(item.item_id);
-                            resultsDiv.appendChild(div);
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.category-tabs').forEach((tabList) => {
+                const tabs = tabList.querySelectorAll('.tab-btn');
+                tabs.forEach((tab) => {
+                    tab.addEventListener('click', () => {
+                        tabs.forEach((btn) => {
+                            btn.classList.remove('is-active');
+                            btn.setAttribute('aria-selected', 'false');
                         });
+                        tab.classList.add('is-active');
+                        tab.setAttribute('aria-selected', 'true');
+                    });
+                });
+            });
 
-                        const rect = searchInput.getBoundingClientRect();
-                        resultsDiv.style.top = (rect.bottom + window.scrollY) + 'px';
-                        resultsDiv.style.left = rect.left + 'px';
-                        resultsDiv.style.width = rect.width + 'px';
-                        resultsDiv.style.display = 'block';
+            const toggleButton = document.getElementById('toggle-category-grid');
+            const gridBody = document.getElementById('category-grid-body');
+            const storageKey = 'salesCategoryGridHidden';
+
+            const grid = document.getElementById('category-grid');
+            const paginationEl = document.getElementById('category-grid-pagination');
+            const browseUrl = "{{ route('sales.categories') }}";
+            const categoryStack = [];
+            const defaultPageSize = 8;
+            const childPageSize = 7;
+
+            const renderBackTile = () => {
+                if (!categoryStack.length) return '';
+                return `
+                <button type="button" class="category-card" data-action="back">
+                    <div class="category-name">Back</div>
+                </button>
+            `;
+            };
+
+            const renderCategoryTile = (category) => {
+                return `
+                <button type="button" class="category-card" data-category-id="${category.id}" data-category-name="${category.name}">
+                    <div class="category-name">${category.name}</div>
+                </button>
+            `;
+            };
+
+            const renderProductTile = (product) => {
+                return `
+                <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
+                    <div class="category-name">${product.name}</div>
+                </button>
+            `;
+            };
+
+            const renderPagination = (pagination) => {
+                if (!paginationEl) return;
+                if (!pagination || pagination.last_page <= 1) {
+                    paginationEl.innerHTML = '';
+                    return;
+                }
+
+                paginationEl.innerHTML = `
+                <button type="button" class="page-btn" data-page="${pagination.page - 1}" ${pagination.page <= 1 ? 'disabled' : ''}>Prev</button>
+                <span class="page-info">Page ${pagination.page} of ${pagination.last_page}</span>
+                <button type="button" class="page-btn" data-page="${pagination.page + 1}" ${pagination.page >= pagination.last_page ? 'disabled' : ''}>Next</button>
+            `;
+            };
+
+            const renderGrid = (data) => {
+                if (!grid) return;
+                const tiles = [];
+                tiles.push(renderBackTile());
+
+                if (data.level === 'categories') {
+                    if (data.categories.length) {
+                        data.categories.forEach((category) => tiles.push(renderCategoryTile(category)));
                     } else {
-                        resultsDiv.style.display = 'none';
+                        tiles.push('<div class="text-muted">No categories available.</div>');
+                    }
+                } else {
+                    if (data.products.length) {
+                        data.products.forEach((product) => tiles.push(renderProductTile(product)));
+                    } else {
+                        tiles.push('<div class="text-muted">No products found.</div>');
+                    }
+                }
+
+                grid.innerHTML = tiles.join('');
+                renderPagination(data.pagination);
+            };
+
+            const loadLevel = (categoryId, pushStack, page = 1) => {
+                const params = new URLSearchParams();
+                const perPage = categoryId ? childPageSize : defaultPageSize;
+                params.set('page', String(page));
+                params.set('per_page', String(perPage));
+                if (categoryId) params.set('category_id', categoryId);
+                const url = `${browseUrl}?${params.toString()}`;
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (pushStack && data.current) {
+                            const last = categoryStack[categoryStack.length - 1];
+                            if (!last || last.id !== data.current.id) {
+                                categoryStack.push({ id: data.current.id, name: data.current.name, page: 1 });
+                            }
+                        } else if (categoryStack.length) {
+                            categoryStack[categoryStack.length - 1].page = data.pagination?.page || 1;
+                        }
+                        renderGrid(data);
+                    })
+                    .catch(() => {
+                        if (grid) grid.innerHTML = '<div class="text-muted">Unable to load categories.</div>';
+                    });
+            };
+
+            if (grid) {
+                grid.addEventListener('click', (event) => {
+                    const backTile = event.target.closest('[data-action="back"]');
+                    if (backTile) {
+                        categoryStack.pop();
+                        const prev = categoryStack[categoryStack.length - 1];
+                        loadLevel(prev ? prev.id : null, false, prev?.page || 1);
+                        return;
+                    }
+
+                    const categoryTile = event.target.closest('[data-category-id]');
+                    if (categoryTile) {
+                        const categoryId = categoryTile.getAttribute('data-category-id');
+                        loadLevel(categoryId, true, 1);
+                        return;
+                    }
+
+                    const productTile = event.target.closest('[data-product-id]');
+                    if (productTile) {
+                        const productId = productTile.getAttribute('data-product-id');
+                        const productType = productTile.getAttribute('data-product-type');
+                        const itemId = productType === 'kit' ? `KIT ${productId}` : productId;
+                        addItem(itemId);
                     }
                 });
-        }, 300);
-    });
+            }
 
-    function addItem(itemId) {
-        if (window.Swal) {
-            Swal.fire({
-                icon: 'question',
-                title: 'Add item?',
-                text: 'Do you want to add this item to the sales cart?',
-                showCancelButton: true,
-                confirmButtonText: 'Add',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#0ea5e9',
-            }).then((result) => {
-                if (result.isConfirmed) {
+            if (paginationEl) {
+                paginationEl.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-page]');
+                    if (!button || button.disabled) return;
+                    const page = parseInt(button.getAttribute('data-page'), 10);
+                    const current = categoryStack[categoryStack.length - 1];
+                    loadLevel(current ? current.id : null, false, page);
+                });
+            }
+
+            if (toggleButton && gridBody) {
+                const showText = toggleButton.getAttribute('data-show-text') || 'Show Grid';
+                const hideText = toggleButton.getAttribute('data-hide-text') || 'Hide Grid';
+
+                const applyGridState = (isHidden) => {
+                    gridBody.style.display = isHidden ? 'none' : '';
+                    toggleButton.textContent = isHidden ? showText : hideText;
+                };
+
+                const initialHidden = localStorage.getItem(storageKey) === '1';
+                applyGridState(initialHidden);
+
+                toggleButton.addEventListener('click', () => {
+                    const isHidden = gridBody.style.display === 'none';
+                    const nextHidden = !isHidden;
+                    applyGridState(nextHidden);
+                    localStorage.setItem(storageKey, nextHidden ? '1' : '0');
+                });
+            }
+
+            const searchInput = document.getElementById('item_search');
+            const resultsDiv = document.getElementById('search_results');
+            let timer;
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(timer);
+                const term = this.value;
+                if (term.length < 2) {
+                    resultsDiv.style.display = 'none';
+                    return;
+                }
+
+                timer = setTimeout(() => {
+                    fetch(`{{ route('sales.search') }}?term=${term}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            resultsDiv.innerHTML = '';
+                            if (data.length > 0) {
+                                data.forEach(item => {
+                                    const div = document.createElement('div');
+                                    div.className = 'p-2 border-bottom cursor-pointer hover-bg-light';
+                                    div.style.cursor = 'pointer';
+                                    div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.unit_price || item.cost_price})</small>`;
+                                    div.onclick = () => addItem(item.item_id);
+                                    resultsDiv.appendChild(div);
+                                });
+
+                                const rect = searchInput.getBoundingClientRect();
+                                resultsDiv.style.top = (rect.bottom + window.scrollY) + 'px';
+                                resultsDiv.style.left = rect.left + 'px';
+                                resultsDiv.style.width = rect.width + 'px';
+                                resultsDiv.style.display = 'block';
+                            } else {
+                                resultsDiv.style.display = 'none';
+                            }
+                        });
+                }, 300);
+            });
+
+            function addItem(itemId) {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'question',
+                        title: 'Add item?',
+                        text: 'Do you want to add this item to the sales cart?',
+                        showCancelButton: true,
+                        confirmButtonText: 'Add',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: 'var(--primary)',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            submitAddItem(itemId);
+                        }
+                    });
+                } else {
                     submitAddItem(itemId);
                 }
+            }
+
+            function submitAddItem(itemId) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ route('sales.item.add') }}";
+                form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="item_id" value="${itemId}">`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                    resultsDiv.style.display = 'none';
+                }
             });
-        } else {
-            submitAddItem(itemId);
+        });
+    </script>
+    <style>
+        .hover-bg-light:hover {
+            background-color: #f8f9fa;
         }
-    }
-
-    function submitAddItem(itemId) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{{ route('sales.item.add') }}";
-        form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="item_id" value="${itemId}">`;
-        document.body.appendChild(form);
-        form.submit();
-    }
-
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-            resultsDiv.style.display = 'none';
-        }
-    });
-});
-</script>
-<style>
-    .hover-bg-light:hover { background-color: #f8f9fa; }
-</style>
+    </style>
 @endpush
