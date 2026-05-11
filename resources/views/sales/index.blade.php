@@ -8,14 +8,14 @@
     .category-tabs { display: inline-flex; border: 1px solid #d7e0ea; border-radius: 10px; overflow: hidden; background: #fff; }
     .category-tabs .tab-btn { border: 0; background: transparent; padding: 8px 16px; font-weight: 600; color: #334155; }
     .category-tabs .tab-btn + .tab-btn { border-left: 1px solid #e2e8f0; }
-    .category-tabs .tab-btn.is-active { background: #0ea5e9; color: #fff; }
+    .category-tabs .tab-btn.is-active { background: var(--primary); color: #fff; }
     .category-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; }
     @media (max-width: 1600px) { .category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
     @media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     @media (max-width: 992px) { .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 576px) { .category-grid { grid-template-columns: 1fr; } }
     .category-card { border: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-radius: 12px; background: #fff; text-align: left; padding: 0; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease; }
-    .category-card:hover { border-color: #bae6fd; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
+    .category-card:hover { border-color: var(--primary-soft); box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
     .category-name { padding: 14px 12px; font-weight: 600; color: #0f172a; text-align: center; }
     .category-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 12px; }
     .category-pagination .page-btn { border: 1px solid #d7e0ea; background: #fff; padding: 4px 10px; border-radius: 8px; font-weight: 600; color: #334155; }
@@ -56,7 +56,7 @@
                 <button type="button" class="tab-btn" role="tab" aria-selected="false">Tags</button>
                 <button type="button" class="tab-btn" role="tab" aria-selected="false">Favorites</button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-info" id="toggle-category-grid" data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="toggle-category-grid" data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
         </div>
         <div class="card-body" id="category-grid-body">
             <div class="category-grid" id="category-grid">
@@ -76,7 +76,7 @@
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-info">Item Selection</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Item Selection</h6>
                     <div class="input-group input-group-sm w-50">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                         <input type="text" id="item_search" class="form-control bg-light border-start-0" placeholder="Search item or scan barcode..." autocomplete="off">
@@ -101,7 +101,7 @@
                                     <tr>
                                         <td class="ps-4">{{ $index + 1 }}</td>
                                         <td>
-                                            <div class="fw-bold text-info">{{ $item['name'] }}</div>
+                                            <div class="fw-bold text-primary">{{ $item['name'] }}</div>
                                             <small class="text-muted">ID: {{ $item['item_id'] }}</small>
                                         </td>
                                         <td>
@@ -192,6 +192,23 @@
 
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
+                    <form action="{{ route('sales.sold_by.set') }}" method="POST">
+                        @csrf
+                        <label class="form-label small fw-bold text-uppercase text-muted">Sold By</label>
+                        <select name="sold_by_employee_id" class="form-select" onchange="this.form.submit()">
+                            <option value="">— Current Employee —</option>
+                            @foreach(\App\Models\PhpposEmployee::with('person')->get() as $employee)
+                                <option value="{{ $employee->person_id }}" @selected(($cart['sold_by_employee_id'] ?? null) == $employee->person_id)>
+                                    {{ $employee->person->first_name }} {{ $employee->person->last_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
                     <h6 class="text-uppercase small fw-bold text-muted">Payments</h6>
                     <form action="{{ route('sales.payment.add') }}" method="POST" class="mb-3">
                         @csrf
@@ -205,7 +222,7 @@
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">$</span>
                             <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
-                            <button type="submit" class="btn btn-outline-info">Add</button>
+                            <button type="submit" class="btn btn-outline-primary">Add</button>
                         </div>
                     </form>
 
@@ -496,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCancelButton: true,
                 confirmButtonText: 'Add',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#0ea5e9',
+                confirmButtonColor: 'var(--primary)',
             }).then((result) => {
                 if (result.isConfirmed) {
                     submitAddItem(itemId);

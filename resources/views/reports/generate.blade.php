@@ -67,12 +67,57 @@
                         </select>
                     </div>
 
+                    @if(isset($employees))
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Employee</label>
+                        <select name="employee_id" class="form-select">
+                            <option value="all">All Employees</option>
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->person_id }}">{{ $employee->first_name }} {{ $employee->last_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    @if(isset($customers))
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Customer</label>
+                        <select name="customer_id" class="form-select">
+                            <option value="all">All Customers</option>
+                            @foreach($customers as $customer)
+                                <option value="{{ $customer->person_id }}">{{ $customer->first_name }} {{ $customer->last_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Employee Type</label>
+                        <select name="employee_type" class="form-select">
+                            <option value="sold_by_employee_id">Sales Person</option>
+                            <option value="employee_id">Logged In Employee</option>
+                        </select>
+                    </div>
+
+                    @if($report == 'giftcard_audit' || $report == 'detailed_giftcards')
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Gift Card Number</label>
+                        <input type="text" name="giftcard_number" class="form-control" placeholder="Optional: Enter gift card number">
+                    </div>
+                    @endif
+
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Export Options</label>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="export_excel" id="exportExcel">
                             <label class="form-check-label" for="exportExcel">
                                 Export to Excel
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="top_level_categories_only" id="topLevelCategoriesOnly">
+                            <label class="form-check-label" for="topLevelCategoriesOnly">
+                                Top Level Categories Only
                             </label>
                         </div>
                     </div>

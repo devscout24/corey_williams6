@@ -15,6 +15,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/sales/item/{index}', [SalesController::class, 'editItem'])->name('sales.item.edit');
     Route::delete('/sales/item/{index}', [SalesController::class, 'removeItem'])->name('sales.item.remove');
     Route::post('/sales/customer', [SalesController::class, 'setCustomer'])->name('sales.customer.set');
+    Route::post('/sales/sold_by', [SalesController::class, 'setSoldBy'])->name('sales.sold_by.set');
     Route::post('/sales/location', [SalesController::class, 'setLocation'])->name('sales.location.set');
     Route::post('/sales/payment', [SalesController::class, 'addPayment'])->name('sales.payment.add');
     Route::delete('/sales/payment/{index}', [SalesController::class, 'removePayment'])->name('sales.payment.remove');

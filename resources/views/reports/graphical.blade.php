@@ -5,8 +5,8 @@
 
 @push('styles')
 <style>
-    .report-meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 16px; background: var(--primary-light); border-radius: 12px; border: 1px solid var(--primary-border); }
-    .report-meta h4 { margin: 0; color: var(--primary); font-size: 1.1rem; }
+    .report-meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 16px; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200); }
+    .report-meta h4 { margin: 0; color: var(--gray-900); font-size: 1.1rem; }
     .chart-container { background: #fff; border-radius: 12px; box-shadow: var(--shadow-sm); padding: 24px; margin-bottom: 24px; }
     .data-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .summary-card { background: var(--gray-50); padding: 16px; border-radius: 12px; border: 1px solid var(--gray-100); }
@@ -34,6 +34,7 @@
     </div>
 </div>
 
+@isset($summary)
 <div class="data-summary">
     @foreach($summary as $label => $value)
     <div class="summary-card">
@@ -42,6 +43,7 @@
     </div>
     @endforeach
 </div>
+@endisset
 
 <div class="chart-container">
     <canvas id="reportChart" height="400"></canvas>
@@ -60,8 +62,8 @@
             datasets: [{
                 label: '{{ $dataLabel ?? 'Total Sales' }}',
                 data: chartData.values,
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                borderColor: 'rgba(59, 130, 246, 1)',
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: 'rgba(37, 99, 235, 1)',
                 borderWidth: 2,
                 tension: 0.3,
                 fill: true

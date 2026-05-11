@@ -801,7 +801,7 @@
                 </div>
             </a>
             <div class="mt-4 pt-4 border-top">
-                <h4 class="mb-3 text-info">Items</h4>
+                <h4 class="mb-3 text-primary">Items</h4>
                 <a href="{{ route('reports.generate', 'graphical_summary_items_receivings') }}" class="report-link">
                     <i class="bi bi-bar-chart"></i>
                     <div>
@@ -818,7 +818,7 @@
                 </a>
             </div>
             <div class="mt-4 pt-4 border-top">
-                <h4 class="mb-3 text-info">Payments</h4>
+                <h4 class="mb-3 text-primary">Payments</h4>
                 <a href="{{ route('reports.generate', 'receivings_graphical_summary_payments') }}" class="report-link">
                     <i class="bi bi-bar-chart"></i>
                     <div>
@@ -878,7 +878,7 @@
         <div class="report-group" id="store_accounts">
             <h2 class="mb-4">Store Account Reports</h2>
             <div class="mt-4">
-                <h4 class="mb-3 text-info">Customers</h4>
+                <h4 class="mb-3 text-primary">Customers</h4>
                 <a href="{{ route('reports.generate', 'store_account_statements') }}" class="report-link">
                     <i class="bi bi-file-earmark-person"></i>
                     <div>
@@ -923,7 +923,7 @@
                 </a>
             </div>
             <div class="mt-4 pt-4 border-top">
-                <h4 class="mb-3 text-info">Suppliers</h4>
+                <h4 class="mb-3 text-primary">Suppliers</h4>
                 <a href="{{ route('reports.generate', 'supplier_store_account_statements') }}" class="report-link">
                     <i class="bi bi-file-earmark-person"></i>
                     <div>
