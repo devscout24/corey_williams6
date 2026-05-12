@@ -138,6 +138,45 @@
             </div>
         @endif
 
+        @php
+            $currencySymbol = $baseCurrency['symbol'] ?? '$';
+            $currencySymbolLocation = $baseCurrency['symbol_location'] ?? 'before';
+            $currencyDecimals = (int) ($baseCurrency['decimals'] ?? 2);
+            $currencyThousands = $baseCurrency['thousands_separator'] ?? ',';
+            $currencyDecimalPoint = $baseCurrency['decimal_point'] ?? '.';
+            $baseCurrencyCode = $baseCurrency['code'] ?? '';
+
+            $formatCurrencyWith = function (
+                float $value,
+                string $symbol,
+                string $symbolLocation,
+                int $decimals,
+                string $thousandsSeparator,
+                string $decimalPoint
+            ): string {
+                $formatted = number_format($value, $decimals, $decimalPoint, $thousandsSeparator);
+                return $symbolLocation === 'after' ? $formatted . $symbol : $symbol . $formatted;
+            };
+
+            $formatCurrency = function (float $value) use (
+                $currencySymbol,
+                $currencySymbolLocation,
+                $currencyDecimals,
+                $currencyThousands,
+                $currencyDecimalPoint,
+                $formatCurrencyWith
+            ): string {
+                return $formatCurrencyWith(
+                    $value,
+                    $currencySymbol,
+                    $currencySymbolLocation,
+                    $currencyDecimals,
+                    $currencyThousands,
+                    $currencyDecimalPoint
+                );
+            };
+        @endphp
+
         <div class="card shadow-sm border-0 mb-4" id="category-grid-card">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="category-tabs" role="tablist" aria-label="Category tabs">
@@ -200,7 +239,7 @@
                                                 <form action="{{ route('sales.item.edit', $index) }}" method="POST">
                                                     @csrf
                                                     <div class="input-group input-group-sm">
-                                                        <span class="input-group-text">$</span>
+                                                        <span class="input-group-text">{{ $currencySymbol }}</span>
                                                         <input type="number" step="0.01" name="unit_price" class="form-control"
                                                             value="{{ $item['unit_price'] }}" onchange="this.form.submit()">
                                                     </div>
@@ -223,7 +262,7 @@
                                                 </form>
                                             </td>
                                             <td class="text-end fw-bold">
-                                                ${{ number_format($item['unit_price'] * $item['quantity'] * (1 - $item['discount'] / 100), 2) }}
+                                                {{ $formatCurrency($item['unit_price'] * $item['quantity'] * (1 - $item['discount'] / 100)) }}
                                             </td>
                                             <td class="text-end pe-4">
                                                 <form action="{{ route('sales.item.remove', $index) }}" method="POST">
@@ -329,12 +368,23 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="mb-2">
+                                <select name="currency_code" id="payment_currency" class="form-select form-select-sm">
+                                    <option value="{{ $baseCurrencyCode }}">
+                                        {{ $baseCurrencyCode !== '' ? $baseCurrencyCode : 'Base Currency' }} ({{ $currencySymbol }})
+                                    </option>
+                                    @foreach($currencyRates as $rate)
+                                        <option value="{{ $rate['code'] }}">{{ $rate['code'] }} ({{ $rate['symbol'] }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text">$</span>
-                                <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount"
+                                <span class="input-group-text" id="payment-currency-symbol">{{ $currencySymbol }}</span>
+                                <input type="number" step="0.01" name="amount" id="payment_amount" class="form-control" placeholder="Amount"
                                     required>
                                 <button type="submit" class="btn btn-outline-primary">Add</button>
                             </div>
+                            <small class="text-muted" id="payment-converted"></small>
                         </form>
 
                         <div class="table-responsive">
@@ -343,7 +393,27 @@
                                     @forelse($cart['payments'] as $index => $payment)
                                         <tr>
                                             <td>{{ $payment['type'] }}</td>
-                                            <td class="text-end">${{ number_format($payment['amount'], 2) }}</td>
+                                            <td class="text-end">
+                                                @php
+                                                    $paymentSymbol = $payment['currency_symbol'] ?? $currencySymbol;
+                                                    $paymentSymbolLocation = $payment['currency_symbol_location'] ?? $currencySymbolLocation;
+                                                    $paymentDecimals = (int) ($payment['currency_number_of_decimals'] ?? $currencyDecimals);
+                                                    $paymentThousands = $payment['currency_thousands_separator'] ?? $currencyThousands;
+                                                    $paymentDecimalPoint = $payment['currency_decimal_point'] ?? $currencyDecimalPoint;
+                                                    $paymentCurrencyAmount = (float) ($payment['currency_amount'] ?? $payment['amount']);
+                                                    $paymentCurrencyCode = $payment['currency_code'] ?? $baseCurrencyCode;
+                                                    $paymentRate = (float) ($payment['exchange_rate'] ?? 1);
+                                                @endphp
+                                                @if($paymentRate !== 1.0)
+                                                    <div>{{ $formatCurrency((float) $payment['amount']) }}</div>
+                                                    <small class="text-muted">
+                                                        {{ $formatCurrencyWith($paymentCurrencyAmount, $paymentSymbol, $paymentSymbolLocation, $paymentDecimals, $paymentThousands, $paymentDecimalPoint) }}
+                                                        {{ $paymentCurrencyCode }}
+                                                    </small>
+                                                @else
+                                                    {{ $formatCurrency((float) $payment['amount']) }}
+                                                @endif
+                                            </td>
                                             <td class="text-end">
                                                 <form action="{{ route('sales.payment.remove', $index) }}" method="POST">
                                                     @csrf
@@ -369,15 +439,15 @@
                         <h6 class="text-uppercase small mb-4 opacity-75 fw-bold">Order Summary</h6>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span class="fw-bold">${{ number_format($subtotal, 2) }}</span>
+                            <span class="fw-bold">{{ $formatCurrency($subtotal) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Payments</span>
-                            <span class="fw-bold">${{ number_format($paymentTotal, 2) }}</span>
+                            <span class="fw-bold">{{ $formatCurrency($paymentTotal) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-4 fs-5 border-top pt-3 mt-3">
                             <span class="fw-bold">Amount Due</span>
-                            <span class="fw-bold">${{ number_format($amountDue, 2) }}</span>
+                            <span class="fw-bold">{{ $formatCurrency($amountDue) }}</span>
                         </div>
 
                         <form action="{{ route('sales.complete') }}" method="POST">
@@ -413,6 +483,48 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const baseCurrency = @json($baseCurrency);
+            const currencyRates = @json($currencyRates);
+            const currencyMap = new Map(currencyRates.map((rate) => [rate.code, rate]));
+
+            const normalizeCurrency = (meta) => {
+                return {
+                    symbol: meta.symbol || baseCurrency.symbol || '$',
+                    symbolLocation: meta.symbol_location || baseCurrency.symbol_location || 'before',
+                    decimals: Number.isFinite(meta.decimals) ? meta.decimals : (baseCurrency.decimals ?? 2),
+                    thousandsSeparator: meta.thousands_separator || baseCurrency.thousands_separator || ',',
+                    decimalPoint: meta.decimal_point || baseCurrency.decimal_point || '.',
+                    rate: Number(meta.rate) || 1,
+                };
+            };
+
+            const formatNumber = (value, decimals, thousandsSeparator, decimalPoint) => {
+                const negative = value < 0;
+                const fixed = Math.abs(value).toFixed(decimals);
+                const parts = fixed.split('.');
+                let whole = parts[0];
+                const fraction = parts[1] || '';
+                const rgx = /(\d+)(\d{3})/;
+                while (rgx.test(whole)) {
+                    whole = whole.replace(rgx, `$1${thousandsSeparator}$2`);
+                }
+                const combined = fraction ? `${whole}${decimalPoint}${fraction}` : whole;
+                return negative ? `-${combined}` : combined;
+            };
+
+            const formatCurrency = (value, meta = baseCurrency) => {
+                const normalized = normalizeCurrency(meta);
+                const formatted = formatNumber(
+                    Number(value || 0),
+                    normalized.decimals,
+                    normalized.thousandsSeparator,
+                    normalized.decimalPoint
+                );
+                return normalized.symbolLocation === 'after'
+                    ? `${formatted}${normalized.symbol}`
+                    : `${normalized.symbol}${formatted}`;
+            };
+
             document.querySelectorAll('.category-tabs').forEach((tabList) => {
                 const tabs = tabList.querySelectorAll('.tab-btn');
                 tabs.forEach((tab) => {
@@ -604,7 +716,7 @@
                                     const div = document.createElement('div');
                                     div.className = 'p-2 border-bottom cursor-pointer hover-bg-light';
                                     div.style.cursor = 'pointer';
-                                    div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.unit_price || item.cost_price})</small>`;
+                                    div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">(${formatCurrency(item.unit_price || item.cost_price)})</small>`;
                                     div.onclick = () => addItem(item.item_id);
                                     resultsDiv.appendChild(div);
                                 });
@@ -649,6 +761,41 @@
                 document.body.appendChild(form);
                 form.submit();
             }
+
+            const paymentCurrencySelect = document.getElementById('payment_currency');
+            const paymentAmountInput = document.getElementById('payment_amount');
+            const paymentConverted = document.getElementById('payment-converted');
+            const paymentSymbol = document.getElementById('payment-currency-symbol');
+
+            const updatePaymentPreview = () => {
+                if (!paymentCurrencySelect || !paymentAmountInput) return;
+                const code = paymentCurrencySelect.value || baseCurrency.code || '';
+                const meta = currencyMap.get(code) || baseCurrency;
+                const normalized = normalizeCurrency(meta);
+                const amount = parseFloat(paymentAmountInput.value);
+                if (Number.isNaN(amount) || amount <= 0) {
+                    if (paymentConverted) paymentConverted.textContent = '';
+                    return;
+                }
+
+                const baseAmount = normalized.rate !== 0 ? amount / normalized.rate : amount;
+                if (paymentConverted) {
+                    paymentConverted.textContent = normalized.rate !== 1
+                        ? `Base: ${formatCurrency(baseAmount, baseCurrency)}`
+                        : '';
+                }
+                if (paymentSymbol) {
+                    paymentSymbol.textContent = normalized.symbol || baseCurrency.symbol || '$';
+                }
+            };
+
+            if (paymentCurrencySelect) {
+                paymentCurrencySelect.addEventListener('change', updatePaymentPreview);
+            }
+            if (paymentAmountInput) {
+                paymentAmountInput.addEventListener('input', updatePaymentPreview);
+            }
+            updatePaymentPreview();
 
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {

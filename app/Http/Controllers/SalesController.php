@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PhpposCategory;
+use App\Models\PhpposCurrencyExchangeRate;
 use App\Models\PhpposCustomer;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
@@ -54,6 +55,53 @@ class SalesController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $exchangeRates = PhpposCurrencyExchangeRate::query()
+            ->orderBy('currency_code_to')
+            ->get();
+
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseThousands = (string) $this->configService->get('thousands_separator', ',');
+        if ($baseThousands === '') {
+            $baseThousands = ',';
+        }
+        $baseDecimalPoint = (string) $this->configService->get('decimal_point', '.');
+        if ($baseDecimalPoint === '') {
+            $baseDecimalPoint = '.';
+        }
+
+        $baseCurrency = [
+            'code' => $baseCurrencyCode,
+            'symbol' => $baseCurrencySymbol,
+            'symbol_location' => $baseSymbolLocation,
+            'decimals' => $baseDecimals,
+            'thousands_separator' => $baseThousands,
+            'decimal_point' => $baseDecimalPoint,
+            'rate' => 1.0,
+        ];
+
+        $currencyRates = $exchangeRates
+            ->map(function (PhpposCurrencyExchangeRate $rate) use ($baseDecimals, $baseThousands, $baseDecimalPoint, $baseCurrencySymbol): array {
+                $decimals = $rate->number_of_decimals;
+                $decimalCount = is_numeric($decimals) ? (int) $decimals : $baseDecimals;
+                $thousands = $rate->thousands_separator !== '' ? $rate->thousands_separator : $baseThousands;
+                $decimalPoint = $rate->decimal_point !== '' ? $rate->decimal_point : $baseDecimalPoint;
+
+                return [
+                    'code' => (string) $rate->currency_code_to,
+                    'symbol' => (string) ($rate->currency_symbol !== '' ? $rate->currency_symbol : $baseCurrencySymbol),
+                    'symbol_location' => (string) ($rate->currency_symbol_location ?: 'before'),
+                    'decimals' => $decimalCount,
+                    'thousands_separator' => $thousands,
+                    'decimal_point' => $decimalPoint,
+                    'rate' => (float) $rate->exchange_rate,
+                ];
+            })
+            ->values();
+
         $paymentTypes = array_values(array_unique(array_merge(
             ['Cash'],
             $this->configService->getAdditionalPaymentTypes(),
@@ -83,6 +131,8 @@ class SalesController extends Controller
             'total',
             'paymentTotal',
             'amountDue',
+            'baseCurrency',
+            'currencyRates',
         ));
     }
 
@@ -453,12 +503,66 @@ class SalesController extends Controller
         $request->validate([
             'payment_type' => ['required', 'string', 'max:60'],
             'amount' => ['required', 'numeric', 'gt:0'],
+            'currency_code' => ['nullable', 'string', 'max:10'],
         ]);
+
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseThousands = (string) $this->configService->get('thousands_separator', ',');
+        if ($baseThousands === '') {
+            $baseThousands = ',';
+        }
+        $baseDecimalPoint = (string) $this->configService->get('decimal_point', '.');
+        if ($baseDecimalPoint === '') {
+            $baseDecimalPoint = '.';
+        }
+
+        $currencyCode = (string) $request->input('currency_code', $baseCurrencyCode);
+        if ($currencyCode === '') {
+            $currencyCode = $baseCurrencyCode;
+        }
+
+        $rateRow = null;
+        if ($currencyCode !== '' && $currencyCode !== $baseCurrencyCode) {
+            $rateRow = PhpposCurrencyExchangeRate::query()
+                ->where('currency_code_to', $currencyCode)
+                ->first();
+
+            if (! $rateRow) {
+                return back()->withErrors(['amount' => 'Unknown currency selected.']);
+            }
+        }
+
+        $exchangeRate = $rateRow ? (float) $rateRow->exchange_rate : 1.0;
+        if ($exchangeRate <= 0) {
+            return back()->withErrors(['amount' => 'Invalid exchange rate for selected currency.']);
+        }
+
+        $currencyAmount = (float) $request->amount;
+        $baseAmount = $exchangeRate !== 1.0 ? ($currencyAmount / $exchangeRate) : $currencyAmount;
+
+        $currencySymbol = ($rateRow && $rateRow->currency_symbol !== '') ? $rateRow->currency_symbol : $baseCurrencySymbol;
+        $currencySymbolLocation = $rateRow ? ($rateRow->currency_symbol_location ?: $baseSymbolLocation) : $baseSymbolLocation;
+        $currencyDecimalsRaw = $rateRow ? $rateRow->number_of_decimals : null;
+        $currencyDecimals = is_numeric($currencyDecimalsRaw) ? (int) $currencyDecimalsRaw : $baseDecimals;
+        $currencyThousands = ($rateRow && $rateRow->thousands_separator !== '') ? $rateRow->thousands_separator : $baseThousands;
+        $currencyDecimalPoint = ($rateRow && $rateRow->decimal_point !== '') ? $rateRow->decimal_point : $baseDecimalPoint;
 
         $cart = $this->getCart();
         $cart['payments'][] = [
             'type' => $request->payment_type,
-            'amount' => (float) $request->amount,
+            'amount' => $baseAmount,
+            'currency_code' => $currencyCode !== '' ? $currencyCode : $baseCurrencyCode,
+            'currency_amount' => $currencyAmount,
+            'exchange_rate' => $exchangeRate,
+            'currency_symbol' => $currencySymbol,
+            'currency_symbol_location' => $currencySymbolLocation,
+            'currency_number_of_decimals' => $currencyDecimals,
+            'currency_thousands_separator' => $currencyThousands,
+            'currency_decimal_point' => $currencyDecimalPoint,
         ];
 
         Session::put('sales_cart', $cart);
@@ -603,6 +707,30 @@ class SalesController extends Controller
         $returnPolicy = (string) $this->configService->get('return_policy', '');
         $receiptTitle = (string) $this->configService->get('override_receipt_title', '');
 
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseThousands = (string) $this->configService->get('thousands_separator', ',');
+        if ($baseThousands === '') {
+            $baseThousands = ',';
+        }
+        $baseDecimalPoint = (string) $this->configService->get('decimal_point', '.');
+        if ($baseDecimalPoint === '') {
+            $baseDecimalPoint = '.';
+        }
+
+        $baseCurrency = [
+            'code' => $baseCurrencyCode,
+            'symbol' => $baseCurrencySymbol,
+            'symbol_location' => $baseSymbolLocation,
+            'decimals' => $baseDecimals,
+            'thousands_separator' => $baseThousands,
+            'decimal_point' => $baseDecimalPoint,
+            'rate' => 1.0,
+        ];
+
         return view('sales.receipt', [
             'sale' => $saleRow,
             'lines' => $lines,
@@ -620,6 +748,7 @@ class SalesController extends Controller
             'barcodeWidth' => (float) ($this->configService->get('barcode_width') ?: 1.5),
             'barcodeHeight' => (float) ($this->configService->get('barcode_height') ?: 36),
             'barcodeFontSize' => (int) ($this->configService->get('barcode_font_size') ?: 12),
+            'baseCurrency' => $baseCurrency,
         ]);
     }
 
