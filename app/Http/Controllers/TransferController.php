@@ -10,6 +10,7 @@ use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
 use App\Models\PhpposSupplier;
 use App\Services\InventoryFlowService;
+use App\Services\LocationContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,11 @@ use Illuminate\View\View;
 
 class TransferController extends Controller
 {
-    public function __construct(private readonly InventoryFlowService $inventoryFlowService) {}
+    public function __construct(
+        private readonly InventoryFlowService $inventoryFlowService,
+        private readonly LocationContextService $locationContextService,
+    ) {
+    }
 
     private function getCart(): array
     {
@@ -29,12 +34,17 @@ class TransferController extends Controller
             'supplier_id' => null,
             'comment' => '',
         ];
+        $resolvedLocationId = $this->locationContextService->resolveLocationId($defaultCart['from_location_id']);
+        $defaultCart['from_location_id'] = $resolvedLocationId;
         $cart = Session::get('transfer_cart');
         if (is_array($cart)) {
             $cart = array_merge($defaultCart, $cart);
-            $cart['from_location_id'] = (int) $cart['from_location_id'];
+            $cart['from_location_id'] = $resolvedLocationId;
             if ($cart['to_location_id']) {
                 $cart['to_location_id'] = (int) $cart['to_location_id'];
+            }
+            if ($cart['to_location_id'] === $cart['from_location_id']) {
+                $cart['to_location_id'] = null;
             }
             return $cart;
         }
@@ -70,7 +80,9 @@ class TransferController extends Controller
     public function create(): View
     {
         $cart = $this->getCart();
-        $locations = PhpposLocation::where('deleted', 0)->get();
+        $locations = PhpposLocation::where('deleted', 0)
+            ->where('location_id', $cart['from_location_id'])
+            ->get();
         $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
         $categories = PhpposCategory::where('deleted', 0)
             ->where('hide_from_grid', 0)
@@ -411,10 +423,13 @@ class TransferController extends Controller
     {
         $cart = $this->getCart();
         if ($request->has('from_location_id')) {
-            $cart['from_location_id'] = (int) $request->from_location_id;
+            $cart['from_location_id'] = $this->locationContextService->resolveLocationId($cart['from_location_id'] ?? null);
         }
         if ($request->has('to_location_id')) {
             $cart['to_location_id'] = $request->to_location_id ? (int) $request->to_location_id : null;
+        }
+        if ($cart['to_location_id'] === $cart['from_location_id']) {
+            $cart['to_location_id'] = null;
         }
         if ($request->has('comment')) {
             $cart['comment'] = $request->comment;

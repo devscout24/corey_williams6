@@ -49,6 +49,25 @@
     <button onclick="window.print()">Print Receipt</button>
 </div>
 
+@php
+    $currencySymbol = $baseCurrency['symbol'] ?? '$';
+    $currencySymbolLocation = $baseCurrency['symbol_location'] ?? 'before';
+    $currencyDecimals = (int) ($baseCurrency['decimals'] ?? 2);
+    $currencyThousands = $baseCurrency['thousands_separator'] ?? ',';
+    $currencyDecimalPoint = $baseCurrency['decimal_point'] ?? '.';
+
+    $formatCurrency = function (float $value) use (
+        $currencySymbol,
+        $currencySymbolLocation,
+        $currencyDecimals,
+        $currencyThousands,
+        $currencyDecimalPoint
+    ): string {
+        $formatted = number_format($value, $currencyDecimals, $currencyDecimalPoint, $currencyThousands);
+        return $currencySymbolLocation === 'after' ? $formatted . $currencySymbol : $currencySymbol . $formatted;
+    };
+@endphp
+
 <main class="receipt-page">
     <section class="receipt-header">
         <div>
@@ -134,10 +153,10 @@
                                 <div class="receipt-muted">{{ $line['description'] }}</div>
                             @endif
                         </td>
-                        <td style="text-align:right;">${{ number_format((float) $line['item_unit_price'], 2) }}</td>
+                        <td style="text-align:right;">{{ $formatCurrency((float) $line['item_unit_price']) }}</td>
                         <td style="text-align:right;">{{ rtrim(rtrim(number_format((float) $line['quantity_purchased'], 3, '.', ''), '0'), '.') }}</td>
                         <td style="text-align:right;">{{ rtrim(rtrim(number_format((float) $line['returned_qty'], 3, '.', ''), '0'), '.') }}</td>
-                        <td style="text-align:right;">${{ number_format((float) $line['line_total'], 2) }}</td>
+                        <td style="text-align:right;">{{ $formatCurrency((float) $line['line_total']) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -146,10 +165,10 @@
 
     <section class="receipt-section">
         <div class="totals">
-            <div>Subtotal</div><div>${{ number_format((float) $sale->subtotal, 2) }}</div>
-            <div>Total</div><div>${{ number_format((float) $sale->total, 2) }}</div>
-            <div>Tendered</div><div>${{ number_format((float) $sale->amount_tendered, 2) }}</div>
-            <div>Change</div><div>${{ number_format((float) $sale->change_due, 2) }}</div>
+            <div>Subtotal</div><div>{{ $formatCurrency((float) $sale->subtotal) }}</div>
+            <div>Total</div><div>{{ $formatCurrency((float) $sale->total) }}</div>
+            <div>Tendered</div><div>{{ $formatCurrency((float) $sale->amount_tendered) }}</div>
+            <div>Change</div><div>{{ $formatCurrency((float) $sale->change_due) }}</div>
             <div>Items Sold</div><div>{{ rtrim(rtrim(number_format($itemsSold, 3, '.', ''), '0'), '.') }}</div>
             @if($itemsReturned > 0)
                 <div>Items Returned</div><div>{{ rtrim(rtrim(number_format($itemsReturned, 3, '.', ''), '0'), '.') }}</div>
@@ -164,7 +183,7 @@
                 @foreach($payments as $payment)
                     <tr>
                         <td>{{ $payment['payment_type'] }}</td>
-                        <td style="text-align:right;">${{ number_format((float) $payment['payment_amount'], 2) }}</td>
+                        <td style="text-align:right;">{{ $formatCurrency((float) $payment['payment_amount']) }}</td>
                     </tr>
                 @endforeach
             </tbody>

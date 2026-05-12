@@ -7,6 +7,10 @@ use RuntimeException;
 
 class SalesService
 {
+    public function __construct(private readonly LocationContextService $locationContextService)
+    {
+    }
+
     /**
      * @param array<int, array{item_id:int, quantity:float, unit_price:float, discount:float}> $items
      * @param array<int, array{type:string, amount:float}> $payments
@@ -20,7 +24,9 @@ class SalesService
         ?string $comment = null,
         ?int $soldByEmployeeId = null,
     ): int {
-        return DB::transaction(function () use ($locationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId): int {
+        $resolvedLocationId = $this->locationContextService->resolveLocationId($locationId);
+
+        return DB::transaction(function () use ($resolvedLocationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId): int {
             $normalized = collect($items)
                 ->map(static fn (array $line): array => [
                     'item_id' => (int) $line['item_id'],
@@ -42,6 +48,7 @@ class SalesService
 
             $subtotal = 0.0;
             $lineRows = [];
+            $salesItemRows = [];
 
             // Fetch config once before processing items
             $config = DB::table('phppos_app_config')->get()->keyBy('key');
@@ -58,20 +65,20 @@ class SalesService
                 }
 
                 $stock = DB::table('phppos_location_items')
-                    ->where('location_id', $locationId)
+                    ->where('location_id', $resolvedLocationId)
                     ->where('item_id', $itemId)
                     ->lockForUpdate()
                     ->first();
 
                 if (! $stock || (float) $stock->quantity < $qty) {
-                    throw new RuntimeException('Insufficient stock for item ' . $itemId . ' at location ' . $locationId . '.');
+                    throw new RuntimeException('Insufficient stock for item ' . $itemId . ' at location ' . $resolvedLocationId . '.');
                 }
 
                 $lineTotal = $unitPrice * $qty * (1 - $discount / 100);
                 $subtotal += $lineTotal;
 
                 DB::table('phppos_location_items')
-                    ->where('location_id', $locationId)
+                    ->where('location_id', $resolvedLocationId)
                     ->where('item_id', $itemId)
                     ->update([
                         'quantity' => (float) $stock->quantity - $qty,
@@ -88,9 +95,7 @@ class SalesService
                 // Calculate commission for this line item
                 $commission = $this->calculateCommission($item, $soldByEmployeeId ?? $employeeId, $lineTotal, $qty, $config);
 
-                // Insert sales item record
-                DB::table('phppos_sales_items')->insert([
-                    'sale_id' => null, // Will be set after sale is created
+                $salesItemRows[] = [
                     'item_id' => $itemId,
                     'quantity_purchased' => $qty,
                     'item_unit_price' => $unitPrice,
@@ -98,13 +103,13 @@ class SalesService
                     'commission' => $commission,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
 
                 // Log inventory movement
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type' => 'sale',
                     'item_id' => $itemId,
-                    'from_location_id' => $locationId,
+                    'from_location_id' => $resolvedLocationId,
                     'to_location_id' => null,
                     'quantity' => $qty,
                     'reference_id' => null, // Will be updated after sale is created
@@ -134,7 +139,7 @@ class SalesService
             $changeDue = max(0, $amountTendered - $subtotal);
 
             $saleId = DB::table('phppos_sales')->insertGetId([
-                'location_id' => $locationId,
+                'location_id' => $resolvedLocationId,
                 'employee_id' => $employeeId,
                 'sale_type' => 'sale',
                 'subtotal' => $subtotal,
@@ -148,14 +153,19 @@ class SalesService
                 'updated_at' => now(),
             ], 'sale_id');
 
-            // Update sales items and inventory movements with the sale ID
-            foreach ($lineRows as $lineRow) {
-                DB::table('phppos_sales_items')
-                    ->where('item_id', $lineRow['item_id'])
-                    ->whereNull('sale_id')
-                    ->limit(1)
-                    ->update(['sale_id' => $saleId]);
+            if (! empty($salesItemRows)) {
+                $now = now();
+                foreach ($salesItemRows as &$row) {
+                    $row['sale_id'] = $saleId;
+                    $row['created_at'] = $row['created_at'] ?? $now;
+                    $row['updated_at'] = $row['updated_at'] ?? $now;
+                }
+                unset($row);
+                DB::table('phppos_sales_items')->insert($salesItemRows);
+            }
 
+            // Update inventory movements with the sale ID
+            foreach ($lineRows as $lineRow) {
                 DB::table('phppos_inventory_movements')
                     ->where('item_id', $lineRow['item_id'])
                     ->where('reference_type', 'sale')
@@ -192,16 +202,16 @@ class SalesService
         $commission = 0;
 
         // Item-level fixed commission
-        if ($item->commission_fixed !== null) {
-            $commission = $quantity * $item->commission_fixed;
+        if (isset($item->commission_fixed) && $item->commission_fixed !== null) {
+            $commission = $quantity * (float) $item->commission_fixed;
         }
         // Item-level percentage commission
-        elseif ($item->commission_percent !== null) {
+        elseif (isset($item->commission_percent) && $item->commission_percent !== null) {
             $commission = $this->calculatePercentCommission(
                 $lineTotal,
                 $quantity,
                 $item->cost_price,
-                $item->commission_percent,
+                (float) $item->commission_percent,
                 $config
             );
         }

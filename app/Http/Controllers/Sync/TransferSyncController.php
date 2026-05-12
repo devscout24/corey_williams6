@@ -8,13 +8,18 @@ use App\Models\PhpposLocation;
 use App\Models\PhpposTransfer;
 use App\Models\PhpposTransferItem;
 use App\Services\InventoryFlowService;
+use App\Services\LocationContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class TransferSyncController extends Controller
 {
-    public function __construct(private readonly InventoryFlowService $inventoryFlowService) {}
+    public function __construct(
+        private readonly InventoryFlowService $inventoryFlowService,
+        private readonly LocationContextService $locationContextService,
+    ) {
+    }
 
     public function ping(): JsonResponse
     {
@@ -77,11 +82,22 @@ class TransferSyncController extends Controller
         $fromLocation = PhpposLocation::where('ulid', $data['from_location_ulid'])->first();
         $toLocation = PhpposLocation::where('ulid', $data['to_location_ulid'])->first();
 
-        if (! $fromLocation || ! $toLocation) {
+        $currentLocationId = $this->locationContextService->resolveLocationId(null);
+        $currentLocation = PhpposLocation::where('location_id', $currentLocationId)->first();
+
+        if (! $fromLocation || ! $toLocation || ! $currentLocation) {
             throw ValidationException::withMessages([
                 'location' => 'Location ULID not found on this device.',
             ]);
         }
+
+        if ((int) $toLocation->location_id !== (int) $currentLocationId) {
+            throw ValidationException::withMessages([
+                'location' => 'Transfer destination does not match the current node location.',
+            ]);
+        }
+
+        $toLocation = $currentLocation;
 
         $lines = [];
         foreach ($data['lines'] as $index => $line) {

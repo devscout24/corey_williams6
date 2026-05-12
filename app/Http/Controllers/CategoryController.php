@@ -35,6 +35,21 @@ class CategoryController extends Controller
         return back()->with('status', 'Category saved.');
     }
 
+    public function update(Request $request, int $categoryId): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer'],
+        ]);
+
+        PhpposCategory::query()->where('id', $categoryId)->update([
+            'name' => $data['name'],
+            'parent_id' => $data['parent_id'] ?? null,
+        ]);
+
+        return back()->with('status', 'Category updated.');
+    }
+
     public function destroy(int $categoryId): RedirectResponse
     {
         PhpposCategory::query()->where('id', $categoryId)->update(['deleted' => 1]);
