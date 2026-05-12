@@ -1212,6 +1212,8 @@
         </main>
     </div>
 
+@endsection
+
     @push('scripts')
         <script>
             document.querySelectorAll('.menu-item').forEach(button => {
@@ -1236,4 +1238,3 @@
             });
         </script>
     @endpush
-@endsection
