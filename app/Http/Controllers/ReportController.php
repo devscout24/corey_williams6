@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LocationContextService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    public function __construct(private readonly LocationContextService $locationContextService)
+    {
+    }
+
     public function index(): View
     {
         return view('reports.listing');
@@ -16,7 +21,10 @@ class ReportController extends Controller
     public function generate(string $report): View
     {
         $title = str_replace('_', ' ', ucfirst($report));
-        $locations = DB::table('phppos_locations')->get();
+        $currentLocationId = $this->locationContextService->resolveLocationId(null);
+        $locations = DB::table('phppos_locations')
+            ->where('location_id', $currentLocationId)
+            ->get();
         $paymentTypes = ['Cash', 'Check', 'Debit Card', 'Credit Card', 'Gift Card', 'Store Account'];
         $customers = DB::table('phppos_customers')
             ->join('phppos_people', 'phppos_customers.person_id', '=', 'phppos_people.person_id')
@@ -40,7 +48,7 @@ class ReportController extends Controller
 
         $saleType = $request->input('sale_type', 'all');
         $paymentType = $request->input('payment_type', 'all');
-        $locationId = $request->input('location_id', 'all');
+        $locationId = $this->locationContextService->resolveLocationId($request->input('location_id'));
 
         $groupBy = $request->input('group_by', 'day');
 

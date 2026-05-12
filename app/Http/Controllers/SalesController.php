@@ -10,6 +10,7 @@ use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplier;
 use App\Services\AppConfigService;
+use App\Services\LocationContextService;
 use App\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class SalesController extends Controller
     public function __construct(
         private readonly SalesService $salesService,
         private readonly AppConfigService $configService,
+        private readonly LocationContextService $locationContextService,
     ) {
     }
 
@@ -37,16 +39,23 @@ class SalesController extends Controller
             'location_id' => auth('employee')->user()?->location_id ?? 1,
         ];
 
-        $cart = Session::get('sales_cart');
+        $resolvedLocationId = $this->locationContextService->resolveLocationId($defaultCart['location_id']);
+        $defaultCart['location_id'] = $resolvedLocationId;
 
-        return is_array($cart) ? array_merge($defaultCart, $cart) : $defaultCart;
+        $cart = Session::get('sales_cart');
+        $cart = is_array($cart) ? array_merge($defaultCart, $cart) : $defaultCart;
+        $cart['location_id'] = $resolvedLocationId;
+
+        return $cart;
     }
 
     public function index(): View
     {
         $cart = $this->getCart();
-
-        $locations = PhpposLocation::where('deleted', 0)->orderBy('location_id')->get();
+        $locations = PhpposLocation::where('deleted', 0)
+            ->where('location_id', $cart['location_id'])
+            ->orderBy('location_id')
+            ->get();
         $customers = PhpposCustomer::with('person')->orderBy('person_id')->get();
         $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
         $categories = PhpposCategory::where('deleted', 0)
@@ -492,7 +501,7 @@ class SalesController extends Controller
     public function setLocation(Request $request): RedirectResponse
     {
         $cart = $this->getCart();
-        $cart['location_id'] = $request->location_id ?: $cart['location_id'];
+        $cart['location_id'] = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
         Session::put('sales_cart', $cart);
 
         return redirect()->route('sales.index');
@@ -609,8 +618,10 @@ class SalesController extends Controller
                 return redirect()->back()->with('error', 'No valid items in cart. Add component items to the kit before selling.');
             }
 
+            $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
+
             $saleId = $this->salesService->createSaleFromCart(
-                (int) $cart['location_id'],
+                $locationId,
                 (int) auth('employee')->id(),
                 $saleItems,
                 $cart['payments'],

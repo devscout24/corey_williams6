@@ -11,6 +11,7 @@ use App\Models\PhpposSupplier;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplierStoreAccount;
 use App\Services\InventoryFlowService;
+use App\Services\LocationContextService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,10 @@ use Illuminate\View\View;
 
 class ReceivingController extends Controller
 {
+    public function __construct(private readonly LocationContextService $locationContextService)
+    {
+    }
+
     private function getCart(): array
     {
         $defaultCart = [
@@ -30,8 +35,14 @@ class ReceivingController extends Controller
             'mode' => 'receive',
             'location_id' => auth('employee')->user()?->location_id ?? 1,
         ];
+        $resolvedLocationId = $this->locationContextService->resolveLocationId($defaultCart['location_id']);
+        $defaultCart['location_id'] = $resolvedLocationId;
+
         $cart = Session::get('receiving_cart');
-        return is_array($cart) ? array_merge($defaultCart, $cart) : $defaultCart;
+        $cart = is_array($cart) ? array_merge($defaultCart, $cart) : $defaultCart;
+        $cart['location_id'] = $resolvedLocationId;
+
+        return $cart;
     }
 
     public function index(Request $request): View
@@ -213,7 +224,9 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
 
         $suppliers = PhpposSupplier::with('person')->get();
-        $locations = PhpposLocation::where('deleted', 0)->get();
+        $locations = PhpposLocation::where('deleted', 0)
+            ->where('location_id', $cart['location_id'])
+            ->get();
         $categories = PhpposCategory::where('deleted', 0)
             ->where('hide_from_grid', 0)
             ->whereNull('parent_id')
@@ -580,12 +593,14 @@ class ReceivingController extends Controller
                 $totalQty += $item['quantity'];
             }
 
+            $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
+
             $receiving = PhpposReceiving::create([
                 'receiving_time' => now(),
                 'supplier_id' => $cart['supplier_id'],
                 'employee_id' => auth('employee')->id(),
                 'comment' => $request->comment,
-                'location_id' => $cart['location_id'],
+                'location_id' => $locationId,
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
                 'total_quantity_purchased' => $totalQty,
@@ -639,15 +654,15 @@ class ReceivingController extends Controller
 
                 DB::table('phppos_location_items')
                     ->updateOrInsert(
-                        ['item_id' => $item['item_id'], 'location_id' => $cart['location_id']],
+                        ['item_id' => $item['item_id'], 'location_id' => $locationId],
                         ['quantity' => DB::raw("quantity + $inventoryToMove")]
                     );
 
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type'      => $cart['mode'] == 'receive' ? 'receiving' : 'return',
                     'item_id'            => $item['item_id'],
-                    'from_location_id'   => $cart['mode'] == 'return' ? $cart['location_id'] : null,
-                    'to_location_id'     => $cart['mode'] == 'receive' ? $cart['location_id'] : null,
+                    'from_location_id'   => $cart['mode'] == 'return' ? $locationId : null,
+                    'to_location_id'     => $cart['mode'] == 'receive' ? $locationId : null,
                     'quantity'           => abs($inventoryToMove),
                     'reference_id'       => $receiving->receiving_id,
                     'reference_type'     => 'receiving',

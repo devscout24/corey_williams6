@@ -33,9 +33,24 @@ These rules are non-negotiable for this repo’s cleaned schema.
   - Do not move legacy migrations back into the active `database/migrations/` folder.
   - Keep Laravel default migrations (`users`, `cache`, `jobs`) as-is.
 
+### ✅ Environment Assumptions (Current Project)
+1. **Single PC / Single Location POS.**
+  - This install is one PC, one active store location.
+  - Devices are connected over LAN, but all logic should treat the location table as the current location only.
+  - Inventory, sales, and movements must always resolve to the current location (no multi-location logic).
+  - Each install is a node in the POS network. Requests can arrive from other nodes; always resolve the current location from the node context (ULID header/cookie) and ignore user-selected locations.
+
 ---
 
 ## 📜 History (Completed Work)
+
+### May 13, 2026 (Sales Currency + Flow Fixes)
+- **Sales Register Currency Support:** Added base currency formatting and exchange rate selection on the Sales Register. Payments can now be entered in an exchange currency and auto-converted to base currency for totals and change. Payment rows show base amount on top and exchange amount below.
+- **Receipt Currency Formatting:** Receipt amounts now use base currency formatting (symbol, decimals, separators) from Store Config.
+- **Sales Flow Stability:** Fixed payment add crashes when no exchange rate row is selected. Made commission fields optional to prevent `commission_*` missing column errors. Inserted sales items after sale creation to avoid `sale_id` null constraint violations.
+- **Single Location Sales:** Sales now resolve to the single current location for stock, sales, and inventory movements.
+- **Single Location Node Context:** Added a shared location resolver and enforced it for sales, receivings, and transfers to ensure node requests always use the current location.
+- **Reports + Sync API Location Lock:** Reports now always filter to the current node location, and transfer sync validates the destination ULID against the node location.
 
 ### May 10, 2026 (Orders & Receivings Sync)
 - **Orders List & Filtering:** Updated `/orders` route to default to "open" orders. Added filter tabs to show all, open, and closed orders.
