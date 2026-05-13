@@ -278,7 +278,7 @@
               <div class="tree-text">{{ $category->name }}</div>
               <div class="tree-actions">
                 <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#addCategoryModal" data-parent-id="{{ $category->id }}">[Add child category]</span>
-                <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $category->id }}" data-category-name="{{ $category->name }}">[Edit]</span>
+                <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $category->id }}" data-category-name="{{ $category->name }}" data-parent-id="{{ $category->parent_id }}">[Edit]</span>
                 <form method="post" action="{{ route('categories.destroy', $category->id) }}" class="d-inline m-0 p-0" onsubmit="return confirm('Archive this category?')">
                     @csrf
                     @method('delete')
@@ -300,7 +300,7 @@
                   <div class="tree-text">{{ $child1->name }}</div>
                   <div class="tree-actions">
                     <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#addCategoryModal" data-parent-id="{{ $child1->id }}">[Add child category]</span>
-                    <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $child1->id }}" data-category-name="{{ $child1->name }}">[Edit]</span>
+                    <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $child1->id }}" data-category-name="{{ $child1->name }}" data-parent-id="{{ $child1->parent_id }}">[Edit]</span>
                     <form method="post" action="{{ route('categories.destroy', $child1->id) }}" class="d-inline m-0 p-0" onsubmit="return confirm('Archive this category?')">
                         @csrf
                         @method('delete')
@@ -321,7 +321,7 @@
                       <div class="tree-icon"><div class="tree-icon-inner" style="background: #60a5fa;"></div></div>
                       <div class="tree-text">{{ $child2->name }}</div>
                       <div class="tree-actions">
-                        <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $child2->id }}" data-category-name="{{ $child2->name }}">[Edit]</span>
+                        <span class="tree-action-link blue" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="{{ $child2->id }}" data-category-name="{{ $child2->name }}" data-parent-id="{{ $child2->parent_id }}">[Edit]</span>
                         <form method="post" action="{{ route('categories.destroy', $child2->id) }}" class="d-inline m-0 p-0" onsubmit="return confirm('Archive this category?')">
                             @csrf
                             @method('delete')
@@ -394,6 +394,48 @@
     </div>
   </div>
 </div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content modal-content-category">
+      <form method="post" id="editCategoryForm">
+        @csrf
+        @method('put')
+        <div class="modal-header modal-header-category">
+          <h5 class="modal-title modal-title-category">Edit category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 10px;"></button>
+        </div>
+        <div class="modal-body modal-body-category">
+          
+          <div class="form-row-custom">
+            <label class="form-label-custom">Parent Category:</label>
+            <select class="form-select" name="parent_id" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 12px; font-size: 14px; color: #1e293b; outline: none;">
+                <option value="">None</option>
+                @foreach($categories as $cat)
+                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                @endforeach
+            </select>
+          </div>
+
+          <div class="form-row-custom">
+            <label class="form-label-custom">Category Name:</label>
+            <input type="text" class="form-input-custom" name="name" required id="edit_category_name">
+          </div>
+
+          <div class="form-row-custom" style="margin-bottom: 25px;">
+            <label class="checkbox-label-custom">Default Hide From Grid:</label>
+            <input type="checkbox" class="form-check-input-custom" checked>
+          </div>
+
+          <div class="mt-4 overflow-hidden">
+            <button type="submit" class="btn-save-category">Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -412,6 +454,28 @@
         select.value = '';
         addCategoryModal.querySelector('.modal-title-category').textContent = 'Add root category';
       }
+    });
+  }
+
+  const editCategoryModal = document.getElementById('editCategoryModal');
+  if (editCategoryModal) {
+    editCategoryModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const categoryId = button.getAttribute('data-category-id');
+      const categoryName = button.getAttribute('data-category-name');
+      const parentId = button.getAttribute('data-parent-id');
+      
+      const form = document.getElementById('editCategoryForm');
+      form.action = `/categories/${categoryId}`;
+      
+      document.getElementById('edit_category_name').value = categoryName;
+      const select = editCategoryModal.querySelector('select[name="parent_id"]');
+      select.value = parentId || '';
+
+      // Disable the current category and its children from the parent select to prevent circular references
+      Array.from(select.options).forEach(option => {
+        option.disabled = (option.value == categoryId);
+      });
     });
   }
 </script>

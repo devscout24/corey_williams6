@@ -37,6 +37,7 @@ Route::middleware('auth:employee')->group(function (): void {
     //categories, attributes, price rules
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{categoryId}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{categoryId}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
     // resources routes
