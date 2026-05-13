@@ -44,6 +44,12 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)
+- **JS Modernization:** Refactored item and item kit form JavaScript from jQuery to robust Vanilla JS. Implemented a template-based system (`<template>` tags) for dynamic rows (Secondary Categories, Suppliers, Serial Numbers, Additional SKUs), fixing "button not working" issues caused by missing jQuery or brittle script logic.
+- **Secondary Categories for Item Kits:** Added full support for multiple secondary categories in Item Kits, including UI integration, `ItemKitController` save/load logic, and a new migration for `phppos_item_kits_secondary_categories`.
+- **Model Relationships:** Added `secondaryCategories` and `secondarySuppliers` relationships to `PhpposItem` and `PhpposItemKit` models.
+- **Robust UI:** Added optional chaining and event delegation to dynamic row management, ensuring forms remain functional even when certain elements are hidden due to permission logic.
+
 ### May 13, 2026 (Sales Currency + Flow Fixes)
 - **Sales Register Currency Support:** Added base currency formatting and exchange rate selection on the Sales Register. Payments can now be entered in an exchange currency and auto-converted to base currency for totals and change. Payment rows show base amount on top and exchange amount below.
 - **Receipt Currency Formatting:** Receipt amounts now use base currency formatting (symbol, decimals, separators) from Store Config.
@@ -182,7 +188,7 @@ These rules are non-negotiable for this repo’s cleaned schema.
   - Created `tags.index` and `tags.form` views
   - Added tags routes to `web.php`
   - Updated `phppos_tags` migration to match CI3 structure (added `ecommerce_tag_id`, `last_modified`, fixed indexes)
-- [ ] **Item Kits:** Modernize UI to match the new Pos HTML Dashboard designs.
+- [x] **Item Kits:** Modernized UI to match the new Pos HTML Dashboard designs (tabs, dynamic rows, secondary categories/suppliers).
 - [ ] **Attributes:** Implement backend logic and modernize UI.
 - [ ] **Price Rules:** Implement backend logic and modernize UI.
 
