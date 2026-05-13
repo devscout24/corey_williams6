@@ -51,6 +51,9 @@ class ItemKitController extends Controller
         $secondarySuppliers = $kitId
             ? DB::table('phppos_item_kits_secondary_suppliers')->where('item_kit_id', $kitId)->get()->all()
             : [];
+        $secondaryCategories = $kitId
+            ? DB::table('phppos_item_kits_secondary_categories')->where('item_kit_id', $kitId)->get()->all()
+            : [];
         
         // Tags
         $tags = $kitId ? DB::table('phppos_item_kits_tags as ikt')
@@ -75,6 +78,7 @@ class ItemKitController extends Controller
             'kitItems' => $kit ? $kit->items : [],
             'nestedKits' => $kit ? $kit->nestedKits : [],
             'secondary_suppliers' => $secondarySuppliers,
+            'secondary_categories' => $secondaryCategories,
         ]);
     }
 
@@ -159,6 +163,7 @@ class ItemKitController extends Controller
             'tags' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
             'secondary_suppliers' => ['nullable', 'array'],
+            'secondary_categories' => ['nullable', 'array'],
             
             // Items and Nested Kits
             'kit_items' => ['nullable', 'array'],
@@ -240,6 +245,18 @@ class ItemKitController extends Controller
                     DB::table('phppos_item_kits_secondary_suppliers')->insert([
                         'item_kit_id' => $kitId,
                         'supplier_id' => $secSupId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::table('phppos_item_kits_secondary_categories')->where('item_kit_id', $kitId)->delete();
+            if (!empty($data['secondary_categories'])) {
+                foreach (array_filter($data['secondary_categories']) as $secCatId) {
+                    DB::table('phppos_item_kits_secondary_categories')->insert([
+                        'item_kit_id' => $kitId,
+                        'category_id' => $secCatId,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);

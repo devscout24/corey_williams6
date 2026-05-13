@@ -39,6 +39,16 @@ class PhpposItemKit extends Model
         return $this->belongsTo(PhpposSupplier::class, 'supplier_id', 'person_id');
     }
 
+    public function secondaryCategories()
+    {
+        return $this->belongsToMany(PhpposCategory::class, 'phppos_item_kits_secondary_categories', 'item_kit_id', 'category_id')->withTimestamps();
+    }
+
+    public function secondarySuppliers()
+    {
+        return $this->belongsToMany(PhpposSupplier::class, 'phppos_item_kits_secondary_suppliers', 'item_kit_id', 'supplier_id')->withTimestamps();
+    }
+
     public function taxClass()
     {
         return $this->belongsTo(PhpposTaxClass::class, 'tax_class_id', 'id');

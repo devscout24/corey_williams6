@@ -517,66 +517,80 @@
 @endsection
 
 @push('scripts')
+{{-- Templates for dynamic rows --}}
+<template id="secondary-category-row">
+    <div class="input-group mb-2 secondary-cat-row">
+        <select class="form-select" name="secondary_categories[]">
+            <option value="">— Select Category —</option>
+            @foreach($categories as $category)
+                <option value="{{ $category->id }}">{!! $category->label !!}</option>
+            @endforeach
+        </select>
+        <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
+<template id="secondary-supplier-row">
+    <div class="input-group mb-2 secondary-sup-row">
+        <select class="form-select" name="secondary_suppliers[]">
+            <option value="">— Select Supplier —</option>
+            @foreach($suppliers as $supplier)
+                <option value="{{ $supplier->person_id }}">{{ $supplier->company_name }}</option>
+            @endforeach
+        </select>
+        <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
+<template id="additional-number-row">
+    <div class="input-group mb-2 additional-number-row">
+        <input type="text" class="form-control" name="additional_item_numbers[]" value="">
+        <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
+<template id="serial-number-row">
+    <tr>
+        <td><input type="text" class="form-control" name="serial_numbers[]" value=""></td>
+        <td class="text-center"><input type="checkbox" class="form-check-input" name="add_to_inventory[]" value="1"></td>
+        <td><input type="number" step="0.001" class="form-control" name="serial_cost_prices[]" value=""></td>
+        <td><input type="number" step="0.001" class="form-control" name="serial_unit_prices[]" value=""></td>
+        <td><select class="form-select form-select-sm" name="serial_variation[]"><option value="">None</option></select></td>
+        <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
+    </tr>
+</template>
+
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Helper function to add rows from templates
+    function addRowFromTemplate(containerId, templateId, isTable = false) {
+        const container = isTable ? document.querySelector(`#${containerId} tbody`) : document.getElementById(containerId);
+        const template = document.getElementById(templateId);
+        if (container && template) {
+            const clone = template.content.cloneNode(true);
+            container.appendChild(clone);
+        }
+    }
 
     // Add additional item number row
-    document.getElementById('add-additional-number').addEventListener('click', function() {
-        const container = document.getElementById('additional-numbers-container');
-        const row = document.createElement('div');
-        row.className = 'input-group mb-2 additional-number-row';
-        row.innerHTML = `
-            <input type="text" class="form-control" name="additional_item_numbers[]" value="">
-            <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
-        `;
-        container.appendChild(row);
+    document.getElementById('add-additional-number')?.addEventListener('click', function() {
+        addRowFromTemplate('additional-numbers-container', 'additional-number-row');
     });
 
     // Add secondary category row
-    document.getElementById('add-secondary-category').addEventListener('click', function() {
-        const container = document.getElementById('secondary-categories-container');
-        const row = document.createElement('div');
-        row.className = 'input-group mb-2 secondary-cat-row';
-        let options = '<option value="">— Select Category —</option>';
-        @foreach($categories as $category)
-            options += '<option value="{{ $category->id }}">{!! addslashes($category->label) !!}</option>';
-        @endforeach
-        row.innerHTML = `
-            <select class="form-select" name="secondary_categories[]">${options}</select>
-            <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
-        `;
-        container.appendChild(row);
+    document.getElementById('add-secondary-category')?.addEventListener('click', function() {
+        addRowFromTemplate('secondary-categories-container', 'secondary-category-row');
     });
 
     // Add secondary supplier row
-    document.getElementById('add-secondary-supplier').addEventListener('click', function() {
-        const container = document.getElementById('secondary-suppliers-container');
-        const row = document.createElement('div');
-        row.className = 'input-group mb-2 secondary-sup-row';
-        let options = '<option value="">— Select Supplier —</option>';
-        @foreach($suppliers as $supplier)
-            options += '<option value="{{ $supplier->person_id }}">{{ addslashes($supplier->company_name) }}</option>';
-        @endforeach
-        row.innerHTML = `
-            <select class="form-select" name="secondary_suppliers[]">${options}</select>
-            <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
-        `;
-        container.appendChild(row);
+    document.getElementById('add-secondary-supplier')?.addEventListener('click', function() {
+        addRowFromTemplate('secondary-suppliers-container', 'secondary-supplier-row');
     });
 
     // Add serial number row
-    document.getElementById('add-serial-number').addEventListener('click', function() {
-        const tbody = document.querySelector('#serial-numbers-table tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" class="form-control" name="serial_numbers[]" value=""></td>
-            <td class="text-center"><input type="checkbox" class="form-check-input" name="add_to_inventory[]" value="1"></td>
-            <td><input type="number" step="0.001" class="form-control" name="serial_cost_prices[]" value=""></td>
-            <td><input type="number" step="0.001" class="form-control" name="serial_unit_prices[]" value=""></td>
-            <td><select class="form-select form-select-sm" name="serial_variation[]"><option value="">None</option></select></td>
-            <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
-        `;
-        tbody.appendChild(tr);
+    document.getElementById('add-serial-number')?.addEventListener('click', function() {
+        addRowFromTemplate('serial-numbers-table', 'serial-number-row', true);
     });
 
     // Remove rows via event delegation
