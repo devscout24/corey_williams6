@@ -388,6 +388,7 @@ class OrderController extends Controller
                 $order = PhpposReceiving::with('items')->findOrFail($receivingId);
                 
                 $receive = $order->replicate();
+                $receive->internal_code = null;
                 $receive->is_po = 0;
                 $receive->suspended = 0;
                 $receive->source = 'order';
