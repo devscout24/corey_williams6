@@ -44,6 +44,11 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 14, 2026 (Reports: Location Context TypeError Fix)
+- **Type Safety Fix:** Hardened `LocationContextService::resolveLocationId()` to accept `int|string|null` and safely normalize request-provided IDs.
+- **Single Location Enforcement:** Reports now always resolve and filter by the current node location (ULID header/cookie → employee context → DB fallback) and ignore any user-selected `location_id`.
+- **Legacy Report Links:** `GET /reports/generate/*` now supports CI3-style query params like `report_date_range_simple=TODAY` (auto-runs the report instead of only showing the parameter form).
+
 ### May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)
 - **JS Modernization:** Refactored item and item kit form JavaScript from jQuery to robust Vanilla JS. Implemented a template-based system (`<template>` tags) for dynamic rows (Secondary Categories, Suppliers, Serial Numbers, Additional SKUs), fixing "button not working" issues caused by missing jQuery or brittle script logic.
 - **Secondary Categories for Item Kits:** Added full support for multiple secondary categories in Item Kits, including UI integration, `ItemKitController` save/load logic, and a new migration for `phppos_item_kits_secondary_categories`.

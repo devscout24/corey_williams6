@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\LocationContextService;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +19,14 @@ class ReportController extends Controller
         return view('reports.listing');
     }
 
-    public function generate(string $report): View
+    public function generate(Request $request, string $report): View
     {
+        // Support legacy CI3-style links that directly generate a report via query string.
+        // Example: /reports/generate/detailed_sales?report_type=simple&report_date_range_simple=TODAY&sale_type=all&with_time=1
+        if ($request->query->count() > 0 && $request->hasAny(['report_date_range_simple', 'start_date', 'end_date', 'with_time', 'sale_type', 'payment_type'])) {
+            return $this->store($request, $report);
+        }
+
         $title = str_replace('_', ' ', ucfirst($report));
         $currentLocationId = $this->locationContextService->resolveLocationId(null);
         $locations = DB::table('phppos_locations')
@@ -43,12 +50,24 @@ class ReportController extends Controller
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+
+        // Legacy support: allow CI3-style simple date ranges (TODAY, LAST_7, etc.)
+        // when explicit start/end dates are not provided.
+        if ((! $startDate || ! $endDate) && $request->filled('report_date_range_simple')) {
+            [$startDate, $endDate] = $this->resolveSimpleDateRange($request->input('report_date_range_simple'));
+        }
+
+        // Sensible default (prevents invalid SQL if no dates passed at all).
+        $startDate = $startDate ?: now()->toDateString();
+        $endDate = $endDate ?: now()->toDateString();
+
         $startDateTime = $startDate . ' 00:00:00';
         $endDateTime = $endDate . ' 23:59:59';
 
         $saleType = $request->input('sale_type', 'all');
         $paymentType = $request->input('payment_type', 'all');
-        $locationId = $this->locationContextService->resolveLocationId($request->input('location_id'));
+        // Single-location POS: always filter reports to the current node's resolved location.
+        $locationId = $this->locationContextService->resolveLocationId(null);
 
         $groupBy = $request->input('group_by', 'day');
 
@@ -57,7 +76,7 @@ class ReportController extends Controller
 
         $applySalesFilters = function ($query) use ($saleType, $paymentType, $locationId, $startDateTime, $endDateTime, $employeeId, $employeeType, $request) {
             $query->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime]);
-            if ($locationId !== 'all') $query->where('phppos_sales.location_id', $locationId);
+            $query->where('phppos_sales.location_id', $locationId);
             if ($saleType !== 'all') $query->where('phppos_sales.sale_type', $saleType === 'sales' ? 'sale' : 'return');
             if ($paymentType !== 'all') $query->where('phppos_sales.payment_type', $paymentType);
             if ($employeeId !== 'all') $query->where('phppos_sales.' . $employeeType, $employeeId);
@@ -1882,5 +1901,43 @@ class ReportController extends Controller
         }
 
         return view('reports.tabular', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report'));
+    }
+
+    private function resolveSimpleDateRange(string $simpleKey): array
+    {
+        $simpleKey = strtoupper(trim($simpleKey));
+        $today = Carbon::today();
+
+        $start = match ($simpleKey) {
+            'TODAY' => $today->copy(),
+            'YESTERDAY' => $today->copy()->subDay(),
+            'LAST_7' => $today->copy()->subDays(6),
+            'LAST_30' => $today->copy()->subDays(29),
+            'THIS_WEEK' => $today->copy()->startOfWeek(),
+            'LAST_WEEK' => $today->copy()->subWeek()->startOfWeek(),
+            'THIS_MONTH' => $today->copy()->startOfMonth(),
+            'LAST_MONTH' => $today->copy()->subMonthNoOverflow()->startOfMonth(),
+            'THIS_QUARTER' => $today->copy()->startOfQuarter(),
+            'LAST_QUARTER' => $today->copy()->subQuarter()->startOfQuarter(),
+            'THIS_YEAR' => $today->copy()->startOfYear(),
+            'LAST_YEAR' => $today->copy()->subYear()->startOfYear(),
+            'ALL_TIME' => Carbon::create(2000, 1, 1),
+            default => $today->copy(),
+        };
+
+        $end = match ($simpleKey) {
+            'YESTERDAY' => $today->copy()->subDay(),
+            'THIS_WEEK' => $today->copy()->endOfWeek(),
+            'LAST_WEEK' => $today->copy()->subWeek()->endOfWeek(),
+            'THIS_MONTH' => $today->copy()->endOfMonth(),
+            'LAST_MONTH' => $today->copy()->subMonthNoOverflow()->endOfMonth(),
+            'THIS_QUARTER' => $today->copy()->endOfQuarter(),
+            'LAST_QUARTER' => $today->copy()->subQuarter()->endOfQuarter(),
+            'THIS_YEAR' => $today->copy()->endOfYear(),
+            'LAST_YEAR' => $today->copy()->subYear()->endOfYear(),
+            default => $today->copy(),
+        };
+
+        return [$start->toDateString(), $end->toDateString()];
     }
 }
