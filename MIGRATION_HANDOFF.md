@@ -44,6 +44,12 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 14, 2026 (Customers Module Modernization)
+- **UI Modernization:** Rebuilt Customer list and form UIs to match the new dashboard template (consistent with Suppliers/Items).
+- **Customer List (index):** Added modern toolbar with search/actions, customized table with user-info avatars, balance highlighting, and bulk action infrastructure.
+- **Customer Form:** Modernized with tabs (Basic, Taxes, Files, Advanced, Custom Fields), dark mode compatibility, dynamic tax row management using Vanilla JS templates, and integrated file upload/download/delete workflows.
+- **Controller Parity:** Ensured `CustomerController` correctly handles all modernized form fields including balance updates, tax overrides, price tiers, and internal notes.
+
 ### May 14, 2026 (Reports: Location Context TypeError Fix)
 - **Type Safety Fix:** Hardened `LocationContextService::resolveLocationId()` to accept `int|string|null` and safely normalize request-provided IDs.
 - **Single Location Enforcement:** Reports now always resolve and filter by the current node location (ULID header/cookie → employee context → DB fallback) and ignore any user-selected `location_id`.

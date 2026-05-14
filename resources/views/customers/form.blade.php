@@ -5,6 +5,52 @@
 
 @push('styles')
     <style>
+        /* Dark Mode Form Fixes */
+        [data-theme='dark'] .form-label,
+        [data-theme='dark'] .form-check-label,
+        [data-theme='dark'] .col-form-label,
+        [data-theme='dark'] h6 {
+            color: var(--gray-700) !important;
+        }
+
+        [data-theme='dark'] .nav-tabs .nav-link:not(.active) {
+            color: var(--gray-400) !important;
+        }
+
+        [data-theme='dark'] .nav-tabs .nav-link:hover {
+            background-color: var(--gray-200) !important;
+            color: var(--gray-800) !important;
+        }
+
+        [data-theme='dark'] .input-group-text {
+            background-color: var(--gray-200) !important;
+            border-color: var(--gray-300) !important;
+            color: var(--gray-800) !important;
+        }
+
+        [data-theme='dark'] .table-light {
+            background-color: var(--gray-200) !important;
+            color: var(--gray-900) !important;
+        }
+
+        /* Ensure card headers in dark mode aren't forced white */
+        [data-theme='dark'] .card-header.bg-white,
+        [data-theme='dark'] .card-footer.bg-white {
+            background-color: var(--gray-100) !important;
+            color: var(--gray-800) !important;
+        }
+
+        /* Dark Mode Placeholder Fix */
+        [data-theme='dark'] ::placeholder {
+            color: #0a0e13ff !important;
+            /* light blue */
+            opacity: 1;
+        }
+
+        [data-theme='dark'] .form-control::placeholder {
+            color: #b6b6b6ff !important;
+        }
+
         /* Fix tab text visibility */
         .nav-tabs .nav-link {
             color: #495057;
@@ -94,12 +140,238 @@
                                 <label class="form-label" for="zip">Zip</label>
                                 <input type="text" class="form-control" id="zip" name="zip" value="{{ old('zip', $customer?->person?->zip) }}" />
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="country">Country</label>
+                                <input type="text" class="form-control" id="country" name="country" value="{{ old('country', $customer?->person?->country) }}" />
+                            </div>
                             <div class="col-md-12">
                                 <label class="form-label" for="comments">Comments</label>
                                 <textarea class="form-control" id="comments" name="comments" rows="3">{{ old('comments', $customer?->person?->comments) }}</textarea>
                             </div>
+                            <div class="col-md-12">
+                                <label class="form-label" for="internal_notes">Internal Notes</label>
+                                <textarea class="form-control" id="internal_notes" name="internal_notes" rows="3">{{ old('internal_notes', $customer?->internal_notes) }}</textarea>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Taxes Tab -->
+                    <div class="tab-pane fade" id="taxes" role="tabpanel" aria-labelledby="taxes-tab">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="taxable" name="taxable" value="1" @checked(old('taxable', $customer?->taxable ?? true))>
+                                    <label class="form-check-label" for="taxable">Taxable</label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="override_default_tax" name="override_default_tax" value="1" @checked(old('override_default_tax', $customer?->override_default_tax))>
+                                    <label class="form-check-label" for="override_default_tax">Override Default Tax</label>
+                                </div>
+                            </div>
+
+                            <div id="tax_overrides_container" class="{{ old('override_default_tax', $customer?->override_default_tax) ? '' : 'd-none' }}">
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label" for="tax_class_id">Tax Class</label>
+                                    <select class="form-select" id="tax_class_id" name="tax_class_id">
+                                        <option value="">— None —</option>
+                                        @foreach($taxClasses as $taxClass)
+                                            <option value="{{ $taxClass->id }}" @selected(old('tax_class_id', $customer?->tax_class_id) == $taxClass->id)>{{ $taxClass->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <h6>Specific Tax Rates</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm" id="taxes-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Tax Name</th>
+                                                <th>Percent (%)</th>
+                                                <th>Cumulative</th>
+                                                <th width="50">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if($customer)
+                                                @foreach($customer->taxes as $index => $tax)
+                                                    <tr>
+                                                        <td><input type="text" class="form-control" name="tax_names[]" value="{{ old('tax_names.' . $index, $tax->name) }}"></td>
+                                                        <td><input type="number" step="0.001" class="form-control" name="tax_percents[]" value="{{ old('tax_percents.' . $index, $tax->percent) }}"></td>
+                                                        <td class="text-center">
+                                                            <input type="checkbox" class="form-check-input" name="tax_cumulatives[]" value="1" @checked(old('tax_cumulatives.' . $index, $tax->cumulative))>
+                                                        </td>
+                                                        <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
+                                                    </tr>
+                                                @endforeach
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-tax-row"><i class="bi bi-plus"></i> Add Tax Rate</button>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="tax_certificate">Tax Certificate #</label>
+                                <input type="text" class="form-control" id="tax_certificate" name="tax_certificate" value="{{ old('tax_certificate', $customer?->tax_certificate) }}" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Files Tab -->
+                    <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <h6>Existing Files</h6>
+                                <div class="list-group mb-3">
+                                    @forelse($customerFiles as $file)
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-file-earmark me-2"></i>
+                                                {{ $file->file_name }}
+                                                <small class="text-muted ms-2">Uploaded: {{ $file->timestamp }}</small>
+                                            </div>
+                                            <div class="btn-group">
+                                                <a href="{{ route('customers.download-file', $file->file_id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-file" data-id="{{ $file->file_id }}"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="list-group-item text-muted">No files uploaded.</div>
+                                    @endforelse
+                                </div>
+
+                                <label class="form-label">Upload New Files</label>
+                                <input type="file" class="form-control" name="customer_files[]" multiple />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Tab -->
+                    <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="tier_id">Price Tier</label>
+                                <select class="form-select" id="tier_id" name="tier_id">
+                                    <option value="-1">— None —</option>
+                                    @foreach($tiers as $tier)
+                                        <option value="{{ $tier->id }}" @selected(old('tier_id', $customer?->tier_id) == $tier->id)>{{ $tier->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="balance">Store Account Balance</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" id="balance" name="balance" value="{{ old('balance', $customer?->balance ?? 0) }}" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="credit_limit">Credit Limit</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" class="form-control" id="credit_limit" name="credit_limit" value="{{ old('credit_limit', $customer?->credit_limit) }}" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="points">Loyalty Points</label>
+                                <input type="number" class="form-control" id="points" name="points" value="{{ old('points', $customer?->points ?? 0) }}" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Fields Tab -->
+                    <div class="tab-pane fade" id="custom-fields" role="tabpanel" aria-labelledby="custom-fields-tab">
+                        <div class="row g-3">
+                            @for($i = 1; $i <= 10; $i++)
+                                <div class="col-md-6">
+                                    <label class="form-label" for="custom_field_{{ $i }}_value">Custom Field {{ $i }}</label>
+                                    <input type="text" class="form-control" id="custom_field_{{ $i }}_value" name="custom_field_{{ $i }}_value" value="{{ old('custom_field_' . $i . '_value', $customer?->{'custom_field_' . $i . '_value'}) }}" />
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-white py-3">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg"></i> {{ $customer ? 'Update' : 'Create' }} Customer
+                </button>
+                <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary px-4 ms-2">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<template id="tax-row-template">
+    <tr>
+        <td><input type="text" class="form-control" name="tax_names[]" value=""></td>
+        <td><input type="number" step="0.001" class="form-control" name="tax_percents[]" value=""></td>
+        <td class="text-center">
+            <input type="checkbox" class="form-check-input" name="tax_cumulatives[]" value="1">
+        </td>
+        <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
+    </tr>
+</template>
+
+<form id="delete-file-form" method="post" style="display:none">
+    @csrf
+    @method('delete')
+</form>
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tax Override Toggle
+    const overrideTaxSwitch = document.getElementById('override_default_tax');
+    const taxOverridesContainer = document.getElementById('tax_overrides_container');
+    
+    if (overrideTaxSwitch) {
+        overrideTaxSwitch.addEventListener('change', function() {
+            if (this.checked) {
+                taxOverridesContainer.classList.remove('d-none');
+            } else {
+                taxOverridesContainer.classList.add('d-none');
+            }
+        });
+    }
+
+    // Add Tax Row
+    const addTaxBtn = document.getElementById('add-tax-row');
+    const taxesTableBody = document.querySelector('#taxes-table tbody');
+    const taxRowTemplate = document.getElementById('tax-row-template');
+
+    if (addTaxBtn) {
+        addTaxBtn.addEventListener('click', function() {
+            const clone = taxRowTemplate.content.cloneNode(true);
+            taxesTableBody.appendChild(clone);
+        });
+    }
+
+    // Remove Tax Row (Event Delegation)
+    if (taxesTableBody) {
+        taxesTableBody.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-row')) {
+                e.target.closest('tr').remove();
+            }
+        });
+    }
+
+    // Delete File
+    document.querySelectorAll('.delete-file').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this file?')) {
+                const id = this.dataset.id;
+                const form = document.getElementById('delete-file-form');
+                form.action = `/customers/delete-file/${id}`;
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+@endpush
                     
                     <!-- Taxes Tab -->
                     <div class="tab-pane fade" id="taxes" role="tabpanel" aria-labelledby="taxes-tab">

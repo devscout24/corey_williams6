@@ -109,7 +109,6 @@ class ReceivingController extends Controller
                     });
             });
         }
-
         return $query;
     }
 
