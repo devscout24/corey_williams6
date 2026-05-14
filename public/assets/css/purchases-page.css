@@ -222,7 +222,7 @@ main.page-content > .page-header:has(+ .purchases-dashboard-root) {
 
 [data-theme='dark'] .purchases-dashboard-root .history-table th {
   background: var(--gray-700, #334155) !important;
-  color: #cbd5e1;
+  /* color: #cbd5e1; */
   border-bottom-color: #475569;
 }
 
