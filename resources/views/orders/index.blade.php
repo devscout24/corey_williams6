@@ -263,7 +263,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-custom">
             <div class="modal-header-custom">
-                <h5 class="modal-title-custom">New Order - Select Supplier</h5>
+                <h5 class="modal-title-custom" style="color:black">New Order - Select Supplier</h5>
                 <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="modal-body p-4">
@@ -271,9 +271,9 @@
 
                 <div class="supplier-list" id="supplierList">
                     @forelse($suppliers as $supplier)
-                        <div class="supplier-item" data-supplier-id="{{ $supplier->person_id }}" data-supplier-name="{{ $supplier->company_name }}" data-supplier-email="{{ $supplier->email ?? '' }}">
-                            <div class="supplier-info">
-                                <div class="supplier-name">{{ $supplier->company_name }}</div>
+                        <div  class="supplier-item" data-supplier-id="{{ $supplier->person_id }}" data-supplier-name="{{ $supplier->company_name }}" data-supplier-email="{{ $supplier->email ?? '' }}">
+                            <div class="supplier-info" >
+                                <div class="supplier-name" style="color: black">{{ $supplier->company_name }}</div>
                                 <div class="supplier-email">{{ $supplier->email ?? '—' }}</div>
                             </div>
                             <i class="bi bi-chevron-right supplier-arrow"></i>
@@ -284,7 +284,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mt-4">
-                    <button type="button" class="btn-cancel-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-cancel-custom" data-bs-dismiss="modal" style="color: black">Cancel</button>
                 </div>
             </div>
         </div>
