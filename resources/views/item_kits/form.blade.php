@@ -84,6 +84,28 @@
                                 <label class="form-label" for="tags">Tags (comma separated)</label>
                                 <input type="text" class="form-control" id="tags" name="tags" value="{{ old('tags', $tags) }}" />
                             </div>
+                            <!-- Secondary Categories -->
+                            <div class="col-md-12">
+                                <label class="form-label">Secondary Categories</label>
+                                <div id="secondary-categories-container">
+                                    @if(isset($secondary_categories) && count($secondary_categories))
+                                        @foreach($secondary_categories as $secCat)
+                                            <div class="input-group mb-2 secondary-cat-row">
+                                                <select class="form-select" name="secondary_categories[]">
+                                                    <option value="">— Select Category —</option>
+                                                    @foreach($categories as $category)
+                                                        <option value="{{ $category->id }}" @selected($secCat->category_id == $category->id)>{{ $category->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-secondary-category"><i class="bi bi-plus"></i> Add Secondary Category</button>
+                            </div>
+
+                            <!-- Secondary Suppliers -->
                             <div class="col-md-12">
                                 <label class="form-label">Secondary Suppliers</label>
                                 <div id="secondary-suppliers-container">
@@ -425,6 +447,18 @@
     </div>
 </template>
 
+<template id="secondary-category-row">
+    <div class="input-group mb-2 secondary-cat-row">
+        <select class="form-select" name="secondary_categories[]">
+            <option value="">— Select Category —</option>
+            @foreach($categories as $category)
+                <option value="{{ $category->id }}">{{ $category->name }}</option>
+            @endforeach
+        </select>
+        <button class="btn btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
 @endsection
 
 @push('scripts')
@@ -432,6 +466,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     let kitItemIndex = {{ count($kitItems) }};
     let nestedKitIndex = {{ count($nestedKits) }};
+
+    // Helper function to add rows from templates
+    function addRowFromTemplate(containerId, templateId, isTable = false, index = null) {
+        const container = isTable ? document.querySelector(`#${containerId} tbody`) : document.getElementById(containerId);
+        const template = document.getElementById(templateId);
+        if (container && template) {
+            let html = template.innerHTML;
+            if (index !== null) {
+                html = html.replace(/INDEX/g, index);
+            }
+            container.insertAdjacentHTML('beforeend', html);
+        }
+    }
 
     // Toggle containers
     const overrideCheckbox = document.getElementById('override_default_tax');
@@ -452,32 +499,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add rows
     document.getElementById('add-kit-item')?.addEventListener('click', function() {
-        addRow('kit-items-table', 'kit-item-row', kitItemIndex++);
+        addRowFromTemplate('kit-items-table', 'kit-item-row', true, kitItemIndex++);
     });
 
     document.getElementById('add-nested-kit')?.addEventListener('click', function() {
-        addRow('nested-kits-table', 'nested-kit-row', nestedKitIndex++);
+        addRowFromTemplate('nested-kits-table', 'nested-kit-row', true, nestedKitIndex++);
     });
 
     document.getElementById('add-tax-row')?.addEventListener('click', function() {
-        addRow('taxes-table', 'tax-row', null);
+        addRowFromTemplate('taxes-table', 'tax-row', true);
     });
 
     document.getElementById('add-secondary-supplier')?.addEventListener('click', function() {
-        const container = document.getElementById('secondary-suppliers-container');
-        const template = document.getElementById('secondary-supplier-row').innerHTML;
-        container.insertAdjacentHTML('beforeend', template);
+        addRowFromTemplate('secondary-suppliers-container', 'secondary-supplier-row');
     });
 
-    function addRow(tableId, templateId, index) {
-        const tbody = document.querySelector(`#${tableId} tbody`);
-        const template = document.getElementById(templateId).innerHTML;
-        const html = index !== null ? template.replace(/INDEX/g, index) : template;
-        tbody.insertAdjacentHTML('beforeend', html);
-        return tbody.lastElementChild;
-    }
+    document.getElementById('add-secondary-category')?.addEventListener('click', function() {
+        addRowFromTemplate('secondary-categories-container', 'secondary-category-row');
+    });
 
-    // Remove rows
+    // Remove rows via event delegation
     document.addEventListener('click', function(e) {
         const removeBtn = e.target.closest('.remove-row');
         if (removeBtn) {

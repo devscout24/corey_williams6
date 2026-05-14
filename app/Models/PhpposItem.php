@@ -19,4 +19,14 @@ class PhpposItem extends Model
         'cost_price' => 'decimal:2',
         'unit_price' => 'decimal:2',
     ];
+
+    public function secondaryCategories()
+    {
+        return $this->belongsToMany(PhpposCategory::class, 'phppos_items_secondary_categories', 'item_id', 'category_id')->withTimestamps();
+    }
+
+    public function secondarySuppliers()
+    {
+        return $this->belongsToMany(PhpposSupplier::class, 'phppos_items_secondary_suppliers', 'item_id', 'supplier_id')->withTimestamps();
+    }
 }

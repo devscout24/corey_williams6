@@ -39,8 +39,13 @@
 
   .table-card {
     background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--gray-200);
-    box-shadow: var(--shadow-xs); overflow: hidden;
+        box-shadow: var(--shadow-xs); overflow: hidden; min-height: 60vh;
   }
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+        min-height: 60vh;
+    }
   .custom-table { width: 100%; border-collapse: collapse; min-width: 900px; }
   .custom-table th {
     background: #F8F9FE; color: #475569; font-size: 13px; font-weight: 700;

@@ -8,8 +8,10 @@ use RuntimeException;
 
 class LocationContextService
 {
-    public function resolveLocationId(?int $requestedLocationId = null): int
+    public function resolveLocationId(int|string|null $requestedLocationId = null): int
     {
+        $requestedLocationId = $this->normalizeRequestedLocationId($requestedLocationId);
+
         $ulid = request()->header('X-Location-ULID') ?? request()->cookie('location_ulid');
         if ($ulid) {
             $location = PhpposLocation::where('ulid', $ulid)->first();
@@ -46,5 +48,28 @@ class LocationContextService
         }
 
         return (int) $fallback;
+    }
+
+    private function normalizeRequestedLocationId(int|string|null $requestedLocationId): ?int
+    {
+        if (is_int($requestedLocationId)) {
+            return $requestedLocationId > 0 ? $requestedLocationId : null;
+        }
+
+        if (! is_string($requestedLocationId)) {
+            return null;
+        }
+
+        $requestedLocationId = trim($requestedLocationId);
+        if ($requestedLocationId === '' || strtolower($requestedLocationId) === 'all') {
+            return null;
+        }
+
+        if (! ctype_digit($requestedLocationId)) {
+            return null;
+        }
+
+        $asInt = (int) $requestedLocationId;
+        return $asInt > 0 ? $asInt : null;
     }
 }

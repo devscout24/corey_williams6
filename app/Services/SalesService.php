@@ -70,8 +70,15 @@ class SalesService
                     ->lockForUpdate()
                     ->first();
 
-                if (! $stock || (float) $stock->quantity < $qty) {
-                    throw new RuntimeException('Insufficient stock for item ' . $itemId . ' at location ' . $resolvedLocationId . '.');
+                $stockQty = $stock ? (float) $stock->quantity : 0.0;
+                if (! $stock) {
+                    DB::table('phppos_location_items')->insert([
+                        'location_id' => $resolvedLocationId,
+                        'item_id' => $itemId,
+                        'quantity' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
 
                 $lineTotal = $unitPrice * $qty * (1 - $discount / 100);
@@ -81,7 +88,7 @@ class SalesService
                     ->where('location_id', $resolvedLocationId)
                     ->where('item_id', $itemId)
                     ->update([
-                        'quantity' => (float) $stock->quantity - $qty,
+                        'quantity' => $stockQty - $qty,
                         'updated_at' => now(),
                     ]);
 

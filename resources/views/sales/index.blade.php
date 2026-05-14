@@ -362,8 +362,12 @@
                         <form action="{{ route('sales.payment.add') }}" method="POST" class="mb-3">
                             @csrf
                             <div class="mb-2">
+                                @php
+                                    $defaultPaymentTypes = ['Cash', 'Check', 'Credit Card', 'Debit Card'];
+                                    $paymentTypeOptions = array_values(array_unique(array_merge($defaultPaymentTypes, $paymentTypes)));
+                                @endphp
                                 <select name="payment_type" class="form-select form-select-sm" required>
-                                    @foreach($paymentTypes as $type)
+                                    @foreach($paymentTypeOptions as $type)
                                         <option value="{{ $type }}">{{ $type }}</option>
                                     @endforeach
                                 </select>
