@@ -44,6 +44,9 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 15, 2026 (Customers Form Cleanup)
+- **Blade Fix:** Removed a stray `@section()` and duplicated Customer form markup/scripts that were breaking the view rendering.
+
 ### May 14, 2026 (Customers Module Modernization)
 - **UI Modernization:** Rebuilt Customer list and form UIs to match the new dashboard template (consistent with Suppliers/Items).
 - **Customer List (index):** Added modern toolbar with search/actions, customized table with user-info avatars, balance highlighting, and bulk action infrastructure.
