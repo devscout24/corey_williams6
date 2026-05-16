@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
+
 class ReceivingController extends Controller
 {
     public function __construct(private readonly LocationContextService $locationContextService)

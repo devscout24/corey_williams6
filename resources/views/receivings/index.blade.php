@@ -3,9 +3,11 @@
 @section('title', 'Purchases')
 @section('page-title', 'Purchases')
 
+
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/css/purchases-page.css') }}">
 @endpush
+
 
 @section('content')
     {{-- Structure from corey-dashboard/pages/purchases.html (#viewPurchasesList); data via /purchases/history-data --}}

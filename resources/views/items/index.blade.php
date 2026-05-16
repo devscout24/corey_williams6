@@ -109,7 +109,64 @@
     .search-input { max-width: 100%; }
     .toolbar-actions { justify-content: flex-end; }
   }
+
+  /* Column Gear Dropdown Styles */
+  .col-config-dropdown {
+    width: 250px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-200);
+  }
+  .dropdown-header-config {
+    background: var(--gray-50);
+    padding: 10px 15px;
+    font-weight: 700;
+    font-size: 13px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dropdown-header-config #reset_to_default {
+    font-size: 12px;
+    color: var(--primary);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .sort-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .sort-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid var(--gray-50);
+    transition: background 0.2s;
+  }
+  .sort-item:hover {
+    background: var(--gray-50);
+  }
+  .sort-item label {
+    flex: 1;
+    margin-left: 10px;
+    margin-bottom: 0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .handle {
+    cursor: move;
+    color: var(--gray-400);
+    font-size: 16px;
+  }
 </style>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 @endpush
 
 @section('content')
@@ -132,6 +189,31 @@
       </div>
       <div class="toolbar-actions">
         <a class="btn-new-customer text-decoration-none" href="{{ route('items.create') }}"><i class="bi bi-plus-lg"></i> New Item</a>
+        
+        <div class="dropdown d-inline-block">
+          <button class="btn-icon-outline dropdown-toggle no-caret" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="bi bi-gear"></i>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end col-config-dropdown p-0">
+            <div class="dropdown-header-config">
+              <span>Column Configuration</span>
+              <a id="reset_to_default"><i class="bi bi-arrow-clockwise"></i> Reset</a>
+            </div>
+            <form id="config_columns">
+              <ul id="sortable_columns" class="sort-list">
+                @foreach($all_columns as $col_key => $col_info)
+                  @php $checked = in_array($col_key, $selected_columns) ? 'checked' : ''; @endphp
+                  <li class="sort-item" data-id="{{ $col_key }}">
+                    <input type="checkbox" class="custom-checkbox column-checkbox" id="col_{{ $col_key }}" value="{{ $col_key }}" {{ $checked }}>
+                    <label for="col_{{ $col_key }}">{{ $col_info['label'] }}</label>
+                    <span class="handle"><i class="bi bi-list"></i></span>
+                  </li>
+                @endforeach
+              </ul>
+            </form>
+          </div>
+        </div>
+
         <button class="btn-icon-outline"><i class="bi bi-three-dots"></i></button>
       </div>
     </div>
@@ -153,13 +235,9 @@
               <th style="width: 50px;">
                 <input type="checkbox" class="custom-checkbox" id="selectAll" onchange="toggleAll(this)" />
               </th>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Cost Price</th>
-              <th>Selling Price</th>
-              <th>Quantity</th>
-              <th>Threshold</th>
-              <th>UPC/EAN/ISBN</th>
+              @foreach($selected_columns as $col_key)
+                <th>{{ $all_columns[$col_key]['label'] }}</th>
+              @endforeach
               <th style="width: 100px;">Action</th>
             </tr>
           </thead>
@@ -167,40 +245,54 @@
             @forelse($items as $item)
             <tr>
               <td><input type="checkbox" class="custom-checkbox row-checkbox" onchange="checkSelection()" /></td>
-              <td>
-                <div class="item-info">
-                  @if($item->image_file_id)
-                    <img src="{{ route('app_files.view', $item->image_file_id) }}" alt="{{ $item->name }}" class="item-img" />
-                  @else
-                    <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
-                  @endif
-                  <div>
-                    <div class="item-name">{{ $item->name }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>{{ $item->category_name ?? '—' }}</td>
-              <td>
-                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                       data-item-id="{{ $item->item_id }}" data-field="cost_price"
-                       value="{{ $item->cost_price }}" />
-              </td>
-              <td>
-                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                       data-item-id="{{ $item->item_id }}" data-field="unit_price"
-                       value="{{ $item->unit_price }}" />
-              </td>
-              <td>
-                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                       data-item-id="{{ $item->item_id }}" data-field="quantity"
-                       value="{{ $item->location_quantity ?? $item->default_quantity ?? 0 }}" />
-              </td>
-              <td>
-                <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                       data-item-id="{{ $item->item_id }}" data-field="reorder_level"
-                       value="{{ $item->reorder_level ?? '' }}" />
-              </td>
-              <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
+              
+              @foreach($selected_columns as $col_key)
+                @if($col_key == 'item_id')
+                  <td>{{ $item->item_id }}</td>
+                @elseif($col_key == 'name')
+                  <td>
+                    <div class="item-info">
+                      @if($item->image_file_id)
+                        <img src="{{ route('app_files.view', $item->image_file_id) }}" alt="{{ $item->name }}" class="item-img" />
+                      @else
+                        <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
+                      @endif
+                      <div>
+                        <div class="item-name">{{ $item->name }}</div>
+                      </div>
+                    </div>
+                  </td>
+                @elseif($col_key == 'category')
+                  <td>{{ $item->category_name ?? '—' }}</td>
+                @elseif($col_key == 'cost_price')
+                  <td>
+                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                           data-item-id="{{ $item->item_id }}" data-field="cost_price"
+                           value="{{ $item->cost_price }}" />
+                  </td>
+                @elseif($col_key == 'unit_price')
+                  <td>
+                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                           data-item-id="{{ $item->item_id }}" data-field="unit_price"
+                           value="{{ $item->unit_price }}" />
+                  </td>
+                @elseif($col_key == 'quantity')
+                  <td>
+                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                           data-item-id="{{ $item->item_id }}" data-field="quantity"
+                           value="{{ $item->location_quantity ?? $item->default_quantity ?? 0 }}" />
+                  </td>
+                @elseif($col_key == 'reorder_level')
+                  <td>
+                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
+                           data-item-id="{{ $item->item_id }}" data-field="reorder_level"
+                           value="{{ $item->reorder_level ?? '' }}" />
+                  </td>
+                @elseif($col_key == 'item_number')
+                  <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
+                @endif
+              @endforeach
+
               <td>
                 <div class="row-actions">
                   <a href="{{ route('items.edit', $item->item_id) }}" class="text-decoration-none"><i class="bi bi-pencil-square action-icon"></i></a>
@@ -263,6 +355,66 @@
     selectAll.checked = false;
     checkSelection();
   }
+
+  $(document).ready(function() {
+    // Make columns sortable
+    $("#sortable_columns").sortable({
+      handle: ".handle",
+      update: function(event, ui) {
+        saveColumnPrefs();
+      }
+    });
+
+    // Handle column checkbox changes - specifically use 'click' or 'change' and trigger save
+    $(".column-checkbox").on('click', function(e) {
+      // Prevent dropdown from closing if needed (bootstrap 5 handles auto-close outside already)
+      saveColumnPrefs();
+    });
+
+    // Reset columns
+    $("#reset_to_default").on('click', function(e) {
+      e.preventDefault();
+      $.get("{{ route('items.reset_column_prefs') }}", function() {
+        location.reload();
+      });
+    });
+
+    function saveColumnPrefs() {
+      let columns = [];
+      $("#sortable_columns li").each(function() {
+        let checkbox = $(this).find('input[type="checkbox"]');
+        let colValue = checkbox.val();
+        // Always include the column in the list to maintain order, 
+        // regardless of whether it is checked or not.
+        // The check state determines if it's "selected" for display.
+        columns.push(colValue);
+      });
+
+      // We need to send which ones are checked separately or filter them in the backend.
+      // However, the current backend logic expects just the visible columns.
+      // Let's filter here to match current backend logic but keep the order.
+      let visibleColumns = [];
+      $("#sortable_columns li").each(function() {
+        let checkbox = $(this).find('input[type="checkbox"]');
+        if (checkbox.is(':checked')) {
+          visibleColumns.push(checkbox.val());
+        }
+      });
+
+      $.ajax({
+        url: "{{ route('items.save_column_prefs') }}",
+        type: 'POST',
+        data: {
+          _token: "{{ csrf_token() }}",
+          columns: visibleColumns
+        },
+        async: false,
+        success: function() {
+          location.reload();
+        }
+      });
+    }
+  });
 
   const quickUpdateBase = "{{ url('/items') }}";
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');

@@ -13,9 +13,67 @@ use Illuminate\View\View;
 
 class ItemController extends Controller
 {
+    
     public function index(): View
     {
-        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $employee_id = auth('employee')->id();
+        $locationId  = auth('employee')->user()?->location_id ?? 1;
+
+        $column_prefs_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'items_column_prefs')
+            ->value('value');
+
+        $all_columns = [
+            'item_id' => ['label' => 'Item Id', 'sort' => true],
+            'item_number' => ['label' => 'UPC/EAN/ISBN', 'sort' => true],
+            'name' => ['label' => 'Name', 'sort' => true],
+            'category' => ['label' => 'Category', 'sort' => true],
+            'cost_price' => ['label' => 'Cost Price', 'sort' => true],
+            'unit_price' => ['label' => 'Selling Price', 'sort' => true],
+            'quantity' => ['label' => 'Quantity', 'sort' => true],
+            'reorder_level' => ['label' => 'Threshold', 'sort' => true],
+        ];
+
+        $default_columns = ['name', 'category', 'cost_price', 'unit_price', 'quantity', 'reorder_level', 'item_number'];
+
+        if ($column_prefs_val) {
+            $selected_columns = explode(',', $column_prefs_val);
+            // Ensure we only have valid columns and maintain the order from $selected_columns
+            $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
+            
+            // Reconstruct all_columns so the dropdown shows SELECTED items in their saved order FIRST,
+            // then any unselected items afterwards.
+            $ordered_all_columns = [];
+            foreach ($selected_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        } else {
+            $selected_columns = $default_columns;
+            
+            // Even if no prefs, let's ensure $all_columns order matches $default_columns for consistency
+            $ordered_all_columns = [];
+            foreach ($default_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        }
+
         $thumbs = DB::table('phppos_item_files')
             ->select('item_id', DB::raw('MIN(file_id) as file_id'))
             ->groupBy('item_id');
@@ -41,7 +99,7 @@ class ItemController extends Controller
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
 
-        return view('items.index', compact('items'));
+        return view('items.index', compact('items', 'all_columns', 'selected_columns'));
     }
 
     public function create(): View
