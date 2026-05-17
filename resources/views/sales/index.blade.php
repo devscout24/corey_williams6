@@ -129,7 +129,7 @@
             </div>
         @endif
 
-        @if($errors->any())
+        @if($errors instanceof \Illuminate\Support\ViewErrorBag && $errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 @foreach($errors->all() as $message)
                     <div>{{ $message }}</div>
@@ -180,9 +180,9 @@
         <div class="card shadow-sm border-0 mb-4" id="category-grid-card">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="category-tabs" role="tablist" aria-label="Category tabs">
-                    <button type="button" class="tab-btn is-active" role="tab" aria-selected="true">Categories</button>
-                    <button type="button" class="tab-btn" role="tab" aria-selected="false">Tags</button>
-                    <button type="button" class="tab-btn" role="tab" aria-selected="false">Favorites</button>
+                    <button type="button" class="tab-btn is-active" role="tab" aria-selected="true" data-mode="categories">Categories</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-mode="tags">Tags</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-mode="favorites">Favorites</button>
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="toggle-category-grid"
                     data-show-text="Show Grid" data-hide-text="Hide Grid">Hide Grid</button>
@@ -529,19 +529,15 @@
                     : `${normalized.symbol}${formatted}`;
             };
 
-            document.querySelectorAll('.category-tabs').forEach((tabList) => {
+            const applyTabUI = (tabEl) => {
+                const tabList = tabEl.closest('.category-tabs');
+                if (!tabList) return;
                 const tabs = tabList.querySelectorAll('.tab-btn');
-                tabs.forEach((tab) => {
-                    tab.addEventListener('click', () => {
-                        tabs.forEach((btn) => {
-                            btn.classList.remove('is-active');
-                            btn.setAttribute('aria-selected', 'false');
-                        });
-                        tab.classList.add('is-active');
-                        tab.setAttribute('aria-selected', 'true');
-                    });
+                tabs.forEach((btn) => {
+                    btn.classList.toggle('is-active', btn === tabEl);
+                    btn.setAttribute('aria-selected', btn === tabEl ? 'true' : 'false');
                 });
-            });
+            };
 
             const toggleButton = document.getElementById('toggle-category-grid');
             const gridBody = document.getElementById('category-grid-body');
@@ -550,12 +546,23 @@
             const grid = document.getElementById('category-grid');
             const paginationEl = document.getElementById('category-grid-pagination');
             const browseUrl = "{{ route('sales.categories') }}";
+            const tagsUrl = "{{ route('sales.tags') }}";
+            const favoritesUrl = "{{ route('sales.favorites') }}";
+            const tagItemsBaseUrl = "{{ url('/sales/tags') }}";
+
+            let gridMode = 'categories';
+            let currentTagId = null;
+            let tagsListPage = 1;
             const categoryStack = [];
             const defaultPageSize = 8;
             const childPageSize = 7;
 
             const renderBackTile = () => {
-                if (!categoryStack.length) return '';
+                const shouldShow =
+                    (gridMode === 'categories' && categoryStack.length) ||
+                    (gridMode === 'tags' && currentTagId !== null);
+
+                if (!shouldShow) return '';
                 return `
                 <button type="button" class="category-card" data-action="back">
                     <div class="category-name">Back</div>
@@ -575,6 +582,14 @@
                 return `
                 <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
                     <div class="category-name">${product.name}</div>
+                </button>
+            `;
+            };
+
+            const renderTagTile = (tag) => {
+                return `
+                <button type="button" class="category-card" data-tag-id="${tag.id}" data-tag-name="${tag.name}">
+                    <div class="category-name">${tag.name}</div>
                 </button>
             `;
             };
@@ -599,13 +614,19 @@
                 tiles.push(renderBackTile());
 
                 if (data.level === 'categories') {
-                    if (data.categories.length) {
+                    if (data.categories?.length) {
                         data.categories.forEach((category) => tiles.push(renderCategoryTile(category)));
                     } else {
                         tiles.push('<div class="text-muted">No categories available.</div>');
                     }
+                } else if (data.level === 'tags') {
+                    if (data.tags?.length) {
+                        data.tags.forEach((tag) => tiles.push(renderTagTile(tag)));
+                    } else {
+                        tiles.push('<div class="text-muted">No tags available.</div>');
+                    }
                 } else {
-                    if (data.products.length) {
+                    if (data.products?.length) {
                         data.products.forEach((product) => tiles.push(renderProductTile(product)));
                     } else {
                         tiles.push('<div class="text-muted">No products found.</div>');
@@ -616,16 +637,24 @@
                 renderPagination(data.pagination);
             };
 
-            const loadLevel = (categoryId, pushStack, page = 1) => {
+            const fetchJson = (url) => {
+                return fetch(url)
+                    .then((res) => {
+                        if (!res.ok) throw new Error('Request failed');
+                        return res.json();
+                    });
+            };
+
+            const loadCategories = (categoryId, pushStack, page = 1) => {
                 const params = new URLSearchParams();
                 const perPage = categoryId ? childPageSize : defaultPageSize;
                 params.set('page', String(page));
                 params.set('per_page', String(perPage));
                 if (categoryId) params.set('category_id', categoryId);
                 const url = `${browseUrl}?${params.toString()}`;
-                fetch(url)
-                    .then(res => res.json())
-                    .then(data => {
+
+                fetchJson(url)
+                    .then((data) => {
                         if (pushStack && data.current) {
                             const last = categoryStack[categoryStack.length - 1];
                             if (!last || last.id !== data.current.id) {
@@ -641,19 +670,97 @@
                     });
             };
 
+            const loadTags = (page = 1) => {
+                const params = new URLSearchParams();
+                params.set('page', String(page));
+                params.set('per_page', String(defaultPageSize));
+                const url = `${tagsUrl}?${params.toString()}`;
+
+                fetchJson(url)
+                    .then((data) => {
+                        tagsListPage = data.pagination?.page || page;
+                        renderGrid(data);
+                    })
+                    .catch(() => {
+                        if (grid) grid.innerHTML = '<div class="text-muted">Unable to load tags.</div>';
+                    });
+            };
+
+            const loadTagItems = (tagId, page = 1) => {
+                const params = new URLSearchParams();
+                params.set('page', String(page));
+                params.set('per_page', String(childPageSize));
+                const url = `${tagItemsBaseUrl}/${encodeURIComponent(tagId)}/items?${params.toString()}`;
+
+                fetchJson(url)
+                    .then((data) => {
+                        renderGrid(data);
+                    })
+                    .catch(() => {
+                        if (grid) grid.innerHTML = '<div class="text-muted">Unable to load tag items.</div>';
+                    });
+            };
+
+            const loadFavorites = (page = 1) => {
+                const params = new URLSearchParams();
+                params.set('page', String(page));
+                params.set('per_page', String(defaultPageSize));
+                const url = `${favoritesUrl}?${params.toString()}`;
+
+                fetchJson(url)
+                    .then((data) => {
+                        renderGrid(data);
+                    })
+                    .catch(() => {
+                        if (grid) grid.innerHTML = '<div class="text-muted">Unable to load favorites.</div>';
+                    });
+            };
+
+            const setGridMode = (mode) => {
+                gridMode = mode;
+                categoryStack.splice(0, categoryStack.length);
+                currentTagId = null;
+
+                if (mode === 'categories') {
+                    loadCategories(null, false, 1);
+                } else if (mode === 'tags') {
+                    loadTags(1);
+                } else if (mode === 'favorites') {
+                    loadFavorites(1);
+                }
+            };
+
+            const loadLevel = (categoryId, pushStack, page = 1) => loadCategories(categoryId, pushStack, page);
+
             if (grid) {
                 grid.addEventListener('click', (event) => {
                     const backTile = event.target.closest('[data-action="back"]');
                     if (backTile) {
+                        if (gridMode === 'tags' && currentTagId !== null) {
+                            currentTagId = null;
+                            loadTags(tagsListPage || 1);
+                            return;
+                        }
+
                         categoryStack.pop();
                         const prev = categoryStack[categoryStack.length - 1];
                         loadLevel(prev ? prev.id : null, false, prev?.page || 1);
                         return;
                     }
 
+                    const tagTile = event.target.closest('[data-tag-id]');
+                    if (tagTile) {
+                        const tagId = tagTile.getAttribute('data-tag-id');
+                        currentTagId = tagId;
+                        gridMode = 'tags';
+                        loadTagItems(tagId, 1);
+                        return;
+                    }
+
                     const categoryTile = event.target.closest('[data-category-id]');
                     if (categoryTile) {
                         const categoryId = categoryTile.getAttribute('data-category-id');
+                        gridMode = 'categories';
                         loadLevel(categoryId, true, 1);
                         return;
                     }
@@ -673,10 +780,33 @@
                     const button = event.target.closest('[data-page]');
                     if (!button || button.disabled) return;
                     const page = parseInt(button.getAttribute('data-page'), 10);
+
+                    if (gridMode === 'tags') {
+                        if (currentTagId !== null) {
+                            loadTagItems(currentTagId, page);
+                        } else {
+                            loadTags(page);
+                        }
+                        return;
+                    }
+
+                    if (gridMode === 'favorites') {
+                        loadFavorites(page);
+                        return;
+                    }
+
                     const current = categoryStack[categoryStack.length - 1];
                     loadLevel(current ? current.id : null, false, page);
                 });
             }
+
+            document.querySelectorAll('.category-tabs .tab-btn').forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    const mode = tab.getAttribute('data-mode') || 'categories';
+                    applyTabUI(tab);
+                    setGridMode(mode);
+                });
+            });
 
             if (toggleButton && gridBody) {
                 const showText = toggleButton.getAttribute('data-show-text') || 'Show Grid';

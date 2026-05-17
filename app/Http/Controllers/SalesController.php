@@ -9,11 +9,13 @@ use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplier;
+use App\Models\PhpposTag;
 use App\Services\AppConfigService;
 use App\Services\LocationContextService;
 use App\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
@@ -299,6 +301,168 @@ class SalesController extends Controller
                 'per_page' => $categoryPage->perPage(),
                 'total' => $categoryPage->total(),
                 'last_page' => $categoryPage->lastPage(),
+            ],
+        ]);
+    }
+
+    public function tags(Request $request): JsonResponse
+    {
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(24, (int) $request->input('per_page', 24)));
+
+        $tagPage = PhpposTag::query()
+            ->where('deleted', 0)
+            ->orderBy('name')
+            ->paginate($perPage, ['id', 'name'], 'page', $page);
+
+        return response()->json([
+            'level' => 'tags',
+            'tags' => collect($tagPage->items())->values(),
+            'current' => null,
+            'pagination' => [
+                'page' => $tagPage->currentPage(),
+                'per_page' => $tagPage->perPage(),
+                'total' => $tagPage->total(),
+                'last_page' => $tagPage->lastPage(),
+            ],
+        ]);
+    }
+
+    public function tagItems(Request $request, int $tagId): JsonResponse
+    {
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(24, (int) $request->input('per_page', 24)));
+
+        $tag = PhpposTag::query()
+            ->where('deleted', 0)
+            ->select('id', 'name')
+            ->findOrFail($tagId);
+
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
+
+        $itemsQuery = DB::table('phppos_items_tags as it')
+            ->join('phppos_items as i', 'i.item_id', '=', 'it.item_id')
+            ->where('it.tag_id', $tagId)
+            ->where('i.deleted', 0)
+            ->select('i.item_id as id', 'i.name as name', 'i.unit_price as price');
+
+        if ($supplierId) {
+            $itemsQuery->where('i.supplier_id', $supplierId);
+        }
+
+        $items = $itemsQuery
+            ->orderBy('i.name')
+            ->get()
+            ->map(fn ($row) => [
+                'type' => 'item',
+                'id' => $row->id,
+                'name' => $row->name,
+                'price' => (float) ($row->price ?? 0),
+            ]);
+
+        $kitsQuery = DB::table('phppos_item_kits_tags as ikt')
+            ->join('phppos_item_kits as k', 'k.id', '=', 'ikt.item_kit_id')
+            ->where('ikt.tag_id', $tagId)
+            ->where('k.deleted', 0)
+            ->select('k.id as id', 'k.name as name', 'k.unit_price as price');
+
+        if ($supplierId) {
+            $kitsQuery->where('k.supplier_id', $supplierId);
+        }
+
+        $kits = $kitsQuery
+            ->orderBy('k.name')
+            ->get()
+            ->map(fn ($row) => [
+                'type' => 'kit',
+                'id' => $row->id,
+                'name' => '[KIT] ' . $row->name,
+                'price' => (float) ($row->price ?? 0),
+            ]);
+
+        $products = $items->concat($kits)->sortBy('name')->values();
+        $total = $products->count();
+        $lastPage = (int) max(1, (int) ceil($total / $perPage));
+        $page = min($page, $lastPage);
+        $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'level' => 'items',
+            'categories' => [],
+            'tags' => [],
+            'products' => $paged,
+            'current' => $tag,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+            ],
+        ]);
+    }
+
+    public function favorites(Request $request): JsonResponse
+    {
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(24, (int) $request->input('per_page', 24)));
+
+        $cart = $this->getCart();
+        $supplierId = $cart['supplier_id'] ?? null;
+
+        $itemsQuery = PhpposItem::query()
+            ->where('deleted', 0)
+            ->where('is_favorite', 1);
+
+        if ($supplierId) {
+            $itemsQuery->where('supplier_id', $supplierId);
+        }
+
+        $items = $itemsQuery
+            ->orderBy('name')
+            ->get(['item_id', 'name', 'unit_price'])
+            ->map(fn (PhpposItem $item) => [
+                'type' => 'item',
+                'id' => $item->item_id,
+                'name' => $item->name,
+                'price' => (float) ($item->unit_price ?? 0),
+            ]);
+
+        $kitsQuery = PhpposItemKit::query()
+            ->where('deleted', 0)
+            ->where('is_favorite', 1);
+
+        if ($supplierId) {
+            $kitsQuery->where('supplier_id', $supplierId);
+        }
+
+        $kits = $kitsQuery
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit_price'])
+            ->map(fn (PhpposItemKit $kit) => [
+                'type' => 'kit',
+                'id' => $kit->id,
+                'name' => '[KIT] ' . $kit->name,
+                'price' => (float) ($kit->unit_price ?? 0),
+            ]);
+
+        $products = $items->concat($kits)->sortBy('name')->values();
+        $total = $products->count();
+        $lastPage = (int) max(1, (int) ceil($total / $perPage));
+        $page = min($page, $lastPage);
+        $paged = $products->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'level' => 'items',
+            'categories' => [],
+            'tags' => [],
+            'products' => $paged,
+            'current' => null,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
             ],
         ]);
     }

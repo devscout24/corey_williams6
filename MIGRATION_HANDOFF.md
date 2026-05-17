@@ -44,6 +44,11 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 17, 2026 (Sales Register: Tags + Favorites Grid)
+- **Sales Grid Tabs Wired:** Implemented Tags and Favorites browsing in the Sales Register grid (parity with legacy `index.php/sales` behavior).
+- **New Endpoints:** Added `GET /sales/tags`, `GET /sales/tags/{tagId}/items`, and `GET /sales/favorites` to feed the grid; all respect the current Supplier filter.
+- **UI:** Updated the Sales Register tab buttons to load the correct grid content and support pagination/back navigation.
+
 ### May 15, 2026 (Customers Form Cleanup)
 - **Blade Fix:** Removed a stray `@section()` and duplicated Customer form markup/scripts that were breaking the view rendering.
 
