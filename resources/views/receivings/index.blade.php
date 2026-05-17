@@ -21,10 +21,10 @@
 
         <div id="viewPurchasesList">
             <div class="recv-card" >
-                <div class="history-header" >
+                <div class="history-header">
                     <div class="history-title">
                         <i class="bi bi-clock-history"></i>
-                        <span id="historyTitle">Recent Purchases</span>
+                        <span id="historyTitle" >Recent Purchases</span>
                     </div>
                     <div class="purchases-header-actions">
                         <a href="{{ $purchasesCreateUrl }}" class="btn-add-Purchases text-decoration-none">
@@ -38,16 +38,16 @@
 
                 <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
                     <div class="recv-mode-toggle" role="group" aria-label="List mode">
-                        <button type="button" class="btn-mode-toggle active" id="modeReceive"
+                        <button type="button" class="btn-mode-toggle active"  id="modeReceive"
                             onclick="window.purchasesSetListMode('Receive')">
                             <i class="bi bi-cart"></i> Purchases
                         </button>
-                        <button type="button" class="btn-mode-toggle" id="modeReturn"
+                        <button type="button" class="btn-mode-toggle" id="modeReturn" 
                             onclick="window.purchasesSetListMode('Return')">
                             <i class="bi bi-arrow-return-left"></i> Return
                         </button>
                     </div>
-                    <span id="listModeLabel" class="purchases-history-meta">Showing: Purchases</span>
+                    <span id="listModeLabel" class="purchases-history-meta" >Showing: Purchases</span>
                 </div>
 
                 <div class="history-search-bar">

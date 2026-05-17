@@ -10,6 +10,9 @@ Route::middleware('auth:employee')->group(function (): void {
 
     Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
     Route::get('/sales/categories', [SalesController::class, 'categories'])->name('sales.categories');
+    Route::get('/sales/tags', [SalesController::class, 'tags'])->name('sales.tags');
+    Route::get('/sales/tags/{tagId}/items', [SalesController::class, 'tagItems'])->name('sales.tags.items');
+    Route::get('/sales/favorites', [SalesController::class, 'favorites'])->name('sales.favorites');
     Route::get('/sales/search', [SalesController::class, 'search'])->name('sales.search');
     Route::post('/sales/item', [SalesController::class, 'addItem'])->name('sales.item.add');
     Route::post('/sales/item/{index}', [SalesController::class, 'editItem'])->name('sales.item.edit');
