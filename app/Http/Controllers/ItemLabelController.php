@@ -129,7 +129,8 @@ class ItemLabelController extends Controller
                 if (! $item) {
                     continue;
                 }
-                for ($i = 0; $i < $entry['quantity']; $i++) {
+                $qty = $validated['mode'] === 'sheet' ? 1 : $entry['quantity'];
+                for ($i = 0; $i < $qty; $i++) {
                     $labels[] = [
                         'item_id' => $item->item_id,
                         'name' => $item->name,
@@ -145,7 +146,8 @@ class ItemLabelController extends Controller
                 if (! $kit) {
                     continue;
                 }
-                for ($i = 0; $i < $entry['quantity']; $i++) {
+                $qty = $validated['mode'] === 'sheet' ? 1 : $entry['quantity'];
+                for ($i = 0; $i < $qty; $i++) {
                     $labels[] = [
                         'item_id' => $kit->id,
                         'name' => $kit->name,
@@ -154,6 +156,10 @@ class ItemLabelController extends Controller
                     ];
                 }
             }
+        }
+
+        if ($validated['mode'] === 'sheet') {
+            $labels = array_slice($labels, 0, 16);
         }
 
         DB::table('phppos_item_label_jobs')->insert([

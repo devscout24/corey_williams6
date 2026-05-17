@@ -112,7 +112,7 @@
                         <input type="file" id="sheetBackgroundInput" name="sheet_background" accept="image/*" style="display: none;" />
                 </div>
 
-                <div id="barcodeContent">
+                <div id="itemSelectionContent">
                         <div class="form-group">
                         <label class="form-label" for="itemSearch">Item or Kit</label>
                         <input type="text" class="form-control" id="itemSearch" placeholder="Search items or kits...">
@@ -122,11 +122,12 @@
                         <input type="hidden" id="selectedName">
                         <input type="hidden" id="selectedPrice">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="quantityGroup">
                                 <label class="form-label" for="itemQty">Quantity</label>
                                 <input type="number" class="form-control" id="itemQty" min="1" value="1">
                         </div>
                         <button class="btn-add-row" type="button" id="addItemBtn">Add Item</button>
+                        <div class="muted mt-2" id="sheetLimitNotice" style="display: none; font-size: 13px;">Sheet mode is limited to max 16 items. (1 per label)</div>
                 </div>
 
                 <div id="sheetContent" style="display: none;">
@@ -179,7 +180,7 @@
 <script>
     const btnBarcode = document.getElementById('btnBarcode');
     const btnSheet = document.getElementById('btnSheet');
-    const barcodeContent = document.getElementById('barcodeContent');
+    const itemSelectionContent = document.getElementById('itemSelectionContent');
     const sheetContent = document.getElementById('sheetContent');
     const btnAddBackground = document.getElementById('btnAddBackground');
     const sheetBackgroundInput = document.getElementById('sheetBackgroundInput');
@@ -210,18 +211,21 @@
         if (mode === 'barcode') {
             btnBarcode.classList.add('active');
             btnSheet.classList.remove('active');
-            barcodeContent.style.display = 'block';
+            document.getElementById('quantityGroup').style.display = 'block';
+            document.getElementById('sheetLimitNotice').style.display = 'none';
             sheetContent.style.display = 'none';
             btnAddBackground.style.display = 'none';
             labelsCard.style.maxWidth = '820px';
         } else {
             btnSheet.classList.add('active');
             btnBarcode.classList.remove('active');
-            barcodeContent.style.display = 'block';
+            document.getElementById('quantityGroup').style.display = 'none';
+            document.getElementById('sheetLimitNotice').style.display = 'block';
             sheetContent.style.display = 'block';
             btnAddBackground.style.display = 'block';
             labelsCard.style.maxWidth = '1000px';
         }
+        renderItems();
     };
 
     btnBarcode.addEventListener('click', () => setMode('barcode'));
@@ -259,9 +263,13 @@
         addedItems.forEach((item, index) => {
             const row = document.createElement('div');
             row.className = 'item-print-row';
+            const qtyHtml = labelMode.value === 'sheet' 
+                ? `<span style="font-size: 13px; color: var(--gray-500);">(1 item)</span><input type="hidden" name="items[${index}][quantity]" value="1">`
+                : `<input type="number" class="form-control item-qty-input" min="1" value="${item.quantity}" data-index="${index}" style="max-width: 90px;">`;
+            
             row.innerHTML = `
                 <span>${item.name} - $${item.price}</span>
-                <input type="number" class="form-control item-qty-input" min="1" value="${item.quantity}" data-index="${index}" style="max-width: 90px;">
+                ${qtyHtml}
                 <button type="button" class="btn-remove-item" data-index="${index}">Remove</button>
             `;
             itemList.appendChild(row);
@@ -282,11 +290,13 @@
             idInput.value = item.id;
             itemsFields.appendChild(idInput);
 
-            const qtyInput = document.createElement('input');
-            qtyInput.type = 'hidden';
-            qtyInput.name = `items[${index}][quantity]`;
-            qtyInput.value = item.quantity;
-            itemsFields.appendChild(qtyInput);
+            if (labelMode.value !== 'sheet') {
+                const qtyInput = document.createElement('input');
+                qtyInput.type = 'hidden';
+                qtyInput.name = `items[${index}][quantity]`;
+                qtyInput.value = item.quantity;
+                itemsFields.appendChild(qtyInput);
+            }
         });
     };
 
@@ -393,21 +403,33 @@
         const name = selectedName.value || itemSearch.value.trim();
         const price = selectedPrice.value || '0.00';
 
-        if (!itemId || quantity < 1) {
-            alert('Select an item or kit and quantity first.');
+        if (!itemId) {
+            alert('Select an item or kit first.');
+            return;
+        }
+
+        if (labelMode.value === 'sheet') {
+            if (addedItems.length >= 16) {
+                alert('Sheet mode allows a maximum of 16 items.');
+                return;
+            }
+        } else if (quantity < 1) {
+            alert('Select a quantity.');
             return;
         }
 
         const existing = addedItems.find((entry) => entry.id === itemId && entry.type === type);
-        if (existing) {
+        if (existing && labelMode.value !== 'sheet') {
             existing.quantity += quantity;
+        } else if (existing && labelMode.value === 'sheet') {
+            alert('Item already added to sheet.');
         } else {
             addedItems.push({
                 id: itemId,
                 type: type,
                 name: name,
                 price: price,
-                quantity: quantity,
+                quantity: labelMode.value === 'sheet' ? 1 : quantity,
             });
         }
 
