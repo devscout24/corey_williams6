@@ -203,7 +203,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No transfer outs found.</td>
+                    <td colspan="8" class="text-center text-muted py-4">No transfer outs found.</td>
                 </tr>
                 @endforelse
             </tbody>
