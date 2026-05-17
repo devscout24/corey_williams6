@@ -59,11 +59,11 @@
     @media print {
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 0;
         }
         .toolbar { display: none; }
         .sidebar, .topbar, .page-header, .sidebar-overlay { display: none; }
-        body { margin: 0; padding: 0; background: #fff; }
+        body { margin: 0; padding: 10mm; background: #fff; }
     }
 </style>
 @endpush
