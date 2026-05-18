@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\PhpposRegisterCurrencyDenomination;
+use App\Models\PhpposTaxClass;
+use App\Models\PhpposTaxClassTax;
 use App\Models\PhpposPriceTier;
 use App\Services\AppConfigService;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +19,12 @@ class ConfigController extends Controller
         $configKeys = [
             'company', 'company_logo', 'address', 'phone', 'website', 'email', 'fax',
             'return_policy', 'announcement_special',
+            'tax_id',
             'default_tax_1_name', 'default_tax_1_rate', 'default_tax_2_name', 'default_tax_2_rate', 'default_tax_2_cumulative',
+            'default_tax_3_name', 'default_tax_3_rate', 'default_tax_4_name', 'default_tax_4_rate',
+            'default_tax_5_name', 'default_tax_5_rate',
+            'tax_class_id',
+            'flat_discounts_discount_tax', 'prices_include_tax', 'charge_tax_on_recv',
             'currency_symbol', 'currency_code', 'currency_symbol_location', 'number_of_decimals', 'thousands_separator', 'decimal_point',
             'language', 'date_format', 'time_format', 'timezone',
             'print_after_sale', 'print_after_receiving', 'automatically_email_receipt', 'hide_signature',
@@ -107,8 +114,16 @@ class ConfigController extends Controller
         $locations      = \App\Models\PhpposLocation::where('deleted', 0)->get();
         $price_tiers    = PhpposPriceTier::where('deleted', 0)->orderBy('sort_order')->orderBy('id')->get();
         $ecommerce_locations = \App\Models\PhpposAppConfig::where('key', 'ecommerce_location')->pluck('value', 'value')->toArray();
+        $taxClasses = PhpposTaxClass::query()
+            ->where('deleted', 0)
+            ->with(['taxes' => function ($query) {
+                $query->orderBy('order')->orderBy('id');
+            }])
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get();
 
-        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations'));
+        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations', 'taxClasses'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
@@ -138,6 +153,11 @@ class ConfigController extends Controller
             'tiers_to_delete',
             // ecommerce
             'ecommerce_locations',
+            // tax class management
+            'tax_classes',
+            'taxes',
+            'taxes_to_delete',
+            'tax_classes_to_delete',
         ]);
         
         // Handle checkboxes (convert missing values to 0)
@@ -149,6 +169,7 @@ class ConfigController extends Controller
             'speed_up_search_queries', 'enable_sounds',
             'show_barcode_company_name', 'hide_barcode_on_barcode_labels',
             'disable_price_rules_dialog',
+            'flat_discounts_discount_tax', 'prices_include_tax', 'charge_tax_on_recv',
             // Sales module checkboxes
             'hide_supplier_on_sales_interface', 'hide_supplier_on_recv_interface', 'allow_drag_drop_sale',
             'allow_drag_drop_recv', 'disable_discounts_percentage_per_line_item', 'disabled_fixed_discounts',
@@ -200,6 +221,105 @@ class ConfigController extends Controller
 
         foreach ($checkboxes as $checkbox) {
             $data[$checkbox] = $request->has($checkbox) ? '1' : '0';
+        }
+
+        $taxClassIdInput = $request->input('tax_class_id');
+        $taxClassIdMap = [];
+
+        \DB::transaction(function () use ($request, &$taxClassIdMap): void {
+            $taxClassesToDelete = (array) $request->input('tax_classes_to_delete', []);
+            foreach ($taxClassesToDelete as $taxClassId) {
+                $taxClassId = is_numeric($taxClassId) ? (int) $taxClassId : null;
+                if (! $taxClassId) {
+                    continue;
+                }
+
+                PhpposTaxClass::query()
+                    ->whereKey($taxClassId)
+                    ->update(['deleted' => 1]);
+
+                PhpposTaxClassTax::query()
+                    ->where('tax_class_id', $taxClassId)
+                    ->delete();
+            }
+
+            $taxesToDelete = (array) $request->input('taxes_to_delete', []);
+            if ($taxesToDelete !== []) {
+                $taxIds = array_values(array_filter(
+                    array_map(static fn ($id): int => (int) $id, $taxesToDelete),
+                    static fn (int $id): bool => $id > 0
+                ));
+                if ($taxIds !== []) {
+                    PhpposTaxClassTax::query()->whereIn('id', $taxIds)->delete();
+                }
+            }
+
+            $taxClassesToSave = (array) $request->input('tax_classes', []);
+            $taxesToSave = (array) $request->input('taxes', []);
+
+            $taxClassOrder = 0;
+            foreach ($taxClassesToSave as $taxClassId => $taxClassData) {
+                $name = trim((string) ($taxClassData['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $taxClassOrder++;
+                if (is_numeric($taxClassId)) {
+                    $taxClass = PhpposTaxClass::query()->firstOrNew(['id' => (int) $taxClassId]);
+                } else {
+                    $taxClass = new PhpposTaxClass();
+                }
+
+                $taxClass->name = $name;
+                $taxClass->deleted = 0;
+                $taxClass->order = $taxClassOrder;
+                $taxClass->save();
+
+                if (! is_numeric($taxClassId)) {
+                    $taxClassIdMap[(string) $taxClassId] = $taxClass->id;
+                }
+
+                $taxRows = (array) ($taxesToSave[$taxClassId] ?? []);
+                $taxNames = (array) ($taxRows['name'] ?? []);
+                $taxPercents = (array) ($taxRows['percent'] ?? []);
+                $taxCumulatives = (array) ($taxRows['cumulative'] ?? []);
+                $taxIds = (array) ($taxRows['tax_class_tax_id'] ?? []);
+
+                $taxOrder = 0;
+                foreach ($taxNames as $rateIndex => $taxName) {
+                    $taxName = trim((string) $taxName);
+                    $taxPercent = trim((string) ($taxPercents[$rateIndex] ?? ''));
+                    if ($taxName === '' || $taxPercent === '') {
+                        continue;
+                    }
+
+                    $taxOrder++;
+                    $taxId = $taxIds[$rateIndex] ?? null;
+                    $taxRow = is_numeric($taxId)
+                        ? PhpposTaxClassTax::query()->firstOrNew(['id' => (int) $taxId])
+                        : new PhpposTaxClassTax();
+
+                    $taxRow->tax_class_id = $taxClass->id;
+                    $taxRow->name = $taxName;
+                    $taxRow->percent = $taxPercent;
+                    $taxRow->cumulative = ! empty($taxCumulatives[$rateIndex]);
+                    $taxRow->order = $taxOrder;
+                    $taxRow->save();
+                }
+            }
+        });
+
+        if ($taxClassIdInput !== null && $taxClassIdInput !== '') {
+            if (isset($taxClassIdMap[$taxClassIdInput])) {
+                $data['tax_class_id'] = (string) $taxClassIdMap[$taxClassIdInput];
+            } elseif (is_numeric($taxClassIdInput)) {
+                $data['tax_class_id'] = (string) $taxClassIdInput;
+            } else {
+                $data['tax_class_id'] = '';
+            }
+        } else {
+            $data['tax_class_id'] = '';
         }
 
         // Handle File Uploads

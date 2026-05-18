@@ -32,6 +32,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('person_id', 'suppliers_person_fk')->references('person_id')->on('phppos_people');
+            $table->foreign('tax_class_id', 'suppliers_tax_class_fk')->references('id')->on('phppos_tax_classes');
         });
     }
 

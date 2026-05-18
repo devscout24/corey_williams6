@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('category_id')->nullable();
             $table->unsignedBigInteger('supplier_id')->nullable();
             $table->unsignedBigInteger('manufacturer_id')->nullable();
+            $table->unsignedBigInteger('tax_class_id')->nullable();
             $table->text('description')->nullable();
             $table->text('long_description')->nullable();
             $table->text('info_popup')->nullable();
@@ -65,6 +66,7 @@ return new class extends Migration
             $table->index('product_id', 'items_product_idx');
             $table->foreign('category_id', 'items_category_fk')->references('id')->on('phppos_categories');
             $table->foreign('supplier_id', 'items_supplier_fk')->references('person_id')->on('phppos_suppliers');
+            $table->foreign('tax_class_id', 'items_tax_class_fk')->references('id')->on('phppos_tax_classes');
         });
     }
 

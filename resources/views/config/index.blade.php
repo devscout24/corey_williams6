@@ -87,6 +87,119 @@
             <!-- Taxes -->
             <div class="sc-tab-panel" id="tab-taxes">
                 <div class="sc-form-card">
+                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Tax Settings</h5>
+                    <div class="sc-form-row">
+                        <label class="sc-form-label">Tax ID</label>
+                        <input type="text" name="tax_id" class="sc-form-control" value="{{ $values['tax_id'] }}">
+                    </div>
+                    <div class="sc-form-row">
+                        <label class="sc-form-label">Prices Include Tax</label>
+                        <input type="checkbox" name="prices_include_tax" value="1" @checked($values['prices_include_tax']) style="width:18px;height:18px;">
+                    </div>
+                    <div class="sc-form-row">
+                        <label class="sc-form-label">Charge Tax on Receivings</label>
+                        <input type="checkbox" name="charge_tax_on_recv" value="1" @checked($values['charge_tax_on_recv']) style="width:18px;height:18px;">
+                    </div>
+                    <div class="sc-form-row">
+                        <label class="sc-form-label">Discount Tax for Flat Discounts</label>
+                        <input type="checkbox" name="flat_discounts_discount_tax" value="1" @checked($values['flat_discounts_discount_tax']) style="width:18px;height:18px;">
+                    </div>
+                </div>
+
+                <div class="sc-form-card" style="margin-top:20px;">
+                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Tax Classes</h5>
+                    <p class="text-muted small mb-3">Tax classes define grouped rates used by items, item kits, customers, suppliers, sales, and receivings.</p>
+                    <div class="table-responsive">
+                        <table id="taxClassesTable" class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 18%;">Class Name</th>
+                                    <th>Tax Rates</th>
+                                    <th style="width: 10%;" class="text-center">Default</th>
+                                    <th style="width: 12%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($taxClasses as $taxClass)
+                                    <tr data-tax-class-id="{{ $taxClass->id }}">
+                                        <td>
+                                            <input type="text" name="tax_classes[{{ $taxClass->id }}][name]" class="sc-form-control" value="{{ $taxClass->name }}">
+                                        </td>
+                                        <td>
+                                            <table class="table table-sm mb-2 tax-rate-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Tax Name</th>
+                                                        <th>Percent (%)</th>
+                                                        <th class="text-center">Cumulative</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($taxClass->taxes as $rateIndex => $taxRate)
+                                                        <tr data-rate-index="{{ $rateIndex }}">
+                                                            <td>
+                                                                <input type="text" name="taxes[{{ $taxClass->id }}][name][{{ $rateIndex }}]" class="sc-form-control" value="{{ $taxRate->name }}">
+                                                                <input type="hidden" name="taxes[{{ $taxClass->id }}][tax_class_tax_id][{{ $rateIndex }}]" value="{{ $taxRate->id }}">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" name="taxes[{{ $taxClass->id }}][percent][{{ $rateIndex }}]" class="sc-form-control" value="{{ $taxRate->percent }}">
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <input type="hidden" name="taxes[{{ $taxClass->id }}][cumulative][{{ $rateIndex }}]" value="0">
+                                                                <input type="checkbox" name="taxes[{{ $taxClass->id }}][cumulative][{{ $rateIndex }}]" value="1" @checked($taxRate->cumulative)>
+                                                            </td>
+                                                            <td>
+                                                                <a href="#" class="remove-tax-rate" style="color:var(--danger);">Delete</a>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr data-rate-index="0">
+                                                            <td>
+                                                                <input type="text" name="taxes[{{ $taxClass->id }}][name][0]" class="sc-form-control" value="">
+                                                                <input type="hidden" name="taxes[{{ $taxClass->id }}][tax_class_tax_id][0]" value="">
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" name="taxes[{{ $taxClass->id }}][percent][0]" class="sc-form-control" value="">
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <input type="hidden" name="taxes[{{ $taxClass->id }}][cumulative][0]" value="0">
+                                                                <input type="checkbox" name="taxes[{{ $taxClass->id }}][cumulative][0]" value="1">
+                                                            </td>
+                                                            <td>
+                                                                <a href="#" class="remove-tax-rate" style="color:var(--danger);">Delete</a>
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                            <a href="#" class="add-tax-rate">Add Rate</a>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="radio" name="tax_class_id" value="{{ $taxClass->id }}" @checked((string) $values['tax_class_id'] === (string) $taxClass->id)>
+                                        </td>
+                                        <td>
+                                            <a href="#" class="remove-tax-class" style="color:var(--danger);">Delete Class</a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr class="text-muted" data-empty-row>
+                                        <td colspan="4">No tax classes defined yet.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="#" id="addTaxClass">Add Tax Class</a>
+                </div>
+
+                <div class="sc-form-card" style="margin-top:20px;">
+                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Default Taxes</h5>
+                    @if(!empty($values['tax_class_id']))
+                        <div class="alert alert-light border" style="margin-bottom: 16px;">
+                            Default taxes apply only when no tax class is selected.
+                        </div>
+                    @endif
                     <div class="sc-form-row">
                         <label class="sc-form-label">Default Tax 1 Name</label>
                         <input type="text" name="default_tax_1_name" class="sc-form-control" value="{{ $values['default_tax_1_name'] }}">
@@ -108,6 +221,34 @@
                             </label>
                         </div>
                     </div>
+
+                    <div id="moreDefaultTaxes" style="display: {{ $values['default_tax_3_rate'] ? 'block' : 'none' }};">
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 3 Name</label>
+                            <input type="text" name="default_tax_3_name" class="sc-form-control" value="{{ $values['default_tax_3_name'] }}">
+                        </div>
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 3 Rate (%)</label>
+                            <input type="text" name="default_tax_3_rate" class="sc-form-control" value="{{ $values['default_tax_3_rate'] }}">
+                        </div>
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 4 Name</label>
+                            <input type="text" name="default_tax_4_name" class="sc-form-control" value="{{ $values['default_tax_4_name'] }}">
+                        </div>
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 4 Rate (%)</label>
+                            <input type="text" name="default_tax_4_rate" class="sc-form-control" value="{{ $values['default_tax_4_rate'] }}">
+                        </div>
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 5 Name</label>
+                            <input type="text" name="default_tax_5_name" class="sc-form-control" value="{{ $values['default_tax_5_name'] }}">
+                        </div>
+                        <div class="sc-form-row">
+                            <label class="sc-form-label">Default Tax 5 Rate (%)</label>
+                            <input type="text" name="default_tax_5_rate" class="sc-form-control" value="{{ $values['default_tax_5_rate'] }}">
+                        </div>
+                    </div>
+                    <a href="#" id="toggleMoreTaxes" style="display: {{ $values['default_tax_3_rate'] ? 'none' : 'inline' }};">Show more tax rates</a>
                 </div>
             </div>
 
@@ -1116,6 +1257,140 @@
                     storeConfigForm.appendChild(hid);
                 }
                 link.closest('tr').remove();
+            });
+
+            const taxClassesTable = document.getElementById('taxClassesTable');
+            const addTaxClassBtn = document.getElementById('addTaxClass');
+            let taxClassCounter = Date.now();
+
+            function buildTaxRateRow(classId, rateIndex) {
+                return `
+                    <tr data-rate-index="${rateIndex}">
+                        <td>
+                            <input type="text" name="taxes[${classId}][name][${rateIndex}]" class="sc-form-control" value="">
+                            <input type="hidden" name="taxes[${classId}][tax_class_tax_id][${rateIndex}]" value="">
+                        </td>
+                        <td>
+                            <input type="text" name="taxes[${classId}][percent][${rateIndex}]" class="sc-form-control" value="">
+                        </td>
+                        <td class="text-center">
+                            <input type="hidden" name="taxes[${classId}][cumulative][${rateIndex}]" value="0">
+                            <input type="checkbox" name="taxes[${classId}][cumulative][${rateIndex}]" value="1">
+                        </td>
+                        <td>
+                            <a href="#" class="remove-tax-rate" style="color:var(--danger);">Delete</a>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            function getNextRateIndex(tbody) {
+                let maxIndex = -1;
+                tbody.querySelectorAll('tr[data-rate-index]').forEach((row) => {
+                    const idx = parseInt(row.getAttribute('data-rate-index'), 10);
+                    if (!Number.isNaN(idx) && idx > maxIndex) {
+                        maxIndex = idx;
+                    }
+                });
+                return maxIndex + 1;
+            }
+
+            addTaxClassBtn?.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (!taxClassesTable) return;
+
+                const tbody = taxClassesTable.querySelector('tbody');
+                tbody.querySelector('[data-empty-row]')?.remove();
+
+                const classId = `new_${taxClassCounter++}`;
+                const row = document.createElement('tr');
+                row.setAttribute('data-tax-class-id', classId);
+                row.innerHTML = `
+                    <td>
+                        <input type="text" name="tax_classes[${classId}][name]" class="sc-form-control" value="">
+                    </td>
+                    <td>
+                        <table class="table table-sm mb-2 tax-rate-table">
+                            <thead>
+                                <tr>
+                                    <th>Tax Name</th>
+                                    <th>Percent (%)</th>
+                                    <th class="text-center">Cumulative</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${buildTaxRateRow(classId, 0)}
+                            </tbody>
+                        </table>
+                        <a href="#" class="add-tax-rate">Add Rate</a>
+                    </td>
+                    <td class="text-center">
+                        <input type="radio" name="tax_class_id" value="${classId}">
+                    </td>
+                    <td>
+                        <a href="#" class="remove-tax-class" style="color:var(--danger);">Delete Class</a>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            taxClassesTable?.addEventListener('click', function (e) {
+                const addRate = e.target.closest('.add-tax-rate');
+                if (addRate) {
+                    e.preventDefault();
+                    const classRow = addRate.closest('tr[data-tax-class-id]');
+                    const classId = classRow?.getAttribute('data-tax-class-id');
+                    const rateBody = classRow?.querySelector('.tax-rate-table tbody');
+                    if (!classId || !rateBody) return;
+                    const nextIndex = getNextRateIndex(rateBody);
+                    rateBody.insertAdjacentHTML('beforeend', buildTaxRateRow(classId, nextIndex));
+                    return;
+                }
+
+                const removeRate = e.target.closest('.remove-tax-rate');
+                if (removeRate) {
+                    e.preventDefault();
+                    const rateRow = removeRate.closest('tr[data-rate-index]');
+                    const taxIdInput = rateRow?.querySelector('input[name*="[tax_class_tax_id]"]');
+                    if (taxIdInput && taxIdInput.value && storeConfigForm) {
+                        const hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'taxes_to_delete[]';
+                        hidden.value = taxIdInput.value;
+                        storeConfigForm.appendChild(hidden);
+                    }
+                    rateRow?.remove();
+                    return;
+                }
+
+                const removeClass = e.target.closest('.remove-tax-class');
+                if (removeClass) {
+                    e.preventDefault();
+                    const classRow = removeClass.closest('tr[data-tax-class-id]');
+                    const classId = classRow?.getAttribute('data-tax-class-id');
+                    const defaultRadio = classRow?.querySelector('input[type="radio"][name="tax_class_id"]');
+                    if (defaultRadio && defaultRadio.checked) {
+                        defaultRadio.checked = false;
+                    }
+                    if (classId && /^[0-9]+$/.test(classId) && storeConfigForm) {
+                        const hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'tax_classes_to_delete[]';
+                        hidden.value = classId;
+                        storeConfigForm.appendChild(hidden);
+                    }
+                    classRow?.remove();
+                }
+            });
+
+            document.getElementById('toggleMoreTaxes')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                const moreTaxes = document.getElementById('moreDefaultTaxes');
+                if (moreTaxes) {
+                    moreTaxes.style.display = 'block';
+                }
+                e.target.style.display = 'none';
             });
             
             // Tab switching logic (can also be handled by store-config.js, but let's be safe)

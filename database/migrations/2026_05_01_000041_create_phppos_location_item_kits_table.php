@@ -14,6 +14,7 @@ return new class extends Migration
             $table->decimal('unit_price', 23, 10)->nullable();
             $table->decimal('cost_price', 23, 10)->nullable();
             $table->boolean('override_default_tax')->default(false);
+            $table->unsignedBigInteger('tax_class_id')->nullable();
 
             $table->primary(['item_kit_id', 'location_id']);
             $table->foreign('item_kit_id', 'loc_item_kits_kit_fk')
@@ -24,6 +25,9 @@ return new class extends Migration
                 ->references('location_id')
                 ->on('phppos_locations')
                 ->cascadeOnDelete();
+            $table->foreign('tax_class_id', 'loc_item_kits_tax_class_fk')
+                ->references('id')
+                ->on('phppos_tax_classes');
         });
     }
 

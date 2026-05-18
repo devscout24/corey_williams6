@@ -22,6 +22,7 @@ return new class extends Migration
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->string('customer_name')->nullable();
             $table->text('comment')->nullable();
+            $table->text('override_taxes')->nullable();
             $table->timestamps();
 
             $table->foreign('location_id', 'sales_loc_fk')->references('location_id')->on('phppos_locations');

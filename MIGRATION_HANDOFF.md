@@ -44,6 +44,12 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 18, 2026 (Config: Taxes + Tax Classes)
+- **Config UI:** Expanded Store Config tax tab to include tax settings (Tax ID, prices include tax, charge tax on receivings, flat discount tax) plus default taxes 1-5 with a show-more toggle.
+- **Tax Classes Management:** Added Tax Classes table UI with rate rows, cumulative flags, default selection, add/delete actions, and JS helpers for dynamic rows.
+- **Controller Support:** Added tax class load/save/delete logic in `ConfigController`, including default class mapping for newly created rows and cleanup for deleted rate rows.
+- **Schema:** Added `phppos_tax_classes_taxes` table and linked tax class foreign keys on items, item kits, location items, location item kits, customers, suppliers; added `override_taxes` to sales and ordering support for tax classes.
+
 ### May 17, 2026 (Sales Register: Tags + Favorites Grid)
 - **Sales Grid Tabs Wired:** Implemented Tags and Favorites browsing in the Sales Register grid (parity with legacy `index.php/sales` behavior).
 - **New Endpoints:** Added `GET /sales/tags`, `GET /sales/tags/{tagId}/items`, and `GET /sales/favorites` to feed the grid; all respect the current Supplier filter.

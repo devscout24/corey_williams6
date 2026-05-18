@@ -48,6 +48,7 @@ return new class extends Migration
             $table->foreign('person_id', 'customers_person_fk')->references('person_id')->on('phppos_people');
             $table->foreign('tier_id', 'customers_tier_fk')->references('id')->on('phppos_price_tiers');
             $table->foreign('location_id', 'customers_loc_fk')->references('location_id')->on('phppos_locations');
+            $table->foreign('tax_class_id', 'customers_tax_class_fk')->references('id')->on('phppos_tax_classes');
         });
     }
 

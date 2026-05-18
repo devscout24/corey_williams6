@@ -10,6 +10,12 @@ class PhpposTaxClass extends Model
 
     protected $fillable = [
         'name',
+        'order',
         'deleted',
     ];
+
+    public function taxes()
+    {
+        return $this->hasMany(PhpposTaxClassTax::class, 'tax_class_id');
+    }
 }

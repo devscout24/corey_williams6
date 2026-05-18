@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_location_items', function (Blueprint $table) {
             $table->unsignedBigInteger('location_id');
             $table->unsignedBigInteger('item_id');
+            $table->unsignedBigInteger('tax_class_id')->nullable();
             $table->decimal('quantity', 15, 3)->default(0);
             $table->timestamps();
 
@@ -21,6 +22,9 @@ return new class extends Migration
             $table->foreign('item_id', 'loc_items_item_fk')
                 ->references('item_id')
                 ->on('phppos_items');
+            $table->foreign('tax_class_id', 'loc_items_tax_class_fk')
+                ->references('id')
+                ->on('phppos_tax_classes');
         });
     }
 

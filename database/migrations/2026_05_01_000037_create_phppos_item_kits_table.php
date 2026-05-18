@@ -67,6 +67,7 @@ return new class extends Migration
             $table->foreign('category_id', 'item_kits_category_fk')->references('id')->on('phppos_categories');
             $table->foreign('supplier_id', 'item_kits_supplier_fk')->references('person_id')->on('phppos_suppliers');
             $table->foreign('manufacturer_id', 'item_kits_manufacturer_fk')->references('id')->on('phppos_manufacturers');
+            $table->foreign('tax_class_id', 'item_kits_tax_class_fk')->references('id')->on('phppos_tax_classes');
         });
     }
 

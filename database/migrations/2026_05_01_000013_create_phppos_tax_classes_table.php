@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('phppos_tax_classes', function (Blueprint $table) {
             $table->id();
+            $table->unsignedInteger('order')->default(0);
             $table->string('name', 255);
             $table->boolean('deleted')->default(false);
             $table->timestamps();

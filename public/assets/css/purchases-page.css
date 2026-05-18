@@ -4,12 +4,12 @@
  */
 
 /* Hide default Laravel page header when purchases dashboard is shown */
-main.page-content > .page-header:has(+ .purchases-dashboard-root) {
+main.page-content>.page-header:has(+ .purchases-dashboard-root) {
   display: none;
 }
 
 .purchases-dashboard-root .recv-card {
-  background:var(--gray-50, #334155) !important;
+  background: var(--gray-50, #334155) !important;
   color: var(--gray-700, #334155);
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
@@ -19,8 +19,8 @@ main.page-content > .page-header:has(+ .purchases-dashboard-root) {
 }
 
 [data-theme='dark'] .purchases-dashboard-root .recv-card {
-  
-  background: var(--gray-900, #0f172a) ;
+
+  background: var(--gray-900, #0f172a);
   border-color: var(--gray-700, #334155);
   /* color: var(--gray-300, #cbd5e1); */
   color: #cbd5e1;
@@ -218,7 +218,7 @@ main.page-content > .page-header:has(+ .purchases-dashboard-root) {
 }
 
 [data-theme='dark'] .purchases-dashboard-root .history-table thead tr {
-    background: var(--gray-700, #334155) !important;
+  background: var(--gray-700, #334155) !important;
 }
 
 [data-theme='dark'] .purchases-dashboard-root .history-table th {
@@ -228,13 +228,13 @@ main.page-content > .page-header:has(+ .purchases-dashboard-root) {
 }
 
 [data-theme='dark'] .purchases-dashboard-root .history-table tbody tr {
-    background-color: var(--gray-800, #1e293b) !important;
+  background-color: var(--gray-800, #1e293b) !important;
 }
 
 [data-theme='dark'] .purchases-dashboard-root .history-table td {
-    background-color: var(--gray-800, #1e293b) !important;
-    border-bottom-color: #334155;
-    color: #e2e8f0;
+  background-color: var(--gray-800, #1e293b) !important;
+  border-bottom-color: #334155;
+  color: #e2e8f0;
 }
 
 .purchases-dashboard-root .history-table tbody tr:hover {
