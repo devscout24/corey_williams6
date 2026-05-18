@@ -49,6 +49,10 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Tax Classes Management:** Added Tax Classes table UI with rate rows, cumulative flags, default selection, add/delete actions, and JS helpers for dynamic rows.
 - **Controller Support:** Added tax class load/save/delete logic in `ConfigController`, including default class mapping for newly created rows and cleanup for deleted rate rows.
 - **Schema:** Added `phppos_tax_classes_taxes` table and linked tax class foreign keys on items, item kits, location items, location item kits, customers, suppliers; added `override_taxes` to sales and ordering support for tax classes.
+### May 18, 2026 (Labels: Sheet Mode UI & Print Layout)
+- **UI Separation:** Separated Barcode and Sheet item selection in `labels/index.blade.php`. Hide the quantity selector in Sheet mode and added a strict UI cap preventing users from adding more than 16 items to a sheet.
+- **Backend Enforcement:** `ItemLabelController@print` now intercepts Sheet mode payloads, forcing quantity to 1 for every item and slicing the array to a maximum of 16 entries to strictly match a single 2x8 label sheet.
+- **A4 2x8 Print Grid:** Rebuilt `.sheet-grid` in `print.blade.php` to use a rigid 2x8 CSS Grid layout targeting exactly A4 portrait dimensions. Removed browser print margins (which eliminates default URL/Date headers/footers) and replaced them with explicit `body` padding so the layout never collapses or spills over to a second page.
 
 ### May 17, 2026 (Sales Register: Tags + Favorites Grid)
 - **Sales Grid Tabs Wired:** Implemented Tags and Favorites browsing in the Sales Register grid (parity with legacy `index.php/sales` behavior).

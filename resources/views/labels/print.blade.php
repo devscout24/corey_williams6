@@ -12,7 +12,16 @@
 
     .sheet { padding: 12px; display: grid; gap: 8px; position: relative; }
     .barcode-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-    .sheet-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .sheet-grid { 
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        gap: 5mm;
+        width: 100%;
+        max-width: 210mm;
+        height: 270mm; /* approximate height to fit A4 minus margins */
+        margin: 0 auto;
+        padding: 0;
+    }
 
     .label { 
         border: 1px solid #cfd8e3; 
@@ -22,6 +31,12 @@
         position: relative;
         overflow: hidden;
         z-index: 1;
+    }
+    .sheet-grid .label {
+        min-height: 0;
+        height: 100%;
+        width: 100%;
+        box-sizing: border-box;
     }
     .label-bg-img {
         position: absolute;
@@ -42,8 +57,13 @@
     .logo-box { display: none; }
 
     @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
         .toolbar { display: none; }
         .sidebar, .topbar, .page-header, .sidebar-overlay { display: none; }
+        body { margin: 0; padding: 10mm; background: #fff; }
     }
 </style>
 @endpush
