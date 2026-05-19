@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use Native\Laravel\Facades\Window;
+use Illuminate\Support\Facades\Artisan;
 use Native\Laravel\Contracts\ProvidesPhpIni;
+use Native\Laravel\Facades\Window;
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
@@ -13,6 +14,9 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
+        if (app()->isProduction()) {
+            Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        }
         Window::open();
     }
 
