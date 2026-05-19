@@ -276,6 +276,7 @@ class ItemController extends Controller
             'default_quantity' => ['nullable', 'numeric'],
             'reorder_level' => ['nullable', 'numeric'],
             'cost_price' => ['nullable', 'numeric'],
+            'markup' => ['nullable', 'numeric'],
             'unit_price' => ['nullable', 'numeric'],
             'tax_included' => ['nullable', 'boolean'],
             'is_service' => ['nullable', 'boolean'],
@@ -332,6 +333,7 @@ class ItemController extends Controller
             'default_quantity' => $data['default_quantity'] ?? null,
             'reorder_level' => $data['reorder_level'] ?? null,
             'cost_price' => $data['cost_price'] ?? 0,
+            'markup' => $data['markup'] ?? 0,
             'unit_price' => $data['unit_price'] ?? 0,
             'series_quantity' => $data['series_quantity'] ?? null,
             'series_days_to_use_within' => $data['series_days_to_use_within'] ?? null,
@@ -339,7 +341,8 @@ class ItemController extends Controller
             'required_age' => $data['required_age'] ?? null,
             'ecommerce_shipping_class_id' => $data['ecommerce_shipping_class_id'] ?? null,
 
-            'tax_included' => !empty($data['tax_included']) ? 1 : 0,
+            // 'tax_included' => !empty($data['tax_included']) ? 1 : 0,
+            'tax_included' => 1, // Default to true as per recent change, can be toggled in form
             'is_service' => !empty($data['is_service']) ? 1 : 0,
             'item_inactive' => !empty($data['item_inactive']) ? 1 : 0,
             'is_barcoded' => !empty($data['is_barcoded']) ? 1 : 0,

@@ -14,6 +14,7 @@ return new class extends Migration
             $table->unsignedBigInteger('item_id');
             $table->unsignedBigInteger('item_variation_id')->nullable();
             $table->decimal('quantity', 23, 10)->default(1);
+            $table->timestamps();
 
             $table->index('item_kit_id', 'kit_items_kit_idx');
             $table->index('item_id', 'kit_items_item_idx');

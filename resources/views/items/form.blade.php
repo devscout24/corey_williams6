@@ -177,6 +177,13 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label" for="markup">Markup</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.001" class="form-control" id="markup" name="markup" value="{{ old('markup', $item?->markup) }}" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label" for="unit_price">Unit Price</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
@@ -184,6 +191,15 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-6">
+                                <label class="form-label" for="default_quantity">Default Quantity</label>
+                                <input type="number" step="any" class="form-control" id="default_quantity" name="default_quantity" value="{{ old('default_quantity', $item?->default_quantity) }}" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="reorder_level">Threshold</label>
+                                <input type="number" step="any" class="form-control" id="reorder_level" name="reorder_level" value="{{ old('reorder_level', $item?->reorder_level) }}" />
+                            </div>
+                            
                             <div class="col-md-12">
                                 <label class="form-label" for="description">Short Description</label>
                                 <textarea class="form-control" id="description" name="description" rows="2">{{ old('description', $item?->description) }}</textarea>
@@ -231,14 +247,7 @@
                                 <input type="number" step="0.01" class="form-control" id="height" name="height" placeholder="Height" value="{{ old('height', $item?->height) }}" />
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label" for="default_quantity">Default Quantity</label>
-                                <input type="number" step="any" class="form-control" id="default_quantity" name="default_quantity" value="{{ old('default_quantity', $item?->default_quantity) }}" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="reorder_level">Threshold</label>
-                                <input type="number" step="any" class="form-control" id="reorder_level" name="reorder_level" value="{{ old('reorder_level', $item?->reorder_level) }}" />
-                            </div>
+                            
                         </div>
                     </div>
                     
@@ -259,7 +268,7 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(old('tax_included', $item?->tax_included))>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(true)>
                                     <label class="form-check-label" for="tax_included">Prices Include Tax</label>
                                 </div>
                             </div>

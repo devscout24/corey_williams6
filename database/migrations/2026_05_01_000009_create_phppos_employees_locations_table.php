@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_employees_locations', function (Blueprint $table) {
             $table->unsignedBigInteger('employee_id');
             $table->unsignedBigInteger('location_id');
+            $table->timestamps();
 
             $table->primary(['employee_id', 'location_id']);
             $table->foreign('employee_id', 'emp_loc_emp_fk')->references('person_id')->on('phppos_employees');

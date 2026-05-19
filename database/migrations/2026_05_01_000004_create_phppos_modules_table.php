@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('desc_lang_key');
             $table->integer('sort');
             $table->string('icon');
+            $table->timestamps();
         });
     }
 

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_app_config', function (Blueprint $table) {
             $table->string('key', 255)->primary();
             $table->text('value');
+            $table->timestamps();
         });
     }
 

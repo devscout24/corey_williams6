@@ -26,6 +26,7 @@ return new class extends Migration
             $table->timestamp('create_date')->nullable();
             $table->timestamp('last_modified')->nullable();
             $table->string('title')->nullable();
+            $table->timestamps();
 
             $table->index('first_name');
             $table->index('last_name');

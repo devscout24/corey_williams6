@@ -46,6 +46,7 @@ return new class extends Migration
             $table->text('allowed_ip_address')->nullable();
             $table->string('secret_key_2fa')->nullable();
             $table->rememberToken();
+            $table->timestamps();
 
             $table->foreign('person_id', 'emp_person_fk')->references('person_id')->on('phppos_people');
             $table->index('deleted');

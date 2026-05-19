@@ -12,6 +12,7 @@ return new class extends Migration
             $table->string('module_id', 100);
             $table->unsignedBigInteger('person_id');
             $table->string('action_id', 100);
+            $table->timestamps();
 
             $table->primary(['module_id', 'person_id', 'action_id']);
             $table->foreign('module_id', 'perm_act_mod_fk')->references('module_id')->on('phppos_modules');

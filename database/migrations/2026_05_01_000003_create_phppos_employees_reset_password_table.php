@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('key');
             $table->unsignedBigInteger('employee_id');
             $table->timestamp('expire')->useCurrent();
+            $table->timestamps();
 
             $table->foreign('employee_id', 'emp_reset_emp_fk')->references('person_id')->on('phppos_employees');
             $table->index('key');

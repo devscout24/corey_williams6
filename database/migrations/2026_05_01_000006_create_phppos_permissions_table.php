@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_permissions', function (Blueprint $table) {
             $table->string('module_id', 100);
             $table->unsignedBigInteger('person_id');
+            $table->timestamps();
 
             $table->primary(['module_id', 'person_id']);
             $table->foreign('module_id', 'perm_mod_fk')->references('module_id')->on('phppos_modules');
