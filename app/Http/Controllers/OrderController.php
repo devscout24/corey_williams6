@@ -178,7 +178,12 @@ class OrderController extends Controller
 
         $itemsQuery = PhpposItem::query()
             ->where('phppos_items.deleted', 0)
-            ->where('phppos_items.supplier_id', $supplierId)
+            ->where(function($query) use ($supplierId) {
+                $query->where('phppos_items.supplier_id', $supplierId)
+                      ->orWhereHas('secondarySuppliers', function ($sq) use ($supplierId) {
+                          $sq->where('phppos_suppliers.person_id', $supplierId);
+                      });
+            })
             ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
                 $join->on('li.item_id', '=', 'phppos_items.item_id')
                     ->where('li.location_id', '=', $locationId);
