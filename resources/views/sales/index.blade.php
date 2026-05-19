@@ -289,7 +289,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 mb-4">
+                <div hidden class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
                         <form action="{{ route('sales.location.set') }}" method="POST">
                             @csrf
@@ -330,7 +330,7 @@
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 mb-4">
+                {{-- <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
                         <form action="{{ route('sales.supplier.set') }}" method="POST">
                             @csrf
@@ -354,7 +354,7 @@
                             </div>
                         </form>
                     </div>
-                </div>
+                </div> --}}
 
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
