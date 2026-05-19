@@ -40,8 +40,11 @@ class ModuleController extends Controller
         $yearStart = now()->startOfYear();
         $yearEnd = now()->endOfYear();
 
+        $isSqlite = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'sqlite';
+        $monthSelector = $isSqlite ? 'strftime("%m", created_at)' : 'MONTH(created_at)';
+
         $yearlySales = \Illuminate\Support\Facades\DB::table('phppos_sales')
-            ->selectRaw('MONTH(created_at) as month, SUM(total) as sale_amount')
+            ->selectRaw("{$monthSelector} as month, SUM(total) as sale_amount")
             ->whereBetween('created_at', [$yearStart, $yearEnd])
             ->groupBy('month')
             ->orderBy('month')

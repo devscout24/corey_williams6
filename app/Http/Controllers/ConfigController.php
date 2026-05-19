@@ -163,7 +163,8 @@ class ConfigController extends Controller
         // Handle checkboxes (convert missing values to 0)
         $checkboxes = [
             'print_after_sale', 'print_after_receiving', 'automatically_email_receipt', 'hide_signature',
-            'default_tax_2_cumulative', 'enable_customer_loyalty_system', 'customers_store_accounts',
+            'default_tax_2_cumulative', 'flat_discounts_discount_tax', 'prices_include_tax', 'charge_tax_on_recv',
+            'enable_customer_loyalty_system', 'customers_store_accounts',
             'suppliers_store_accounts', 'calculate_average_cost_price_from_receivings',
             'hide_dashboard_statistics', 'show_language_switcher', 'show_clock_on_header',
             'speed_up_search_queries', 'enable_sounds',

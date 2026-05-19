@@ -21,9 +21,6 @@ return new class extends Migration
             $table->index('timestamp');
             $table->index(['file_name', 'timestamp'], 'filename_timestamp');
         });
-
-        // Ensure the legacy CI3 LONGBLOB size is honored.
-        DB::statement('ALTER TABLE phppos_app_files MODIFY file_data LONGBLOB');
     }
 
     public function down(): void
