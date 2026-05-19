@@ -64,3 +64,6 @@ Route::middleware('guest:employee')->group(function (): void {
     Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [EmployeeAuthController::class, 'login'])->name('login.attempt');
 });
+
+Route::get('/setup', [\App\Http\Controllers\SetupController::class, 'index'])->name('setup');
+Route::post('/setup', [\App\Http\Controllers\SetupController::class, 'store']);
