@@ -35,6 +35,13 @@ class LanController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function sync(): JsonResponse
+    {
+        AnnouncePresence::dispatch();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function receive(Request $request, InventoryFlowService $inventoryFlowService, LocationContextService $locationContextService): JsonResponse
     {
         $data = $request->validate([

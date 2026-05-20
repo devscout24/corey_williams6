@@ -71,6 +71,12 @@
                 </button>
                 <span class="topbar-title">@yield('page-title', 'Dashboard')</span>
                 <div class="topbar-actions">
+                    <button type="button" class="topbar-icon-btn" id="lanSyncButton" title="Sync LAN">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button type="button" class="topbar-icon-btn" id="lanRefreshButton" title="Refresh Notifications">
+                        <i class="bi bi-bell"></i>
+                    </button>
                     <div class="dropdown">
                         <button class="btn-add dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-plus-lg"></i> Add
@@ -119,7 +125,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
+            const syncButton = document.getElementById('lanSyncButton');
+            const refreshButton = document.getElementById('lanRefreshButton');
             const htmlEl = document.documentElement;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const notificationKey = 'lanLastNotificationId';
             
             const savedTheme = localStorage.getItem('theme') || 'light';
             htmlEl.setAttribute('data-theme', savedTheme);
@@ -142,6 +152,93 @@
                     themeIcon.classList.remove('bi-sun-fill');
                     themeIcon.classList.add('bi-moon-fill');
                 }
+            }
+
+            async function fetchNotifications(showToast) {
+                try {
+                    const response = await fetch('/api/lan/notifications');
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    if (!Array.isArray(data) || data.length === 0) {
+                        return;
+                    }
+
+                    const latest = data[0];
+                    const lastId = Number(localStorage.getItem(notificationKey) || 0);
+
+                    if (latest.id > lastId) {
+                        localStorage.setItem(notificationKey, String(latest.id));
+                        if (showToast) {
+                            const statusLabel = latest.status ? latest.status.toUpperCase() : 'PENDING';
+                            Swal.fire({
+                                icon: latest.status === 'failed' ? 'error' : 'success',
+                                title: 'Sync ' + statusLabel,
+                                text: `${latest.item_type} #${latest.item_id} → ${latest.destination}`,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end',
+                            });
+                        }
+                    }
+                } catch (error) {
+                    // Ignore notification failures.
+                }
+            }
+
+            if (syncButton) {
+                syncButton.addEventListener('click', async () => {
+                    syncButton.disabled = true;
+                    syncButton.classList.add('disabled');
+
+                    try {
+                        await fetch('/api/lan/sync', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                            },
+                            body: JSON.stringify({}),
+                        });
+
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sync queued',
+                            text: 'Looking for LAN updates...',
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end',
+                        });
+
+                        fetchNotifications(true);
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Sync failed',
+                            text: 'Unable to start LAN sync.',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end',
+                        });
+                    } finally {
+                        syncButton.disabled = false;
+                        syncButton.classList.remove('disabled');
+                    }
+                });
+            }
+
+            if (refreshButton) {
+                refreshButton.addEventListener('click', () => {
+                    fetchNotifications(true);
+                });
             }
         });
     </script>
