@@ -29,7 +29,7 @@
                                 <tr>
                                     <td>{{ $location->name }}</td>
                                     <td>{{ $location->ip }}</td>
-                                    <td>{{ $location->last_seen_at ? $location->last_seen_at->format('m/d/Y H:i') : 'Never' }}</td>
+                                    <td>{{ $location->last_seen_at ? \Carbon\Carbon::parse($location->last_seen_at)->format('m/d/Y H:i') : 'Never' }}</td>
                                     <td>
                                         @if($location->is_self)
                                             <span class="badge bg-success">Yes</span>
@@ -90,7 +90,7 @@
                                             <span class="badge bg-warning text-dark">Pending</span>
                                         @endif
                                     </td>
-                                    <td>{{ $transfer->created_at?->format('m/d/Y H:i') }}</td>
+                                    <td>{{ $transfer->created_at ? \Carbon\Carbon::parse($transfer->created_at)->format('m/d/Y H:i') : '' }}</td>
                                 </tr>
                             @empty
                                 <tr>

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->text('long_description')->nullable();
             $table->text('info_popup')->nullable();
             $table->decimal('cost_price', 23, 10)->default(0);
+            $table->decimal('markup', 23, 10)->default(0);
             $table->decimal('unit_price', 23, 10)->default(0);
             $table->decimal('weight', 23, 10)->nullable();
             $table->string('weight_unit', 50)->nullable();

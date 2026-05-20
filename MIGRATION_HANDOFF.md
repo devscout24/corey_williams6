@@ -64,6 +64,10 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **LAN Status Page:** Added a UI page to list known LAN nodes and recent transfer queue status, linked from the sidebar Locations item.
 - **Manual Sync Controls:** Added a top-bar Sync button to trigger LAN discovery and a bell refresh button for notifications. No polling is used.
 
+### May 21, 2026 (Items: Markup Auto-Calc)
+- **Items Form:** When markup or cost price changes, unit price now auto-calculates as cost + markup.
+- **Schema:** Added `markup` column to the `phppos_items` create migration. **Requires `migrate:fresh`** to apply.
+
 ### May 18, 2026 (Config: Taxes + Tax Classes)
 - **Config UI:** Expanded Store Config tax tab to include tax settings (Tax ID, prices include tax, charge tax on receivings, flat discount tax) plus default taxes 1-5 with a show-more toggle.
 - **Tax Classes Management:** Added Tax Classes table UI with rate rows, cumulative flags, default selection, add/delete actions, and JS helpers for dynamic rows.

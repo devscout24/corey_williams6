@@ -582,6 +582,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function updateUnitPriceFromMarkup() {
+        const costInput = document.getElementById('cost_price');
+        const markupInput = document.getElementById('markup');
+        const unitInput = document.getElementById('unit_price');
+
+        if (!costInput || !markupInput || !unitInput) {
+            return;
+        }
+
+        const cost = parseFloat(costInput.value);
+        const markup = parseFloat(markupInput.value);
+
+        if (Number.isFinite(cost) && Number.isFinite(markup)) {
+            unitInput.value = (cost + markup).toFixed(3);
+        }
+    }
+
     // Add additional item number row
     document.getElementById('add-additional-number')?.addEventListener('click', function() {
         addRowFromTemplate('additional-numbers-container', 'additional-number-row');
@@ -601,6 +618,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('add-serial-number')?.addEventListener('click', function() {
         addRowFromTemplate('serial-numbers-table', 'serial-number-row', true);
     });
+
+    document.getElementById('markup')?.addEventListener('input', updateUnitPriceFromMarkup);
+    document.getElementById('cost_price')?.addEventListener('input', updateUnitPriceFromMarkup);
 
     // Remove rows via event delegation
     document.addEventListener('click', function(e) {

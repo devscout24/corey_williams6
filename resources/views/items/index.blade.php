@@ -445,7 +445,22 @@
       return;
     }
 
-    if (!confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`)) {
+    let confirmResult = { isConfirmed: false };
+    if (window.Swal) {
+      confirmResult = await Swal.fire({
+        title: 'Confirm update',
+        text: `Update ${field.replace('_', ' ')} to ${newValue}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Update',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+      });
+    } else {
+      confirmResult.isConfirmed = confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`);
+    }
+
+    if (!confirmResult.isConfirmed) {
       console.log('Update cancelled by user');
       input.value = oldValue;
       return;
