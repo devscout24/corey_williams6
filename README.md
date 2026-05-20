@@ -39,3 +39,32 @@
    - Confirm a LAN `locations` row exists for the destination
      with `name` matching phppos location name.
    - Confirm `last_seen_at` is recent and `ip` is correct.
+
+## NSSM Queue Worker (Configured by Installer)
+
+During installation, configure NSSM to run the queue worker automatically.
+
+Inputs the installer should collect/use:
+- PHP path (e.g., C:\\path\\to\\php.exe)
+- App install path (e.g., C:\\Program Files\\LaravelPos)
+
+Installer actions:
+1) Install or bundle NSSM (e.g., C:\\Program Files\\LaravelPos\\nssm.exe).
+2) Create the service:
+   nssm install LaravelPosQueueWorker
+
+   Application:
+   - Path: {PHP_PATH}
+   - Startup directory: {APP_PATH}
+   - Arguments: artisan queue:work --sleep=1 --tries=1 --timeout=60
+
+3) Set service display name and autostart:
+   nssm set LaravelPosQueueWorker DisplayName "Laravel POS Queue Worker"
+   nssm set LaravelPosQueueWorker Start SERVICE_AUTO_START
+
+4) Start the service:
+   nssm start LaravelPosQueueWorker
+
+5) Optional uninstall steps:
+   nssm stop LaravelPosQueueWorker
+   nssm remove LaravelPosQueueWorker confirm
