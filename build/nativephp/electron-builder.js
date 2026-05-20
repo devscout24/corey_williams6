@@ -100,7 +100,8 @@ export default {
         shortcutName: '${productName}',
         uninstallDisplayName: '${productName}',
         createDesktopShortcut: 'always',
-        installDirectory: 'C:\\Users\\Raihan\\Favorites\\LaravelPos',
+        oneClick: false,
+        allowToChangeInstallationDirectory: true,
     },
     protocols: {
         name: deepLinkProtocol,
