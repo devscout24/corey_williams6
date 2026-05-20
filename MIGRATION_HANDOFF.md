@@ -56,6 +56,10 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Receivings UI:** Removed the legacy manual “Sync Transfer” pull modal and route from the Receivings register.
 - **LAN Destination Mapping:** Transfer sync now resolves the destination IP from the LAN `locations` table (matching by location name, latest `last_seen_at`) instead of using `phppos_locations.sync_url`.
 
+### May 21, 2026 (Installer Wizard)
+- **Setup Flow:** Added a browser-based setup wizard (`/setup`) that writes core `.env` values, runs migrations and seeds, binds LAN identity, and creates the first employee user.
+- **Install Guard:** Added `installed` middleware and an install lock (`storage/app/install.lock`) to redirect all routes to setup until the wizard completes.
+
 ### May 18, 2026 (Config: Taxes + Tax Classes)
 - **Config UI:** Expanded Store Config tax tab to include tax settings (Tax ID, prices include tax, charge tax on receivings, flat discount tax) plus default taxes 1-5 with a show-more toggle.
 - **Tax Classes Management:** Added Tax Classes table UI with rate rows, cumulative flags, default selection, add/delete actions, and JS helpers for dynamic rows.

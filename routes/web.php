@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppFileController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\ConfigController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OrderController;
@@ -14,6 +15,10 @@ require_once __DIR__.'/rony/receive_return_module.php';
 require_once __DIR__.'/rony/people_modules.php';
 require_once __DIR__.'/rony/sales_inventory_modules.php';
 
+Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
+Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
+
+Route::middleware('installed')->group(function (): void {
 Route::middleware('auth:employee')->group(function (): void {
     Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
 
@@ -63,4 +68,5 @@ Route::middleware('auth:employee')->group(function (): void {
 Route::middleware('guest:employee')->group(function (): void {
     Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [EmployeeAuthController::class, 'login'])->name('login.attempt');
+});
 });
