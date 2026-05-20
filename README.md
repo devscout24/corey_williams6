@@ -10,7 +10,7 @@
    - Check the `locations` table for `is_self = 1` and the bound IP.
 
 4) Trigger discovery:
-   - Use the Sync button in the UI (or dispatch AnnouncePresence).
+   - Use the Sync button in the top bar (manual trigger).
    - Verify other devices appear in `locations` with `last_seen_at` updated.
 
 5) Sanity check:
@@ -39,6 +39,12 @@
    - Confirm a LAN `locations` row exists for the destination
      with `name` matching phppos location name.
    - Confirm `last_seen_at` is recent and `ip` is correct.
+
+## Sync & Notifications (Manual)
+
+- **Sync button (top bar):** manually triggers LAN discovery and queue send attempts.
+- **Refresh notifications (top bar bell):** manually fetches recent transfer queue status.
+- There is **no automatic polling** for notifications.
 
 ## NSSM Queue Worker (Configured by Installer)
 
