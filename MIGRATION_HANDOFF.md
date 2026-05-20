@@ -54,6 +54,7 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Transfer Sync Replaced:** Removed legacy `/api/sync/transfer-out` routes and wired transfer syncing to the LAN system (unauthenticated). Transfers now queue a `transfer_out` payload to `/api/lan/receive` using the new LAN nodes table.
 - **LAN Transfer Payload:** `SendItem` now builds transfer payloads from `phppos_transfers` and `phppos_transfer_items`; `LanController@receive` imports transfer-ins via `InventoryFlowService` with ULID validation.
 - **Receivings UI:** Removed the legacy manual “Sync Transfer” pull modal and route from the Receivings register.
+- **LAN Destination Mapping:** Transfer sync now resolves the destination IP from the LAN `locations` table (matching by location name, latest `last_seen_at`) instead of using `phppos_locations.sync_url`.
 
 ### May 18, 2026 (Config: Taxes + Tax Classes)
 - **Config UI:** Expanded Store Config tax tab to include tax settings (Tax ID, prices include tax, charge tax on receivings, flat discount tax) plus default taxes 1-5 with a show-more toggle.

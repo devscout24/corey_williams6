@@ -303,19 +303,18 @@ class InventoryFlowService
         }
 
         $toLocation = \App\Models\PhpposLocation::where('location_id', $transfer->to_location_id)->first();
-        if (!$toLocation || empty($toLocation->sync_url)) {
+        if (!$toLocation) {
             return;
         }
 
-        $address = $this->normalizeLanAddress($toLocation->sync_url);
-        if (!$address) {
+        $lanLocation = \App\Models\Location::where('name', $toLocation->name)
+            ->where('is_self', false)
+            ->orderByDesc('last_seen_at')
+            ->first();
+
+        if (!$lanLocation || empty($lanLocation->ip)) {
             return;
         }
-
-        $lanLocation = \App\Models\Location::firstOrCreate(
-            ['ip' => $address],
-            ['name' => $toLocation->name, 'is_self' => false]
-        );
 
         $transferQueue = \App\Models\TransferQueue::create([
             'location_id' => $lanLocation->id,
@@ -325,32 +324,6 @@ class InventoryFlowService
         ]);
 
         \App\Jobs\SendItem::dispatch($transferQueue);
-    }
-
-    private function normalizeLanAddress(?string $value): ?string
-    {
-        if (!$value) {
-            return null;
-        }
-
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        if (!preg_match('/^https?:\/\//i', $value)) {
-            $value = 'http://'.$value;
-        }
-
-        $parts = parse_url($value);
-        if (!$parts || empty($parts['host'])) {
-            return null;
-        }
-
-        $host = $parts['host'];
-        $port = $parts['port'] ?? null;
-
-        return $port ? $host.':'.$port : $host;
     }
 
     /**
