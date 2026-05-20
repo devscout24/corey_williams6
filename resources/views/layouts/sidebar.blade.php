@@ -79,7 +79,11 @@
             <div class="nav-item"><a href="{{ route('employees.index') }}" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Employees</span></a></div>
             <div class="nav-item"><a href="#" class="nav-link"><i class="bi bi-receipt"></i><span>VAT Report</span></a></div>
             <div class="nav-item"><a href="{{ route('config.index') }}" class="nav-link"><i class="bi bi-gear-fill"></i><span>Store Config</span></a></div>
-            <div class="nav-item"><a href="#" class="nav-link"><i class="bi bi-geo-alt-fill"></i><span>Locations</span></a></div>
+            <div class="nav-item">
+                <a href="{{ route('lan.locations') }}" class="nav-link {{ request()->routeIs('lan.locations') ? 'active' : '' }}">
+                    <i class="bi bi-geo-alt-fill"></i><span>Locations</span>
+                </a>
+            </div>
             <div class="nav-item"><a href="{{ route('messages.index') }}" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Messages</span></a></div>
         </nav>
 

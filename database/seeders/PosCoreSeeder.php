@@ -148,29 +148,42 @@ class PosCoreSeeder extends Seeder
         }
 
         if (Schema::hasTable('phppos_permissions')) {
-            DB::table('phppos_permissions')->upsert(
-                [
-                    ['module_id' => 'config', 'person_id' => 1],
-                    ['module_id' => 'employees', 'person_id' => 1],
-                ],
-                ['module_id', 'person_id'],
-                []
-            );
+            $permissions = [
+                ['module_id' => 'config', 'person_id' => 1],
+                ['module_id' => 'employees', 'person_id' => 1],
+            ];
+
+            foreach ($permissions as $permission) {
+                DB::table('phppos_permissions')->updateOrInsert(
+                    [
+                        'module_id' => $permission['module_id'],
+                        'person_id' => $permission['person_id'],
+                    ],
+                    []
+                );
+            }
         }
 
         if (Schema::hasTable('phppos_permissions_actions')) {
-            DB::table('phppos_permissions_actions')->upsert(
-                [
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'add_update'],
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'delete'],
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'search'],
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'edit_profile'],
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'assign_all_locations'],
-                    ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'excel_export'],
-                ],
-                ['module_id', 'person_id', 'action_id'],
-                []
-            );
+            $actions = [
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'add_update'],
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'delete'],
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'search'],
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'edit_profile'],
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'assign_all_locations'],
+                ['module_id' => 'employees', 'person_id' => 1, 'action_id' => 'excel_export'],
+            ];
+
+            foreach ($actions as $action) {
+                DB::table('phppos_permissions_actions')->updateOrInsert(
+                    [
+                        'module_id' => $action['module_id'],
+                        'person_id' => $action['person_id'],
+                        'action_id' => $action['action_id'],
+                    ],
+                    []
+                );
+            }
         }
 
         if (Schema::hasTable('phppos_categories')) {

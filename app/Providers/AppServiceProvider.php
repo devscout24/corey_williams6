@@ -21,6 +21,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver");
+        $databasePath = config("database.connections.{$connection}.database");
+
+        if ($driver === 'sqlite' && $databasePath && !file_exists($databasePath)) {
+            return;
+        }
+
         if (!Schema::hasTable('locations')) {
             return;
         }

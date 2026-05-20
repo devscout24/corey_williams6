@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppFileController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\ConfigController;
+use App\Http\Controllers\LanStatusController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\ModuleController;
@@ -47,6 +48,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/transfers/save', [TransferController::class, 'save'])->name('transfers.save');
     Route::get('/transfers/edit/{id}', [TransferController::class, 'edit'])->name('transfers.edit');
     Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
+
+    Route::get('/lan/locations', [LanStatusController::class, 'index'])->name('lan.locations');
 
    
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
