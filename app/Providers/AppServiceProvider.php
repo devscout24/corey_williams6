@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Location;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (!Schema::hasTable('locations')) {
+            return;
+        }
+
+        $nodeIp = config('app.node_ip');
+        if (!$nodeIp) {
+            return;
+        }
+
+        $nodeName = config('app.node_name');
+
+        $location = Location::where('is_self', true)->first();
+        if (!$location) {
+            $location = Location::firstOrCreate(
+                ['ip' => $nodeIp],
+                ['name' => $nodeName, 'is_self' => true]
+            );
+        }
+
+        $location->name = $nodeName;
+        $location->ip = $nodeIp;
+        $location->is_self = true;
+        $location->save();
     }
 }
