@@ -297,40 +297,60 @@ class InventoryFlowService
 
     public function syncTransferEvent(int $transferOutId): void
     {
-        $transfer = \App\Models\PhpposTransfer::with('items')->find($transferOutId);
-        if (!$transfer) return;
-        
-        $toLocation = \App\Models\PhpposLocation::where('location_id', $transfer->to_location_id)->first();
-        if (!$toLocation || empty($toLocation->sync_url)) return;
-
-        $fromLocation = \App\Models\PhpposLocation::where('location_id', $transfer->from_location_id)->first();
-
-        $lines = $transfer->items->map(function ($item) {
-            $itemModel = \App\Models\PhpposItem::find($item->item_id);
-            return [
-                'item_id' => $item->item_id,
-                'item_number' => $itemModel?->item_number,
-                'quantity' => (float) $item->quantity,
-            ];
-        })->values();
-
-        $payload = [
-            'source_device_id' => config('sync.device_id', 'unknown'),
-            'transfer_out_id' => (string) $transfer->id,
-            'from_location_ulid' => $fromLocation?->ulid,
-            'to_location_ulid' => $toLocation->ulid,
-            'notes' => $transfer->notes,
-            'status' => $transfer->status,
-            'created_at' => $transfer->created_at?->toISOString(),
-            'lines' => $lines->toArray(),
-        ];
-
-        try {
-            \Illuminate\Support\Facades\Http::timeout(5)
-                ->post(rtrim($toLocation->sync_url, '/') . '/api/sync/transfer-out', $payload);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Transfer sync failed: ' . $e->getMessage());
+        $transfer = \App\Models\PhpposTransfer::find($transferOutId);
+        if (!$transfer) {
+            return;
         }
+
+        $toLocation = \App\Models\PhpposLocation::where('location_id', $transfer->to_location_id)->first();
+        if (!$toLocation || empty($toLocation->sync_url)) {
+            return;
+        }
+
+        $address = $this->normalizeLanAddress($toLocation->sync_url);
+        if (!$address) {
+            return;
+        }
+
+        $lanLocation = \App\Models\Location::firstOrCreate(
+            ['ip' => $address],
+            ['name' => $toLocation->name, 'is_self' => false]
+        );
+
+        $transferQueue = \App\Models\TransferQueue::create([
+            'location_id' => $lanLocation->id,
+            'item_type' => 'transfer_out',
+            'item_id' => $transfer->id,
+            'status' => 'pending',
+        ]);
+
+        \App\Jobs\SendItem::dispatch($transferQueue);
+    }
+
+    private function normalizeLanAddress(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (!preg_match('/^https?:\/\//i', $value)) {
+            $value = 'http://'.$value;
+        }
+
+        $parts = parse_url($value);
+        if (!$parts || empty($parts['host'])) {
+            return null;
+        }
+
+        $host = $parts['host'];
+        $port = $parts['port'] ?? null;
+
+        return $port ? $host.':'.$port : $host;
     }
 
     /**

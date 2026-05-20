@@ -23,7 +23,6 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/receivings/mode', [ReceivingController::class, 'setMode'])->name('receivings.mode.set');
     Route::post('/receivings/complete', [ReceivingController::class, 'complete'])->name('receivings.complete');
     Route::post('/receivings/cancel', [ReceivingController::class, 'cancel'])->name('receivings.cancel');
-    Route::post('/receivings/sync-transfer', [ReceivingController::class, 'syncTransfer'])->name('receivings.sync-transfer');
 
     // returns
 });

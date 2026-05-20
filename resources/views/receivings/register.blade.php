@@ -163,11 +163,6 @@
                             <option value="transfer" @selected($cart['mode'] == 'transfer')>Transfer</option>
                         </select>
                     </form>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#syncTransferModal">
-                            <i class="bi bi-arrow-repeat me-2"></i> Sync Transfer
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -240,37 +235,6 @@
 
 <!-- Add Item Modal Placeholder or Search suggestions would go here -->
 <div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom" style="display:none; z-index: 1000; width: 300px;"></div>
-
-<div class="modal fade" id="syncTransferModal" tabindex="-1" aria-labelledby="syncTransferModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form action="{{ route('receivings.sync-transfer') }}" method="POST">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title" id="syncTransferModalLabel">Sync Transfer</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Sender Base URL</label>
-                        <input type="text" name="sender_base_url" class="form-control" placeholder="http://192.168.1.10:8000" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Transfer Out ID</label>
-                        <input type="text" name="transfer_out_id" class="form-control" placeholder="e.g. 1234" required>
-                    </div>
-                    <div class="text-muted small">
-                        This will pull the transfer from the sender and create a local Receiving with a reference to the source device.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Sync Now</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 @endsection
 

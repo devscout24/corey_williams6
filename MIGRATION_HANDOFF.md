@@ -44,6 +44,17 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 20, 2026 (LAN Sync System)
+- **LAN Identity Binding:** Added `app:bind-identity` Artisan command to write `APP_NODE_IP` and `APP_NODE_NAME` to `.env`, and added `app.node_ip` / `app.node_name` config entries.
+- **LAN Tables:** Added `locations` (LAN nodes registry + self record) and `transfer_queue` tables with new Eloquent models (`Location`, `TransferQueue`).
+- **LAN API + Jobs:** Implemented `/api/lan/*` routes and `LanController` for announce/receive/notifications/locations/send/retry, plus `AnnouncePresence` and `SendItem` jobs. Item-specific send/receive logic is left as TODO placeholders.
+- **Boot-time Self Record:** `AppServiceProvider` now ensures the local node is registered in `locations` when the table exists.
+
+### May 20, 2026 (Transfer Sync → LAN)
+- **Transfer Sync Replaced:** Removed legacy `/api/sync/transfer-out` routes and wired transfer syncing to the LAN system (unauthenticated). Transfers now queue a `transfer_out` payload to `/api/lan/receive` using the new LAN nodes table.
+- **LAN Transfer Payload:** `SendItem` now builds transfer payloads from `phppos_transfers` and `phppos_transfer_items`; `LanController@receive` imports transfer-ins via `InventoryFlowService` with ULID validation.
+- **Receivings UI:** Removed the legacy manual “Sync Transfer” pull modal and route from the Receivings register.
+
 ### May 18, 2026 (Config: Taxes + Tax Classes)
 - **Config UI:** Expanded Store Config tax tab to include tax settings (Tax ID, prices include tax, charge tax on receivings, flat discount tax) plus default taxes 1-5 with a show-more toggle.
 - **Tax Classes Management:** Added Tax Classes table UI with rate rows, cumulative flags, default selection, add/delete actions, and JS helpers for dynamic rows.

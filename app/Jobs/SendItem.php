@@ -3,6 +3,10 @@
 namespace App\Jobs;
 
 use App\Models\TransferQueue;
+use App\Models\PhpposItem;
+use App\Models\PhpposLocation;
+use App\Models\PhpposTransfer;
+use App\Models\PhpposTransferItem;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -38,13 +42,14 @@ class SendItem implements ShouldQueue
         }
 
         try {
-            // TODO: Load the item and build the payload based on item_type/item_id.
-            $payload = [
-                'item_type' => $transfer->item_type,
-                'item_id' => $transfer->item_id,
-                'payload' => [],
-                'from_ip' => config('app.node_ip'),
-            ];
+            $payload = $this->buildPayload($transfer);
+            if (!$payload) {
+                $transfer->update([
+                    'status' => 'failed',
+                    'error' => 'Unsupported item_type or missing data.',
+                ]);
+                return;
+            }
 
             $response = Http::timeout(10)->post("http://{$location->ip}/api/lan/receive", $payload);
 
@@ -66,5 +71,54 @@ class SendItem implements ShouldQueue
                 'error' => $exception->getMessage(),
             ]);
         }
+    }
+
+    private function buildPayload(TransferQueue $transfer): ?array
+    {
+        if ($transfer->item_type !== 'transfer_out') {
+            return null;
+        }
+
+        $transferOut = PhpposTransfer::where('id', $transfer->item_id)
+            ->where('transfer_type', 'out')
+            ->first();
+
+        if (!$transferOut) {
+            return null;
+        }
+
+        $fromLocation = PhpposLocation::where('location_id', $transferOut->from_location_id)->first();
+        $toLocation = PhpposLocation::where('location_id', $transferOut->to_location_id)->first();
+
+        if (!$fromLocation || !$toLocation) {
+            return null;
+        }
+
+        $items = PhpposTransferItem::where('transfer_id', $transferOut->id)->get();
+        $lines = $items->map(function ($item) {
+            $itemModel = PhpposItem::find($item->item_id);
+
+            return [
+                'item_id' => $item->item_id,
+                'item_number' => $itemModel?->item_number,
+                'quantity' => (float) $item->quantity,
+            ];
+        })->values()->toArray();
+
+        return [
+            'item_type' => 'transfer_out',
+            'item_id' => $transferOut->id,
+            'payload' => [
+                'source_device_id' => config('app.node_ip') ?: config('app.node_name', 'unknown'),
+                'transfer_out_id' => (string) $transferOut->id,
+                'from_location_ulid' => $fromLocation->ulid,
+                'to_location_ulid' => $toLocation->ulid,
+                'notes' => $transferOut->notes,
+                'status' => $transferOut->status,
+                'created_at' => $transferOut->created_at?->toISOString(),
+                'lines' => $lines,
+            ],
+            'from_ip' => config('app.node_ip'),
+        ];
     }
 }
