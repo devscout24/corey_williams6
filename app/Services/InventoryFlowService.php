@@ -344,7 +344,7 @@ class InventoryFlowService
             throw new RuntimeException('From and To location must be different.');
         }
 
-        return DB::transaction(function () use ($fromLocationId, $toLocationId, $lines, $externalSource, $externalTransferId, $notes, $createdAt): array {
+        return DB::transaction(function () use ($fromLocationId, $toLocationId, $lines, $externalSource, $externalTransferId, $notes, $createdAt, $status): array {
             $existing = DB::table('phppos_transfers')
                 ->where('transfer_type', 'in')
                 ->where('external_source', $externalSource)
