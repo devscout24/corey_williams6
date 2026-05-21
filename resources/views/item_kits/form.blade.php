@@ -241,7 +241,7 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4 mt-md-5">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(old(true))>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(true)>
                                     <label class="form-check-label" for="tax_included">Prices Include Tax</label>
                                 </div>
                             </div>

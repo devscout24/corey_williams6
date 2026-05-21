@@ -131,8 +131,8 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label" for="item_number">Item Number (SKU)</label>
-                                <input type="text" class="form-control" id="item_number" name="item_number" value="{{ old('item_number', $item?->item_number) }}" />
+                                <label class="form-label" for="item_number">Item Number (SKU)  <span class="text-danger">*</span></label>
+                                <input type="text" required class="form-control" id="item_number" name="item_number" value="{{ old('item_number', $item?->item_number) }}" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="product_id">Product ID</label>
@@ -175,6 +175,13 @@
                                     <span class="input-group-text">$</span>
                                     <input type="number" step="0.001" class="form-control" id="cost_price" name="cost_price" value="{{ old('cost_price', $item?->cost_price) }}" />
                                 </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="markup_type">Markup Type</label>
+                                <select class="form-control" id="markup_type" name="markup_type">
+                                    <option value="flat" {{ old('markup_type', $item?->markup_type) == 'flat' ? 'selected' : '' }}>Flat</option>
+                                    <option value="percentage" {{ old('markup_type', $item?->markup_type) == 'percentage' ? 'selected' : '' }}>Percentage</option>
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="markup">Markup</label>
@@ -584,18 +591,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateUnitPriceFromMarkup() {
         const costInput = document.getElementById('cost_price');
+        const markupTypeSelect = document.getElementById('markup_type');
         const markupInput = document.getElementById('markup');
         const unitInput = document.getElementById('unit_price');
 
-        if (!costInput || !markupInput || !unitInput) {
+        if (!costInput || !markupInput || !unitInput || !markupTypeSelect) {
             return;
         }
 
         const cost = parseFloat(costInput.value);
         const markup = parseFloat(markupInput.value);
+        const markupType = markupTypeSelect.value;
 
-        if (Number.isFinite(cost) && Number.isFinite(markup)) {
+        if (!Number.isFinite(cost) || !Number.isFinite(markup)) {
+            return;
+        }
+
+        if (markupType === 'flat') {
             unitInput.value = (cost + markup).toFixed(3);
+        } else if (markupType === 'percentage') {
+            unitInput.value = (cost + (cost * markup / 100)).toFixed(3);
         }
     }
 
@@ -621,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('markup')?.addEventListener('input', updateUnitPriceFromMarkup);
     document.getElementById('cost_price')?.addEventListener('input', updateUnitPriceFromMarkup);
-
+    document.getElementById('markup_type')?.addEventListener('change', updateUnitPriceFromMarkup);
     // Remove rows via event delegation
     document.addEventListener('click', function(e) {
         const removeBtn = e.target.closest('.remove-row');
