@@ -125,8 +125,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delete handling
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            if (confirm('Are you sure you want to archive this item kit?')) {
+        btn.addEventListener('click', async function() {
+            let confirmResult = { isConfirmed: false };
+            if (window.Swal) {
+                confirmResult = await Swal.fire({
+                    title: 'Archive item kit?',
+                    text: 'This will archive the item kit.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Archive',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                });
+            } else {
+                confirmResult.isConfirmed = confirm('Are you sure you want to archive this item kit?');
+            }
+
+            if (confirmResult.isConfirmed) {
                 const id = this.dataset.id;
                 const form = document.getElementById('delete-form');
                 form.action = `/item-kits/${id}`;
@@ -160,7 +175,22 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (!confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`)) {
+        let confirmResult = { isConfirmed: false };
+        if (window.Swal) {
+            confirmResult = await Swal.fire({
+                title: 'Confirm update',
+                text: `Update ${field.replace('_', ' ')} to ${newValue}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Update',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+        } else {
+            confirmResult.isConfirmed = confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`);
+        }
+
+        if (!confirmResult.isConfirmed) {
             input.value = oldValue;
             return;
         }

@@ -167,7 +167,7 @@
                                                     <td>
                                                         <select class="form-select form-select-sm searchable-dropdown" name="kit_items[{{ $index }}][item_id]">
                                                             @foreach($allItems as $item)
-                                                                <option value="{{ $item->item_id }}" @selected($kitItem->item_id == $item->item_id)>{{ $item->name }}</option>
+                                                                <option value="{{ $item->item_id }}" data-cost="{{ $item->cost_price }}" data-price="{{ $item->unit_price }}" @selected($kitItem->item_id == $item->item_id)>{{ $item->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </td>
@@ -198,7 +198,7 @@
                                                     <td>
                                                         <select class="form-select form-select-sm searchable-dropdown" name="nested_kits[{{ $index }}][item_kit_id]">
                                                             @foreach($allKits as $ak)
-                                                                <option value="{{ $ak->id }}" @selected($nested->item_kit_item_kit == $ak->id)>{{ $ak->name }}</option>
+                                                                <option value="{{ $ak->id }}" data-cost="{{ $ak->cost_price }}" data-price="{{ $ak->unit_price }}" @selected($nested->item_kit_item_kit == $ak->id)>{{ $ak->name }}</option>
                                                             @endforeach
                                                         </select>
                                                     </td>
@@ -232,8 +232,16 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label" for="recalc_prices">Recalculate</label>
+                                <div class="d-grid">
+                                    <button type="button" class="btn btn-outline-primary" id="recalc_prices">
+                                        <i class="bi bi-calculator me-1"></i> Calculate From Items
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="form-check form-switch mt-4 mt-md-5">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(old('tax_included', $kit?->tax_included))>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="tax_included" name="tax_included" value="1" @checked(old(true))>
                                     <label class="form-check-label" for="tax_included">Prices Include Tax</label>
                                 </div>
                             </div>
@@ -402,7 +410,7 @@
             <select class="form-select form-select-sm searchable-dropdown" name="kit_items[INDEX][item_id]">
                 <option value="">Select Item</option>
                 @foreach($allItems as $item)
-                    <option value="{{ $item->item_id }}">{{ $item->name }}</option>
+                    <option value="{{ $item->item_id }}" data-cost="{{ $item->cost_price }}" data-price="{{ $item->unit_price }}">{{ $item->name }}</option>
                 @endforeach
             </select>
         </td>
@@ -417,7 +425,7 @@
             <select class="form-select form-select-sm searchable-dropdown" name="nested_kits[INDEX][item_kit_id]">
                 <option value="">Select Kit</option>
                 @foreach($allKits as $ak)
-                    <option value="{{ $ak->id }}">{{ $ak->name }}</option>
+                    <option value="{{ $ak->id }}" data-cost="{{ $ak->cost_price }}" data-price="{{ $ak->unit_price }}">{{ $ak->name }}</option>
                 @endforeach
             </select>
         </td>
@@ -516,6 +524,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('add-secondary-category')?.addEventListener('click', function() {
         addRowFromTemplate('secondary-categories-container', 'secondary-category-row');
+    });
+
+    function parseNumber(value) {
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function sumFromTable(tableId, selectName, quantitySelector) {
+        const table = document.getElementById(tableId);
+        if (!table) {
+            return { cost: 0, price: 0, lines: 0 };
+        }
+
+        let costTotal = 0;
+        let priceTotal = 0;
+        let lineCount = 0;
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((row) => {
+            const select = row.querySelector(`select[name^="${selectName}"]`);
+            const qtyInput = row.querySelector(quantitySelector);
+            if (!select) {
+                return;
+            }
+            const selected = select.options[select.selectedIndex];
+            if (!selected || !selected.value) {
+                return;
+            }
+            const qty = qtyInput ? parseNumber(qtyInput.value) : 0;
+            const cost = parseNumber(selected.dataset.cost);
+            const price = parseNumber(selected.dataset.price);
+            costTotal += cost * qty;
+            priceTotal += price * qty;
+            if (qty > 0) {
+                lineCount += 1;
+            }
+        });
+
+        return { cost: costTotal, price: priceTotal, lines: lineCount };
+    }
+
+    document.getElementById('recalc_prices')?.addEventListener('click', function() {
+        const kitItems = sumFromTable('kit-items-table', 'kit_items', 'input[name$="[quantity]"]');
+        const nestedKits = sumFromTable('nested-kits-table', 'nested_kits', 'input[name$="[quantity]"]');
+        const totalCost = kitItems.cost + nestedKits.cost;
+        const totalPrice = kitItems.price + nestedKits.price;
+        const totalLines = kitItems.lines + nestedKits.lines;
+
+        const costInput = document.getElementById('cost_price');
+        const priceInput = document.getElementById('unit_price');
+        if (costInput) {
+            costInput.value = totalCost.toFixed(3);
+        }
+        if (priceInput) {
+            priceInput.value = totalPrice.toFixed(3);
+        }
+
+        const summaryHtml = `
+            <div class="text-start">
+                <div><strong>Item lines:</strong> ${kitItems.lines}</div>
+                <div><strong>Nested kit lines:</strong> ${nestedKits.lines}</div>
+                <div><strong>Total lines:</strong> ${totalLines}</div>
+                <hr>
+                <div><strong>Total cost:</strong> $${totalCost.toFixed(3)}</div>
+                <div><strong>Total unit price:</strong> $${totalPrice.toFixed(3)}</div>
+            </div>
+        `;
+
+        if (window.Swal) {
+            Swal.fire({
+                title: 'Pricing calculated',
+                html: summaryHtml,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            alert(
+                `Item lines: ${kitItems.lines}\n` +
+                `Nested kit lines: ${nestedKits.lines}\n` +
+                `Total lines: ${totalLines}\n` +
+                `Total cost: $${totalCost.toFixed(3)}\n` +
+                `Total unit price: $${totalPrice.toFixed(3)}`
+            );
+        }
     });
 
     // Remove rows via event delegation
