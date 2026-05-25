@@ -16,6 +16,7 @@ class PhpposReceiving extends Model
     {
         return [
             'receiving_time' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 

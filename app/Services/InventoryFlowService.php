@@ -451,6 +451,7 @@ class InventoryFlowService
 
             $receiving = PhpposReceiving::create([
                 'receiving_time' => $timestamp,
+                'closed_at' => $timestamp,
                 'supplier_id' => null,
                 'employee_id' => $receivingEmployeeId,
                 'comment' => $receivingComment,

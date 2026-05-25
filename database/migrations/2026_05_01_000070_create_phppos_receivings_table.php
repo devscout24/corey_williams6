@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_receivings', function (Blueprint $table) {
             $table->id('receiving_id');
             $table->timestamp('receiving_time')->useCurrent();
+            $table->timestamp('closed_at')->nullable();
             $table->unsignedBigInteger('supplier_id')->nullable();
             $table->unsignedBigInteger('employee_id');
             $table->text('comment')->nullable();

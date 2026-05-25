@@ -44,6 +44,10 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 25, 2026 (Purchases Closing Date + VAT Rates)
+- **Purchases Closing Date:** Added `closed_at` to `phppos_receivings` and set it whenever a purchase is closed (manual purchases, transfer-generated returns, and order-close generated receivings). Orders now stamp `closed_at` when closed.
+- **VAT System in Store Config:** Added `phppos_vat_rates` table, Store Config VAT rates UI, and seed data for VAT 15%, VAT 20%, Exempt, and Zero.
+
 ### May 20, 2026 (LAN Sync System)
 - **LAN Identity Binding:** Added `app:bind-identity` Artisan command to write `APP_NODE_IP` and `APP_NODE_NAME` to `.env`, and added `app.node_ip` / `app.node_name` config entries.
 - **LAN Tables:** Added `locations` (LAN nodes registry + self record) and `transfer_queue` tables with new Eloquent models (`Location`, `TransferQueue`).

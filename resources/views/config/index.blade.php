@@ -107,6 +107,52 @@
                 </div>
 
                 <div class="sc-form-card" style="margin-top:20px;">
+                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">VAT Rates</h5>
+                    <p class="text-muted small mb-3">Manage VAT labels and percentages used across the system.</p>
+                    <div class="table-responsive">
+                        <table id="vatRatesTable" class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 55%;">VAT Name</th>
+                                    <th style="width: 25%;">Percent (%)</th>
+                                    <th style="width: 20%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($vatRates as $vatRate)
+                                    <tr data-vat-id="{{ $vatRate->id }}">
+                                        <td>
+                                            <input type="text" name="vat_rates[name][]" class="sc-form-control" value="{{ $vatRate->name }}">
+                                            <input type="hidden" name="vat_rates[id][]" value="{{ $vatRate->id }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="{{ $vatRate->percent }}">
+                                        </td>
+                                        <td>
+                                            <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr data-empty-row>
+                                        <td>
+                                            <input type="text" name="vat_rates[name][]" class="sc-form-control" value="">
+                                            <input type="hidden" name="vat_rates[id][]" value="">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="">
+                                        </td>
+                                        <td>
+                                            <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="#" id="addVatRate">Add VAT Rate</a>
+                </div>
+
+                <div class="sc-form-card" style="margin-top:20px;">
                     <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Tax Classes</h5>
                     <p class="text-muted small mb-3">Tax classes define grouped rates used by items, item kits, customers, suppliers, sales, and receivings.</p>
                     <div class="table-responsive">
@@ -1257,6 +1303,44 @@
                     storeConfigForm.appendChild(hid);
                 }
                 link.closest('tr').remove();
+            });
+
+            const vatRatesTable = document.getElementById('vatRatesTable');
+            document.getElementById('addVatRate')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (!vatRatesTable) return;
+                const tbody = vatRatesTable.querySelector('tbody');
+                tbody.querySelector('[data-empty-row]')?.remove();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <input type="text" name="vat_rates[name][]" class="sc-form-control" value="">
+                        <input type="hidden" name="vat_rates[id][]" value="">
+                    </td>
+                    <td>
+                        <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="">
+                    </td>
+                    <td>
+                        <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            vatRatesTable?.addEventListener('click', function (e) {
+                const removeVat = e.target.closest('.remove-vat-rate');
+                if (!removeVat) return;
+                e.preventDefault();
+                const row = removeVat.closest('tr');
+                const vatId = row?.getAttribute('data-vat-id');
+                if (vatId && storeConfigForm) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'vat_rates_to_delete[]';
+                    hidden.value = vatId;
+                    storeConfigForm.appendChild(hidden);
+                }
+                row?.remove();
             });
 
             const taxClassesTable = document.getElementById('taxClassesTable');

@@ -64,6 +64,27 @@ class PosCoreSeeder extends Seeder
             );
         }
 
+        if (Schema::hasTable('phppos_vat_rates')) {
+            $vatRates = [
+                ['name' => 'VAT 15%', 'percent' => 15],
+                ['name' => 'VAT 20%', 'percent' => 20],
+                ['name' => 'Exempt', 'percent' => 0],
+                ['name' => 'Zero', 'percent' => 0],
+            ];
+
+            foreach ($vatRates as $vat) {
+                DB::table('phppos_vat_rates')->updateOrInsert(
+                    ['name' => $vat['name']],
+                    [
+                        'percent' => $vat['percent'],
+                        'deleted' => 0,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]
+                );
+            }
+        }
+
         if (Schema::hasTable('phppos_employees_locations')) {
             DB::table('phppos_employees_locations')->insertOrIgnore([
                 ['employee_id' => 1, 'location_id' => 1],

@@ -7,6 +7,7 @@ use App\Models\PhpposTaxClass;
 use App\Models\PhpposTaxClassTax;
 use App\Models\PhpposPriceTier;
 use App\Services\AppConfigService;
+use App\Models\PhpposVatRate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -122,8 +123,12 @@ class ConfigController extends Controller
             ->orderBy('order')
             ->orderBy('id')
             ->get();
+        $vatRates = PhpposVatRate::query()
+            ->where('deleted', 0)
+            ->orderBy('id')
+            ->get();
 
-        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations', 'taxClasses'));
+        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations', 'taxClasses', 'vatRates'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
@@ -158,6 +163,9 @@ class ConfigController extends Controller
             'taxes',
             'taxes_to_delete',
             'tax_classes_to_delete',
+            // vat rates management
+            'vat_rates',
+            'vat_rates_to_delete',
         ]);
         
         // Handle checkboxes (convert missing values to 0)
@@ -228,6 +236,49 @@ class ConfigController extends Controller
         $taxClassIdMap = [];
 
         \DB::transaction(function () use ($request, &$taxClassIdMap): void {
+            $vatRatesToDelete = (array) $request->input('vat_rates_to_delete', []);
+            if ($vatRatesToDelete !== []) {
+                $vatIds = array_values(array_filter(
+                    array_map(static fn ($id): int => (int) $id, $vatRatesToDelete),
+                    static fn (int $id): bool => $id > 0
+                ));
+                if ($vatIds !== []) {
+                    PhpposVatRate::query()->whereIn('id', $vatIds)->update(['deleted' => 1]);
+                }
+            }
+
+            $vatRatesInput = (array) $request->input('vat_rates', []);
+            $vatNames = (array) ($vatRatesInput['name'] ?? []);
+            $vatPercents = (array) ($vatRatesInput['percent'] ?? []);
+            $vatIds = (array) ($vatRatesInput['id'] ?? []);
+
+            foreach ($vatNames as $index => $vatName) {
+                $vatName = trim((string) $vatName);
+                if ($vatName === '') {
+                    continue;
+                }
+
+                $rawPercent = (string) ($vatPercents[$index] ?? '0');
+                $percent = is_numeric($rawPercent)
+                    ? (float) $rawPercent
+                    : (float) preg_replace('/[^0-9.\-]/', '', $rawPercent);
+
+                $vatId = $vatIds[$index] ?? null;
+                if (is_numeric($vatId) && (int) $vatId > 0) {
+                    PhpposVatRate::query()->whereKey((int) $vatId)->update([
+                        'name' => $vatName,
+                        'percent' => $percent,
+                        'deleted' => 0,
+                    ]);
+                } else {
+                    PhpposVatRate::query()->create([
+                        'name' => $vatName,
+                        'percent' => $percent,
+                        'deleted' => 0,
+                    ]);
+                }
+            }
+
             $taxClassesToDelete = (array) $request->input('tax_classes_to_delete', []);
             foreach ($taxClassesToDelete as $taxClassId) {
                 $taxClassId = is_numeric($taxClassId) ? (int) $taxClassId : null;

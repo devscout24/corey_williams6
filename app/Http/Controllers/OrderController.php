@@ -399,6 +399,7 @@ class OrderController extends Controller
                 $receive->source = 'order';
                 $receive->reference_id = $order->internal_code ?? $order->receiving_id;
                 $receive->receiving_time = now();
+                $receive->closed_at = now();
                 $receive->save();
                 $receive->syncDocumentIdentity();
 
@@ -429,7 +430,10 @@ class OrderController extends Controller
                     }
                 }
 
-                $order->update(['suspended' => 1]);
+                $order->update([
+                    'suspended' => 1,
+                    'closed_at' => now(),
+                ]);
 
                 return response()->json(['success' => true, 'message' => 'Order closed and receiving generated successfully']);
             } catch (\Exception $e) {

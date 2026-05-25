@@ -558,6 +558,7 @@ class TransferController extends Controller
 
                 $receiving = PhpposReceiving::create([
                     'receiving_time' => now(),
+                    'closed_at' => now(),
                     'supplier_id' => null, // Not bound to supplier
                     'employee_id' => auth('employee')->id(),
                     'comment' => 'Transfer Out #' . $transferOutId . ($request->comment ? ' - ' . $request->comment : ''),

@@ -596,6 +596,7 @@ class ReceivingController extends Controller
 
             $receiving = PhpposReceiving::create([
                 'receiving_time' => now(),
+                'closed_at' => now(),
                 'supplier_id' => $cart['supplier_id'],
                 'employee_id' => auth('employee')->id(),
                 'comment' => $request->comment,
