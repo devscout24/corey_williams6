@@ -135,22 +135,22 @@ class SalesService
 
                     // Compute effective combined rate (handle cumulative stacking)
                     $baseCumulative = $lineTotal;
+                    $totalTax = 0.0;
                     foreach ($rates as $rate) {
                         $rateDecimal = (float) $rate->percent / 100;
                         $lineTaxAmount = $baseCumulative * $rateDecimal;
+                        $totalTax += $lineTaxAmount;
                         if ((bool) $rate->cumulative) {
                             $baseCumulative += $lineTaxAmount;
                         }
                     }
-                    $lineTotalWithTax = $baseCumulative; // total including all tax
+                    $lineTotalWithTax = $lineTotal + $totalTax; // total including all tax
 
-                    // Sum of all rate percentages as a single effective rate for VAT calculation
-                    // VAT = total_with_tax * TaxRate / (1 + TaxRate)
                     // We calculate combined effective TaxRate from subtotal/total relationship
                     if ($lineTotal > 0) {
                         $effectiveTaxRate = ($lineTotalWithTax - $lineTotal) / $lineTotal;
                         if ($effectiveTaxRate > 0) {
-                            $lineVat = $lineTotalWithTax * $effectiveTaxRate / (1 + $effectiveTaxRate);
+                            $lineVat = $lineTotal * $effectiveTaxRate;
                         }
                     }
 

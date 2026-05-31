@@ -33,7 +33,7 @@ return new class extends Migration
             $table->decimal('subtotal', 23, 10)->default(0);
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('tax', 23, 10)->default(0);
-            $table->decimal('vat', 23, 10)->default(0)->comment('VAT = total_with_tax * rate / (1 + rate), summed from line items');
+            $table->decimal('vat', 23, 10)->default(0)->comment('VAT = total * rate, summed from line items');
             $table->decimal('profit', 23, 10)->default(0);
             $table->decimal('shipping_cost', 23, 10)->nullable();
             $table->boolean('is_po')->default(false);

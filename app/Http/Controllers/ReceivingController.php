@@ -682,7 +682,7 @@ class ReceivingController extends Controller
                 $lineTaxClassId = (int) $lineTaxClassId;
 
                 // Build combined tax rate for this line (sum of all rates in the tax class)
-                // VAT formula: total_with_tax * rate / (1 + rate)
+                // VAT formula: vat = total * taxrate
                 // For multiple stacked rates the effective combined rate is used.
                 $lineVat = 0.0;
                 if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
@@ -690,22 +690,22 @@ class ReceivingController extends Controller
 
                     // Compute effective combined rate (handle cumulative stacking)
                     $baseCumulative = $lineSubtotal;
+                    $totalTax = 0.0;
                     foreach ($rates as $rate) {
                         $rateDecimal = (float) $rate->percent / 100;
                         $lineTaxAmount = $baseCumulative * $rateDecimal;
+                        $totalTax += $lineTaxAmount;
                         if ((bool) $rate->cumulative) {
                             $baseCumulative += $lineTaxAmount;
                         }
                     }
-                    $lineTotal = $baseCumulative; // total including all tax
+                    $lineTotal = $lineSubtotal + $totalTax; // total including all tax
 
-                    // Sum of all rate percentages as a single effective rate for VAT calculation
-                    // VAT = total_with_tax * TaxRate / (1 + TaxRate)
                     // We calculate combined effective TaxRate from subtotal/total relationship
                     if ($lineSubtotal > 0) {
                         $effectiveTaxRate = ($lineTotal - $lineSubtotal) / $lineSubtotal;
                         if ($effectiveTaxRate > 0) {
-                            $lineVat = $lineTotal * $effectiveTaxRate / (1 + $effectiveTaxRate);
+                            $lineVat = $lineSubtotal * $effectiveTaxRate;
                         }
                     }
 

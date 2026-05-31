@@ -44,6 +44,11 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Sales & Purchases VAT Formula Update)
+- **VAT Formula Updated:** Changed the VAT calculation from tax-inclusive `total_with_tax * rate / (1 + rate)` to tax-exclusive `VAT = total * rate` per item line.
+- **Cumulative stacking correction:** Fixed an issue where non-cumulative taxes were excluded from the total line price calculation.
+- **Requires `migrate:fresh`** to apply updated migration comments.
+
 ### May 31, 2026 (Sales VAT Field)
 - **VAT on Sales:** Added `vat` column to `phppos_sales` (header total) and `phppos_sales_items` (per-line).
 - **Formula:** `VAT = total_price_with_tax × TaxRate / (1 + TaxRate)` — computed from the effective combined tax rate based on the tax class rates applied to the items.
