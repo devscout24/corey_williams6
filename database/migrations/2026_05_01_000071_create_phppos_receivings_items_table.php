@@ -26,6 +26,7 @@ return new class extends Migration
             $table->decimal('subtotal', 23, 10)->default(0);
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('tax', 23, 10)->default(0);
+            $table->decimal('vat', 23, 10)->default(0)->comment('VAT = total_with_tax * rate / (1 + rate)');
             $table->decimal('profit', 23, 10)->default(0);
             $table->text('override_taxes')->nullable();
             $table->decimal('unit_quantity', 23, 10)->nullable();

@@ -164,6 +164,12 @@
             <td>Subtotal</td>
             <td class="amount">${{ number_format($receiving->subtotal, 2) }}</td>
         </tr>
+        @if((float) $receiving->vat > 0)
+        <tr>
+            <td style="color:#666;">VAT</td>
+            <td class="amount" style="color:#666;">${{ number_format($receiving->vat, 2) }}</td>
+        </tr>
+        @endif
         <tr class="grand-total">
             <td>Grand Total</td>
             <td class="amount">${{ number_format($receiving->total, 2) }}</td>

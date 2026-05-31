@@ -44,6 +44,14 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Purchases VAT Field)
+- **VAT on Purchases:** Added `vat` column to `phppos_receivings` (header total) and `phppos_receivings_items` (per-line).
+- **Formula:** `VAT = total_price_with_tax × TaxRate / (1 + TaxRate)` — derived from the effective combined tax rate computed from the snapshotted tax class rates.
+- **Multi-rate support:** Handles cumulative stacking; effective rate is computed from the subtotal→total difference, then the formula is applied to the tax-inclusive total.
+- **Controller:** `ReceivingController@complete` now calculates and persists `vat` on each line item and sums to the header record via `saveQuietly()`.
+- **Views:** VAT row added to both `receivings/show.blade.php` and `receivings/print.blade.php` totals area (hidden when VAT = 0).
+- **Requires `migrate:fresh`** to apply the two new columns.
+
 ### May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)
 - **Sales Closed Date:** Added `closed_at` to `phppos_sales` and set it when a sale is completed.
 - **Sales Tax Snapshot:** Added `phppos_sales_items_taxes` and now store tax class rate percentages per sale line at completion.

@@ -645,11 +645,13 @@ class ReceivingController extends Controller
                     ->get()
                     ->groupBy('tax_class_id');
 
+            $totalVat = 0.0; // accumulator for header-level VAT
+
             foreach ($cart['items'] as $index => $item) {
                 $isKitFallback = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
 
                 if ($isKitFallback) {
-                    // Store as a kit-level line item
+                    // Store as a kit-level line item (no tax class lookup for bare kit lines)
                     $kitId = (int) str_replace('KIT_', '', $item['item_id']);
                     PhpposReceivingItem::create([
                         'receiving_id'   => $receiving->receiving_id,
@@ -664,33 +666,51 @@ class ReceivingController extends Controller
                         'discount_percent'   => $item['discount'] ?? 0,
                         'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
                         'total'    => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
+                        'vat'      => 0,
                     ]);
                     // Kits with no component items: no inventory movement (nothing to deduct)
                     continue;
                 }
 
-                PhpposReceivingItem::create([
-                    'receiving_id'   => $receiving->receiving_id,
-                    'item_id'        => $item['item_id'],
-                    'line'           => $index,
-                    'quantity_purchased' => $item['quantity'],
-                    'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
-                    'item_cost_price'    => $item['cost_price'],
-                    'item_unit_price'    => $item['cost_price'],
-                    'discount_percent'   => $item['discount'],
-                    'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
-                    'total'    => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
-                ]);
+                $lineSubtotal = $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
 
+                // Resolve the tax class for this line
                 $lineTaxClassId = $itemTaxClassMap[$item['item_id']] ?? 0;
                 if (! is_numeric($lineTaxClassId) || (int) $lineTaxClassId <= 0) {
                     $lineTaxClassId = $defaultTaxClassId;
                 }
                 $lineTaxClassId = (int) $lineTaxClassId;
 
+                // Build combined tax rate for this line (sum of all rates in the tax class)
+                // VAT formula: total_with_tax * rate / (1 + rate)
+                // For multiple stacked rates the effective combined rate is used.
+                $lineVat = 0.0;
                 if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
+                    $rates = $taxClassTaxes->get($lineTaxClassId);
+
+                    // Compute effective combined rate (handle cumulative stacking)
+                    $baseCumulative = $lineSubtotal;
+                    foreach ($rates as $rate) {
+                        $rateDecimal = (float) $rate->percent / 100;
+                        $lineTaxAmount = $baseCumulative * $rateDecimal;
+                        if ((bool) $rate->cumulative) {
+                            $baseCumulative += $lineTaxAmount;
+                        }
+                    }
+                    $lineTotal = $baseCumulative; // total including all tax
+
+                    // Sum of all rate percentages as a single effective rate for VAT calculation
+                    // VAT = total_with_tax * TaxRate / (1 + TaxRate)
+                    // We calculate combined effective TaxRate from subtotal/total relationship
+                    if ($lineSubtotal > 0) {
+                        $effectiveTaxRate = ($lineTotal - $lineSubtotal) / $lineSubtotal;
+                        if ($effectiveTaxRate > 0) {
+                            $lineVat = $lineTotal * $effectiveTaxRate / (1 + $effectiveTaxRate);
+                        }
+                    }
+
                     $taxInsert = [];
-                    foreach ($taxClassTaxes->get($lineTaxClassId) as $rate) {
+                    foreach ($rates as $rate) {
                         $taxInsert[] = [
                             'receiving_id' => $receiving->receiving_id,
                             'item_id' => $item['item_id'],
@@ -704,6 +724,22 @@ class ReceivingController extends Controller
                     }
                     DB::table('phppos_receivings_items_taxes')->insert($taxInsert);
                 }
+
+                $totalVat += $lineVat;
+
+                PhpposReceivingItem::create([
+                    'receiving_id'   => $receiving->receiving_id,
+                    'item_id'        => $item['item_id'],
+                    'line'           => $index,
+                    'quantity_purchased' => $item['quantity'],
+                    'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                    'item_cost_price'    => $item['cost_price'],
+                    'item_unit_price'    => $item['cost_price'],
+                    'discount_percent'   => $item['discount'],
+                    'subtotal' => $lineSubtotal,
+                    'total'    => $lineSubtotal,
+                    'vat'      => round($lineVat, 10),
+                ]);
 
                 // Update inventory
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
@@ -729,6 +765,10 @@ class ReceivingController extends Controller
                     'updated_at'  => now(),
                 ]);
             }
+
+            // Persist total VAT on the header record
+            $receiving->vat = round($totalVat, 10);
+            $receiving->saveQuietly();
 
             Session::forget('receiving_cart');
             $msg = $cart['mode'] === 'return'
