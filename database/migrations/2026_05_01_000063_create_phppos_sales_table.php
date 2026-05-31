@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('total', 23, 10)->default(0);
             $table->decimal('amount_tendered', 23, 10)->default(0);
             $table->decimal('change_due', 23, 10)->default(0);
+            $table->timestamp('closed_at')->nullable();
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->string('customer_name')->nullable();
             $table->text('comment')->nullable();

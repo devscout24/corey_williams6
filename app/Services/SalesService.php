@@ -48,10 +48,29 @@ class SalesService
 
             $subtotal = 0.0;
             $lineRows = [];
-            $salesItemRows = [];
+            $lineEntries = [];
 
             // Fetch config once before processing items
             $config = DB::table('phppos_app_config')->get()->keyBy('key');
+            $defaultTaxClassIdRaw = $config->get('tax_class_id')->value ?? null;
+            $defaultTaxClassId = is_numeric($defaultTaxClassIdRaw) ? (int) $defaultTaxClassIdRaw : 0;
+            $taxClassIds = $itemRows->pluck('tax_class_id')
+                ->filter(static fn ($id): bool => is_numeric($id) && (int) $id > 0)
+                ->map(static fn ($id): int => (int) $id)
+                ->values()
+                ->all();
+            if ($defaultTaxClassId > 0) {
+                $taxClassIds[] = $defaultTaxClassId;
+            }
+            $taxClassIds = array_values(array_unique($taxClassIds));
+            $taxClassTaxes = $taxClassIds === []
+                ? collect()
+                : DB::table('phppos_tax_classes_taxes')
+                    ->whereIn('tax_class_id', $taxClassIds)
+                    ->orderBy('order')
+                    ->orderBy('id')
+                    ->get()
+                    ->groupBy('tax_class_id');
 
             foreach ($normalized as $line) {
                 $itemId = $line['item_id'];
@@ -102,14 +121,29 @@ class SalesService
                 // Calculate commission for this line item
                 $commission = $this->calculateCommission($item, $soldByEmployeeId ?? $employeeId, $lineTotal, $qty, $config);
 
-                $salesItemRows[] = [
+                $lineTaxClassId = is_numeric($item->tax_class_id ?? null) ? (int) $item->tax_class_id : 0;
+                if ($lineTaxClassId <= 0 && $defaultTaxClassId > 0) {
+                    $lineTaxClassId = $defaultTaxClassId;
+                }
+
+                $taxRows = [];
+                if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
+                    foreach ($taxClassTaxes->get($lineTaxClassId) as $rate) {
+                        $taxRows[] = [
+                            'name' => $rate->name,
+                            'percent' => $rate->percent,
+                            'cumulative' => (bool) $rate->cumulative,
+                        ];
+                    }
+                }
+
+                $lineEntries[] = [
                     'item_id' => $itemId,
                     'quantity_purchased' => $qty,
                     'item_unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'commission' => $commission,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'tax_rows' => $taxRows,
                 ];
 
                 // Log inventory movement
@@ -153,6 +187,7 @@ class SalesService
                 'total' => $subtotal,
                 'amount_tendered' => $amountTendered,
                 'change_due' => $changeDue,
+                'closed_at' => now(),
                 'customer_name' => $customerName,
                 'comment' => $comment,
                 'sold_by_employee_id' => $soldByEmployeeId ?? $employeeId,
@@ -160,15 +195,37 @@ class SalesService
                 'updated_at' => now(),
             ], 'sale_id');
 
-            if (! empty($salesItemRows)) {
+            if (! empty($lineEntries)) {
                 $now = now();
-                foreach ($salesItemRows as &$row) {
-                    $row['sale_id'] = $saleId;
-                    $row['created_at'] = $row['created_at'] ?? $now;
-                    $row['updated_at'] = $row['updated_at'] ?? $now;
+                foreach ($lineEntries as $entry) {
+                    $saleItemId = DB::table('phppos_sales_items')->insertGetId([
+                        'sale_id' => $saleId,
+                        'item_id' => $entry['item_id'],
+                        'quantity_purchased' => $entry['quantity_purchased'],
+                        'item_unit_price' => $entry['item_unit_price'],
+                        'line_total' => $entry['line_total'],
+                        'commission' => $entry['commission'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+
+                    if (! empty($entry['tax_rows'])) {
+                        $taxInsert = [];
+                        foreach ($entry['tax_rows'] as $taxRow) {
+                            $taxInsert[] = [
+                                'sale_id' => $saleId,
+                                'sale_item_id' => $saleItemId,
+                                'item_id' => $entry['item_id'],
+                                'name' => $taxRow['name'],
+                                'percent' => $taxRow['percent'],
+                                'cumulative' => $taxRow['cumulative'],
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ];
+                        }
+                        DB::table('phppos_sales_items_taxes')->insert($taxInsert);
+                    }
                 }
-                unset($row);
-                DB::table('phppos_sales_items')->insert($salesItemRows);
             }
 
             // Update inventory movements with the sale ID

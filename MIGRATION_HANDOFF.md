@@ -44,6 +44,11 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)
+- **Sales Closed Date:** Added `closed_at` to `phppos_sales` and set it when a sale is completed.
+- **Sales Tax Snapshot:** Added `phppos_sales_items_taxes` and now store tax class rate percentages per sale line at completion.
+- **Purchases Tax Snapshot:** Receivings now store tax class rate percentages per line in `phppos_receivings_items_taxes` at completion.
+
 ### May 31, 2026 (Tax Classes Unification)
 - **Single Tax System:** Removed VAT Rates and legacy Default Taxes from Store Config; tax classes are now the only editable tax system.
 - **Items Tax Class:** Added tax class selection to the Item form (uses Store Default if left blank).

@@ -611,6 +611,40 @@ class ReceivingController extends Controller
             ]);
             $receiving->syncDocumentIdentity();
 
+            $itemIds = collect($cart['items'])
+                ->filter(static fn (array $row): bool => !str_starts_with((string) ($row['item_id'] ?? ''), 'KIT_'))
+                ->pluck('item_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            $itemTaxClassMap = $itemIds === []
+                ? []
+                : DB::table('phppos_items')
+                    ->whereIn('item_id', $itemIds)
+                    ->pluck('tax_class_id', 'item_id')
+                    ->toArray();
+
+            $defaultTaxClassRaw = DB::table('phppos_app_config')
+                ->where('key', 'tax_class_id')
+                ->value('value');
+            $defaultTaxClassId = is_numeric($defaultTaxClassRaw) ? (int) $defaultTaxClassRaw : 0;
+
+            $taxClassIds = array_values(array_unique(array_filter(array_merge(
+                array_map(static fn ($id): int => is_numeric($id) ? (int) $id : 0, $itemTaxClassMap),
+                [$defaultTaxClassId]
+            ), static fn (int $id): bool => $id > 0)));
+
+            $taxClassTaxes = $taxClassIds === []
+                ? collect()
+                : DB::table('phppos_tax_classes_taxes')
+                    ->whereIn('tax_class_id', $taxClassIds)
+                    ->orderBy('order')
+                    ->orderBy('id')
+                    ->get()
+                    ->groupBy('tax_class_id');
+
             foreach ($cart['items'] as $index => $item) {
                 $isKitFallback = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
 
@@ -647,6 +681,29 @@ class ReceivingController extends Controller
                     'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
                     'total'    => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
                 ]);
+
+                $lineTaxClassId = $itemTaxClassMap[$item['item_id']] ?? 0;
+                if (! is_numeric($lineTaxClassId) || (int) $lineTaxClassId <= 0) {
+                    $lineTaxClassId = $defaultTaxClassId;
+                }
+                $lineTaxClassId = (int) $lineTaxClassId;
+
+                if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
+                    $taxInsert = [];
+                    foreach ($taxClassTaxes->get($lineTaxClassId) as $rate) {
+                        $taxInsert[] = [
+                            'receiving_id' => $receiving->receiving_id,
+                            'item_id' => $item['item_id'],
+                            'line' => $index,
+                            'name' => $rate->name,
+                            'percent' => $rate->percent,
+                            'cumulative' => (bool) $rate->cumulative,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                    DB::table('phppos_receivings_items_taxes')->insert($taxInsert);
+                }
 
                 // Update inventory
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
