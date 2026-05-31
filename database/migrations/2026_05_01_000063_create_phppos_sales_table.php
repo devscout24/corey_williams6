@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('sale_type', 30)->default('sale');
             $table->decimal('subtotal', 23, 10)->default(0);
             $table->decimal('total', 23, 10)->default(0);
+            $table->decimal('vat', 23, 10)->default(0)->comment('VAT = total_with_tax * rate / (1 + rate), summed from line items');
             $table->decimal('amount_tendered', 23, 10)->default(0);
             $table->decimal('change_due', 23, 10)->default(0);
             $table->timestamp('closed_at')->nullable();

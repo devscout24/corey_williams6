@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('quantity_purchased', 15, 3);
             $table->decimal('item_unit_price', 23, 10);
             $table->decimal('line_total', 23, 10);
+            $table->decimal('vat', 23, 10)->default(0)->comment('VAT = line_total_with_tax * rate / (1 + rate)');
             $table->timestamps();
 
             $table->foreign('sale_id', 'sales_items_sale_fk')->references('sale_id')->on('phppos_sales');

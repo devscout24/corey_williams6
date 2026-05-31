@@ -44,6 +44,13 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Sales VAT Field)
+- **VAT on Sales:** Added `vat` column to `phppos_sales` (header total) and `phppos_sales_items` (per-line).
+- **Formula:** `VAT = total_price_with_tax × TaxRate / (1 + TaxRate)` — computed from the effective combined tax rate based on the tax class rates applied to the items.
+- **Service:** `SalesService@createSaleFromCart` calculates `vat` on each line item and sums to the header `vat` column.
+- **Views:** VAT row added to `sales/receipt.blade.php` totals area (hidden when VAT = 0).
+- **Requires `migrate:fresh`** to apply the new columns.
+
 ### May 31, 2026 (Purchases VAT Field)
 - **VAT on Purchases:** Added `vat` column to `phppos_receivings` (header total) and `phppos_receivings_items` (per-line).
 - **Formula:** `VAT = total_price_with_tax × TaxRate / (1 + TaxRate)` — derived from the effective combined tax rate computed from the snapshotted tax class rates.

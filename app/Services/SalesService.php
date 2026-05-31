@@ -72,6 +72,8 @@ class SalesService
                     ->get()
                     ->groupBy('tax_class_id');
 
+            $totalVat = 0.0;
+
             foreach ($normalized as $line) {
                 $itemId = $line['item_id'];
                 $qty = $line['quantity'];
@@ -127,8 +129,32 @@ class SalesService
                 }
 
                 $taxRows = [];
+                $lineVat = 0.0;
                 if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
-                    foreach ($taxClassTaxes->get($lineTaxClassId) as $rate) {
+                    $rates = $taxClassTaxes->get($lineTaxClassId);
+
+                    // Compute effective combined rate (handle cumulative stacking)
+                    $baseCumulative = $lineTotal;
+                    foreach ($rates as $rate) {
+                        $rateDecimal = (float) $rate->percent / 100;
+                        $lineTaxAmount = $baseCumulative * $rateDecimal;
+                        if ((bool) $rate->cumulative) {
+                            $baseCumulative += $lineTaxAmount;
+                        }
+                    }
+                    $lineTotalWithTax = $baseCumulative; // total including all tax
+
+                    // Sum of all rate percentages as a single effective rate for VAT calculation
+                    // VAT = total_with_tax * TaxRate / (1 + TaxRate)
+                    // We calculate combined effective TaxRate from subtotal/total relationship
+                    if ($lineTotal > 0) {
+                        $effectiveTaxRate = ($lineTotalWithTax - $lineTotal) / $lineTotal;
+                        if ($effectiveTaxRate > 0) {
+                            $lineVat = $lineTotalWithTax * $effectiveTaxRate / (1 + $effectiveTaxRate);
+                        }
+                    }
+
+                    foreach ($rates as $rate) {
                         $taxRows[] = [
                             'name' => $rate->name,
                             'percent' => $rate->percent,
@@ -137,12 +163,15 @@ class SalesService
                     }
                 }
 
+                $totalVat += $lineVat;
+
                 $lineEntries[] = [
                     'item_id' => $itemId,
                     'quantity_purchased' => $qty,
                     'item_unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'commission' => $commission,
+                    'vat' => $lineVat,
                     'tax_rows' => $taxRows,
                 ];
 
@@ -185,6 +214,7 @@ class SalesService
                 'sale_type' => 'sale',
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
+                'vat' => round($totalVat, 10),
                 'amount_tendered' => $amountTendered,
                 'change_due' => $changeDue,
                 'closed_at' => now(),
@@ -205,6 +235,7 @@ class SalesService
                         'item_unit_price' => $entry['item_unit_price'],
                         'line_total' => $entry['line_total'],
                         'commission' => $entry['commission'],
+                        'vat' => round($entry['vat'], 10),
                         'created_at' => $now,
                         'updated_at' => $now,
                     ]);

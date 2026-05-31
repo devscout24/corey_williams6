@@ -166,6 +166,9 @@
     <section class="receipt-section">
         <div class="totals">
             <div>Subtotal</div><div>{{ $formatCurrency((float) $sale->subtotal) }}</div>
+            @if((float) ($sale->vat ?? 0) > 0)
+                <div style="color:#666;">VAT</div><div style="color:#666;">{{ $formatCurrency((float) $sale->vat) }}</div>
+            @endif
             <div>Total</div><div>{{ $formatCurrency((float) $sale->total) }}</div>
             <div>Tendered</div><div>{{ $formatCurrency((float) $sale->amount_tendered) }}</div>
             <div>Change</div><div>{{ $formatCurrency((float) $sale->change_due) }}</div>
