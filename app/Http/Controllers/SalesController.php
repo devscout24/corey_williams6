@@ -11,6 +11,7 @@ use App\Models\PhpposLocation;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposTag;
 use App\Services\AppConfigService;
+use App\Services\EmployeeService;
 use App\Services\LocationContextService;
 use App\Services\SalesService;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +28,7 @@ class SalesController extends Controller
         private readonly SalesService $salesService,
         private readonly AppConfigService $configService,
         private readonly LocationContextService $locationContextService,
+        private readonly EmployeeService $employeeService,
     ) {
     }
 
@@ -54,9 +56,19 @@ class SalesController extends Controller
     public function index(): View
     {
         $cart = $this->getCart();
+        $locationId = $cart['location_id'];
         $locations = PhpposLocation::where('deleted', 0)
-            ->where('location_id', $cart['location_id'])
+            ->where('location_id', $locationId)
             ->orderBy('location_id')
+            ->get();
+        $registerId = session('register_id');
+        $currentRegister = \App\Models\PhpposRegister::find($registerId);
+        $registerLog = \App\Models\PhpposRegisterLog::with('employeeOpen.person')
+            ->where('register_id', $registerId)
+            ->whereNull('shift_end')
+            ->first();
+        $registers = \App\Models\PhpposRegister::where('location_id', $locationId)
+            ->where('deleted', 0)
             ->get();
         $customers = PhpposCustomer::with('person')->orderBy('person_id')->get();
         $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
@@ -144,6 +156,9 @@ class SalesController extends Controller
             'amountDue',
             'baseCurrency',
             'currencyRates',
+            'currentRegister',
+            'registerLog',
+            'registers',
         ));
     }
 
@@ -792,6 +807,7 @@ class SalesController extends Controller
                 $customerName,
                 $comment,
                 (int) ($cart['sold_by_employee_id'] ?? auth('employee')->id()),
+                session('register_id'),
             );
 
             Session::forget('sales_cart');
@@ -956,6 +972,250 @@ class SalesController extends Controller
         } catch (Throwable $e) {
             return back()->withErrors(['return' => $e->getMessage()]);
         }
+    }
+
+    public function showRegisterOpenForm(Request $request): View
+    {
+        $employeeId = auth('employee')->id();
+        $locationId = session('employee_current_location_id') ?? auth('employee')->user()?->location_id ?? 1;
+
+        $registerId = session('register_id');
+        if (!$registerId) {
+            $defaultReg = $this->employeeService->getDefaultRegister($employeeId, $locationId);
+            if ($defaultReg) {
+                $registerId = $defaultReg['register_id'];
+            } else {
+                $firstReg = \App\Models\PhpposRegister::where('location_id', $locationId)->where('deleted', 0)->first();
+                if ($firstReg) {
+                    $registerId = $firstReg->register_id;
+                } else {
+                    $newReg = \App\Models\PhpposRegister::create([
+                        'location_id' => $locationId,
+                        'name' => 'Default Register',
+                        'deleted' => 0
+                    ]);
+                    $registerId = $newReg->register_id;
+                }
+            }
+            session(['register_id' => $registerId]);
+        }
+
+        $registers = \App\Models\PhpposRegister::where('location_id', $locationId)
+            ->where('deleted', 0)
+            ->get();
+        $currentRegister = \App\Models\PhpposRegister::find($registerId);
+
+        $lastLog = \App\Models\PhpposRegisterLog::where('register_id', $registerId)
+            ->whereNotNull('shift_end')
+            ->orderBy('register_log_id', 'desc')
+            ->first();
+
+        $lastCloseAmount = 0.0;
+        if ($lastLog) {
+            $lastCashPayment = DB::table('phppos_register_log_payments')
+                ->where('register_log_id', $lastLog->register_log_id)
+                ->where('payment_type', 'Cash')
+                ->first();
+            $lastCloseAmount = $lastCashPayment ? (float) $lastCashPayment->close_amount : 0.0;
+        }
+
+        return view('sales.register_open', compact('registers', 'currentRegister', 'lastCloseAmount'));
+    }
+
+    public function openRegister(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'opening_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $registerId = session('register_id');
+        if (!$registerId) {
+            return redirect()->route('sales.index');
+        }
+
+        $logId = DB::table('phppos_register_log')->insertGetId([
+            'employee_id_open' => auth('employee')->id(),
+            'register_id' => $registerId,
+            'shift_start' => now(),
+            'notes' => $request->notes,
+            'deleted' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('phppos_register_log_payments')->insert([
+            'register_log_id' => $logId,
+            'payment_type' => 'Cash',
+            'open_amount' => $request->opening_amount,
+            'close_amount' => 0,
+            'payment_sales_amount' => 0,
+            'total_payment_additions' => 0,
+            'total_payment_subtractions' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        session(['register_log_id' => $logId]);
+
+        return redirect()->route('sales.index')->with('status', 'Register opened successfully.');
+    }
+
+    public function changeRegister(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'register_id' => 'required|exists:phppos_registers,register_id',
+        ]);
+
+        $registerId = (int) $request->register_id;
+        $locationId = session('employee_current_location_id') ?? auth('employee')->user()?->location_id ?? 1;
+
+        // Verify register belongs to current location and is not deleted
+        $registerExists = \App\Models\PhpposRegister::where('register_id', $registerId)
+            ->where('location_id', $locationId)
+            ->where('deleted', 0)
+            ->exists();
+
+        if ($registerExists) {
+            session(['register_id' => $registerId]);
+            session()->forget('register_log_id');
+        }
+
+        return redirect()->route('sales.index');
+    }
+
+    public function showRegisterCloseForm(Request $request): View|RedirectResponse
+    {
+        $registerId = session('register_id');
+        $logId = session('register_log_id');
+
+        if (!$registerId || !$logId) {
+            return redirect()->route('sales.index');
+        }
+
+        $currentRegister = \App\Models\PhpposRegister::find($registerId);
+        $registerLog = \App\Models\PhpposRegisterLog::with('employeeOpen.person')->find($logId);
+
+        if (!$registerLog || $registerLog->shift_end) {
+            session()->forget('register_log_id');
+            return redirect()->route('sales.index');
+        }
+
+        $logPayments = DB::table('phppos_register_log_payments')
+            ->where('register_log_id', $logId)
+            ->get();
+
+        $paymentTypes = array_values(array_unique(array_merge(
+            ['Cash', 'Check', 'Credit Card', 'Debit Card'],
+            $this->configService->getAdditionalPaymentTypes(),
+            $logPayments->pluck('payment_type')->toArray()
+        )));
+
+        $paymentsData = [];
+        foreach ($paymentTypes as $type) {
+            $payment = $logPayments->firstWhere('payment_type', $type);
+            $open = $payment ? (float) $payment->open_amount : 0.0;
+            $sales = $payment ? (float) $payment->payment_sales_amount : 0.0;
+            $additions = $payment ? (float) $payment->total_payment_additions : 0.0;
+            $subs = $payment ? (float) $payment->total_payment_subtractions : 0.0;
+            $expected = $open + $sales + $additions - $subs;
+
+            $paymentsData[$type] = [
+                'open' => $open,
+                'sales' => $sales,
+                'expected' => $expected,
+            ];
+        }
+
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseThousands = (string) $this->configService->get('thousands_separator', ',');
+        if ($baseThousands === '') {
+            $baseThousands = ',';
+        }
+        $baseDecimalPoint = (string) $this->configService->get('decimal_point', '.');
+        if ($baseDecimalPoint === '') {
+            $baseDecimalPoint = '.';
+        }
+
+        $baseCurrency = [
+            'code' => $baseCurrencyCode,
+            'symbol' => $baseCurrencySymbol,
+            'symbol_location' => $baseSymbolLocation,
+            'decimals' => $baseDecimals,
+            'thousands_separator' => $baseThousands,
+            'decimal_point' => $baseDecimalPoint,
+        ];
+
+        return view('sales.register_close', compact('currentRegister', 'registerLog', 'paymentsData', 'baseCurrency'));
+    }
+
+    public function closeRegister(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'closed_payments' => 'required|array',
+            'closed_payments.*.actual' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $logId = session('register_log_id');
+        if (!$logId) {
+            return redirect()->route('sales.index');
+        }
+
+        $registerLog = \App\Models\PhpposRegisterLog::find($logId);
+        if (!$registerLog || $registerLog->shift_end) {
+            session()->forget('register_log_id');
+            return redirect()->route('sales.index');
+        }
+
+        DB::transaction(function () use ($logId, $request, $registerLog) {
+            DB::table('phppos_register_log')
+                ->where('register_log_id', $logId)
+                ->update([
+                    'employee_id_close' => auth('employee')->id(),
+                    'shift_end' => now(),
+                    'notes' => trim(($registerLog->notes ? $registerLog->notes . "\n" : '') . "Closing Notes: " . $request->notes),
+                    'updated_at' => now(),
+                ]);
+
+            foreach ($request->closed_payments as $type => $data) {
+                $actual = (float) $data['actual'];
+
+                $logPayment = DB::table('phppos_register_log_payments')
+                    ->where('register_log_id', $logId)
+                    ->where('payment_type', $type)
+                    ->first();
+
+                if ($logPayment) {
+                    DB::table('phppos_register_log_payments')
+                        ->where('id', $logPayment->id)
+                        ->update([
+                            'close_amount' => $actual,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('phppos_register_log_payments')->insert([
+                        'register_log_id' => $logId,
+                        'payment_type' => $type,
+                        'open_amount' => 0,
+                        'close_amount' => $actual,
+                        'payment_sales_amount' => 0,
+                        'total_payment_additions' => 0,
+                        'total_payment_subtractions' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        });
+
+        session()->forget('register_log_id');
+
+        return redirect()->route('modules.index')->with('status', 'Register closed successfully.');
     }
 
     public function settings(): View

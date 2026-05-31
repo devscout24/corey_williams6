@@ -23,10 +23,11 @@ class SalesService
         ?string $customerName = null,
         ?string $comment = null,
         ?int $soldByEmployeeId = null,
+        ?int $registerId = null,
     ): int {
         $resolvedLocationId = $this->locationContextService->resolveLocationId($locationId);
 
-        return DB::transaction(function () use ($resolvedLocationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId): int {
+        return DB::transaction(function () use ($resolvedLocationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId, $registerId): int {
             $normalized = collect($items)
                 ->map(static fn (array $line): array => [
                     'item_id' => (int) $line['item_id'],
@@ -211,6 +212,7 @@ class SalesService
             $saleId = DB::table('phppos_sales')->insertGetId([
                 'location_id' => $resolvedLocationId,
                 'employee_id' => $employeeId,
+                'register_id' => $registerId,
                 'sale_type' => 'sale',
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
@@ -278,6 +280,44 @@ class SalesService
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
+
+            // Update register log payments if a register_id is associated
+            if ($registerId) {
+                $openLog = DB::table('phppos_register_log')
+                    ->where('register_id', $registerId)
+                    ->whereNull('shift_end')
+                    ->first();
+
+                if ($openLog) {
+                    foreach ($paymentRows as $paymentRow) {
+                        $paymentType = $paymentRow['payment_type'];
+                        $amount = $paymentRow['payment_amount'];
+
+                        $logPayment = DB::table('phppos_register_log_payments')
+                            ->where('register_log_id', $openLog->register_log_id)
+                            ->where('payment_type', $paymentType)
+                            ->first();
+
+                        if ($logPayment) {
+                            DB::table('phppos_register_log_payments')
+                                ->where('id', $logPayment->id)
+                                ->increment('payment_sales_amount', $amount);
+                        } else {
+                            DB::table('phppos_register_log_payments')->insert([
+                                'register_log_id' => $openLog->register_log_id,
+                                'payment_type' => $paymentType,
+                                'open_amount' => 0,
+                                'close_amount' => 0,
+                                'payment_sales_amount' => $amount,
+                                'total_payment_additions' => 0,
+                                'total_payment_subtractions' => 0,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
             }
 
             return $saleId;

@@ -138,6 +138,35 @@
             </div>
         @endif
 
+        @if($currentRegister)
+        <div class="card shadow-sm border-0 mb-4 bg-light border-start border-primary border-4">
+            <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-3 px-3 py-2 fs-6">
+                        <i class="bi bi-circle-fill me-1 small"></i> Open
+                    </span>
+                    <div>
+                        <h6 class="m-0 fw-bold text-dark">Register: {{ $currentRegister->name }}</h6>
+                        @if($registerLog)
+                            <small class="text-muted">
+                                Opened by <strong>{{ $registerLog->employeeOpen?->person?->first_name }} {{ $registerLog->employeeOpen?->person?->last_name }}</strong> 
+                                at {{ \Carbon\Carbon::parse($registerLog->shift_start)->format('M d, Y h:i A') }}
+                            </small>
+                        @endif
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeRegisterModal">
+                        <i class="bi bi-arrow-left-right me-1"></i> Change Register
+                    </button>
+                    <a href="{{ route('sales.register.close') }}" class="btn btn-sm btn-danger">
+                        <i class="bi bi-x-circle me-1"></i> Close Register
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @php
             $currencySymbol = $baseCurrency['symbol'] ?? '$';
             $currencySymbolLocation = $baseCurrency['symbol_location'] ?? 'before';
@@ -482,6 +511,39 @@
 
     <div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom"
         style="display:none; z-index: 1000; width: 300px;"></div>
+
+    <!-- Change Register Modal -->
+    @if($currentRegister)
+    <div class="modal fade" id="changeRegisterModal" tabindex="-1" aria-labelledby="changeRegisterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content text-dark">
+                <form action="{{ route('sales.register.change') }}" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="changeRegisterModalLabel">Select Register</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <div class="mb-3">
+                            <label for="modal_register_select" class="form-label fw-semibold">Choose a Register</label>
+                            <select name="register_id" id="modal_register_select" class="form-select">
+                                @foreach($registers as $reg)
+                                    <option value="{{ $reg->register_id }}" @selected($reg->register_id == $currentRegister->register_id)>
+                                        {{ $reg->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold">Switch Register</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 @endsection
 
 @push('scripts')

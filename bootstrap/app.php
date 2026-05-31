@@ -15,6 +15,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'sync.auth' => \App\Http\Middleware\SyncAuth::class,
             'installed' => \App\Http\Middleware\EnsureInstalled::class,
+            'check_register_open' => \App\Http\Middleware\CheckRegisterOpen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
