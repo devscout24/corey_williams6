@@ -44,6 +44,11 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Tax Classes Unification)
+- **Single Tax System:** Removed VAT Rates and legacy Default Taxes from Store Config; tax classes are now the only editable tax system.
+- **Items Tax Class:** Added tax class selection to the Item form (uses Store Default if left blank).
+- **UI Labels:** Renamed override labels to “Override Default Tax Class” on item kits, customers, and suppliers.
+
 ### May 25, 2026 (Purchases Closing Date + VAT Rates)
 - **Purchases Closing Date:** Added `closed_at` to `phppos_receivings` and set it whenever a purchase is closed (manual purchases, transfer-generated returns, and order-close generated receivings). Orders now stamp `closed_at` when closed.
 - **VAT System in Store Config:** Added `phppos_vat_rates` table, Store Config VAT rates UI, and seed data for VAT 15%, VAT 20%, Exempt, and Zero.

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
 use App\Models\PhpposSupplier;
+use App\Models\PhpposTaxClass;
+use App\Services\AppConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -107,11 +109,18 @@ class ItemController extends Controller
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
         $categoryOptions = $this->buildCategoryOptions($categories);
+        $taxClasses = PhpposTaxClass::query()->where('deleted', 0)->orderBy('name')->get();
+        $defaultTaxClassId = (string) app(AppConfigService::class)->get('tax_class_id', '');
+        $defaultTaxClass = $defaultTaxClassId !== ''
+            ? $taxClasses->firstWhere('id', (int) $defaultTaxClassId)
+            : null;
 
         return view('items.form', [
             'item' => null,
             'categories' => $categoryOptions,
             'suppliers' => $suppliers,
+            'taxClasses' => $taxClasses,
+            'defaultTaxClass' => $defaultTaxClass,
             'tags' => '',
             'additional_item_numbers' => [],
             'serial_numbers' => [],
@@ -127,6 +136,11 @@ class ItemController extends Controller
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
         $categoryOptions = $this->buildCategoryOptions($categories);
+        $taxClasses = PhpposTaxClass::query()->where('deleted', 0)->orderBy('name')->get();
+        $defaultTaxClassId = (string) app(AppConfigService::class)->get('tax_class_id', '');
+        $defaultTaxClass = $defaultTaxClassId !== ''
+            ? $taxClasses->firstWhere('id', (int) $defaultTaxClassId)
+            : null;
 
         $tags = DB::table('phppos_items_tags')
             ->join('phppos_tags', 'phppos_items_tags.tag_id', '=', 'phppos_tags.id')
@@ -165,6 +179,8 @@ class ItemController extends Controller
             'item' => $item,
             'categories' => $categoryOptions,
             'suppliers' => $suppliers,
+            'taxClasses' => $taxClasses,
+            'defaultTaxClass' => $defaultTaxClass,
             'tags' => $tags,
             'additional_item_numbers' => $additionalItemNumbers,
             'serial_numbers' => $serialNumbers,
@@ -264,6 +280,7 @@ class ItemController extends Controller
             'category_id' => ['nullable', 'integer'],
             'supplier_id' => ['nullable', 'integer'],
             'manufacturer_id' => ['nullable', 'integer'],
+            'tax_class_id' => ['nullable', 'integer'],
             'description' => ['nullable', 'string', 'max:5000'],
             'long_description' => ['nullable', 'string'],
             'info_popup' => ['nullable', 'string', 'max:5000'],
@@ -322,6 +339,7 @@ class ItemController extends Controller
             'category_id' => $data['category_id'] ?? null,
             'supplier_id' => $data['supplier_id'] ?? null,
             'manufacturer_id' => $data['manufacturer_id'] ?? null,
+            'tax_class_id' => $data['tax_class_id'] ?? null,
             'description' => $data['description'] ?? null,
             'long_description' => $data['long_description'] ?? null,
             'info_popup' => $data['info_popup'] ?? null,

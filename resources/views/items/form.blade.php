@@ -279,6 +279,16 @@
                                     <label class="form-check-label" for="tax_included">Prices Include Tax</label>
                                 </div>
                             </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="tax_class_id">Tax Class</label>
+                                <select class="form-select" id="tax_class_id" name="tax_class_id">
+                                    <option value="">Use Store Default{{ $defaultTaxClass ? ' (' . $defaultTaxClass->name . ')' : '' }}</option>
+                                    @foreach($taxClasses as $taxClass)
+                                        <option value="{{ $taxClass->id }}" @selected(old('tax_class_id', $item?->tax_class_id) == $taxClass->id)>{{ $taxClass->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">

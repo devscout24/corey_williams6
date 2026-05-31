@@ -107,52 +107,6 @@
                 </div>
 
                 <div class="sc-form-card" style="margin-top:20px;">
-                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">VAT Rates</h5>
-                    <p class="text-muted small mb-3">Manage VAT labels and percentages used across the system.</p>
-                    <div class="table-responsive">
-                        <table id="vatRatesTable" class="table table-sm align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 55%;">VAT Name</th>
-                                    <th style="width: 25%;">Percent (%)</th>
-                                    <th style="width: 20%;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($vatRates as $vatRate)
-                                    <tr data-vat-id="{{ $vatRate->id }}">
-                                        <td>
-                                            <input type="text" name="vat_rates[name][]" class="sc-form-control" value="{{ $vatRate->name }}">
-                                            <input type="hidden" name="vat_rates[id][]" value="{{ $vatRate->id }}">
-                                        </td>
-                                        <td>
-                                            <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="{{ $vatRate->percent }}">
-                                        </td>
-                                        <td>
-                                            <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr data-empty-row>
-                                        <td>
-                                            <input type="text" name="vat_rates[name][]" class="sc-form-control" value="">
-                                            <input type="hidden" name="vat_rates[id][]" value="">
-                                        </td>
-                                        <td>
-                                            <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="">
-                                        </td>
-                                        <td>
-                                            <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <a href="#" id="addVatRate">Add VAT Rate</a>
-                </div>
-
-                <div class="sc-form-card" style="margin-top:20px;">
                     <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Tax Classes</h5>
                     <p class="text-muted small mb-3">Tax classes define grouped rates used by items, item kits, customers, suppliers, sales, and receivings.</p>
                     <div class="table-responsive">
@@ -239,63 +193,6 @@
                     <a href="#" id="addTaxClass">Add Tax Class</a>
                 </div>
 
-                <div class="sc-form-card" style="margin-top:20px;">
-                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Default Taxes</h5>
-                    @if(!empty($values['tax_class_id']))
-                        <div class="alert alert-light border" style="margin-bottom: 16px;">
-                            Default taxes apply only when no tax class is selected.
-                        </div>
-                    @endif
-                    <div class="sc-form-row">
-                        <label class="sc-form-label">Default Tax 1 Name</label>
-                        <input type="text" name="default_tax_1_name" class="sc-form-control" value="{{ $values['default_tax_1_name'] }}">
-                    </div>
-                    <div class="sc-form-row">
-                        <label class="sc-form-label">Default Tax 1 Rate (%)</label>
-                        <input type="text" name="default_tax_1_rate" class="sc-form-control" value="{{ $values['default_tax_1_rate'] }}">
-                    </div>
-                    <div class="sc-form-row">
-                        <label class="sc-form-label">Default Tax 2 Name</label>
-                        <input type="text" name="default_tax_2_name" class="sc-form-control" value="{{ $values['default_tax_2_name'] }}">
-                    </div>
-                    <div class="sc-form-row">
-                        <label class="sc-form-label">Default Tax 2 Rate (%)</label>
-                        <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
-                            <input type="text" name="default_tax_2_rate" class="sc-form-control" value="{{ $values['default_tax_2_rate'] }}">
-                            <label class="sc-file-check" style="white-space: nowrap;">
-                                <input type="checkbox" name="default_tax_2_cumulative" value="1" @checked($values['default_tax_2_cumulative'])> Cumulative
-                            </label>
-                        </div>
-                    </div>
-
-                    <div id="moreDefaultTaxes" style="display: {{ $values['default_tax_3_rate'] ? 'block' : 'none' }};">
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 3 Name</label>
-                            <input type="text" name="default_tax_3_name" class="sc-form-control" value="{{ $values['default_tax_3_name'] }}">
-                        </div>
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 3 Rate (%)</label>
-                            <input type="text" name="default_tax_3_rate" class="sc-form-control" value="{{ $values['default_tax_3_rate'] }}">
-                        </div>
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 4 Name</label>
-                            <input type="text" name="default_tax_4_name" class="sc-form-control" value="{{ $values['default_tax_4_name'] }}">
-                        </div>
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 4 Rate (%)</label>
-                            <input type="text" name="default_tax_4_rate" class="sc-form-control" value="{{ $values['default_tax_4_rate'] }}">
-                        </div>
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 5 Name</label>
-                            <input type="text" name="default_tax_5_name" class="sc-form-control" value="{{ $values['default_tax_5_name'] }}">
-                        </div>
-                        <div class="sc-form-row">
-                            <label class="sc-form-label">Default Tax 5 Rate (%)</label>
-                            <input type="text" name="default_tax_5_rate" class="sc-form-control" value="{{ $values['default_tax_5_rate'] }}">
-                        </div>
-                    </div>
-                    <a href="#" id="toggleMoreTaxes" style="display: {{ $values['default_tax_3_rate'] ? 'none' : 'inline' }};">Show more tax rates</a>
-                </div>
             </div>
 
             <!-- Localization -->
@@ -1305,44 +1202,6 @@
                 link.closest('tr').remove();
             });
 
-            const vatRatesTable = document.getElementById('vatRatesTable');
-            document.getElementById('addVatRate')?.addEventListener('click', function (e) {
-                e.preventDefault();
-                if (!vatRatesTable) return;
-                const tbody = vatRatesTable.querySelector('tbody');
-                tbody.querySelector('[data-empty-row]')?.remove();
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>
-                        <input type="text" name="vat_rates[name][]" class="sc-form-control" value="">
-                        <input type="hidden" name="vat_rates[id][]" value="">
-                    </td>
-                    <td>
-                        <input type="text" name="vat_rates[percent][]" class="sc-form-control" value="">
-                    </td>
-                    <td>
-                        <a href="#" class="remove-vat-rate" style="color:var(--danger);">Delete</a>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            vatRatesTable?.addEventListener('click', function (e) {
-                const removeVat = e.target.closest('.remove-vat-rate');
-                if (!removeVat) return;
-                e.preventDefault();
-                const row = removeVat.closest('tr');
-                const vatId = row?.getAttribute('data-vat-id');
-                if (vatId && storeConfigForm) {
-                    const hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.name = 'vat_rates_to_delete[]';
-                    hidden.value = vatId;
-                    storeConfigForm.appendChild(hidden);
-                }
-                row?.remove();
-            });
-
             const taxClassesTable = document.getElementById('taxClassesTable');
             const addTaxClassBtn = document.getElementById('addTaxClass');
             let taxClassCounter = Date.now();
@@ -1468,15 +1327,6 @@
                 }
             });
 
-            document.getElementById('toggleMoreTaxes')?.addEventListener('click', function (e) {
-                e.preventDefault();
-                const moreTaxes = document.getElementById('moreDefaultTaxes');
-                if (moreTaxes) {
-                    moreTaxes.style.display = 'block';
-                }
-                e.target.style.display = 'none';
-            });
-            
             // Tab switching logic (can also be handled by store-config.js, but let's be safe)
             const tabs = document.querySelectorAll('.sc-tab');
             const panels = document.querySelectorAll('.sc-tab-panel');

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\PhpposAppConfig;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class AppConfigService
@@ -42,10 +41,6 @@ class AppConfigService
 
     public function batchSave(array $data): bool
     {
-        if ($this->hasDuplicateTaxes($data)) {
-            return false;
-        }
-
         DB::transaction(function () use ($data): void {
             foreach ($data as $key => $value) {
                 if (is_array($value) || is_object($value)) {
@@ -89,38 +84,6 @@ class AppConfigService
         }
 
         return 2;
-    }
-
-    private function hasDuplicateTaxes(array $data): bool
-    {
-        if (! Arr::has($data, 'default_tax_1_name')) {
-            return false;
-        }
-
-        $taxes = [];
-        for ($i = 1; $i <= 5; $i++) {
-            $name = (string) Arr::get($data, "default_tax_{$i}_name", '');
-            $rate = (string) Arr::get($data, "default_tax_{$i}_rate", '');
-            $taxes[$i] = $name.$rate;
-        }
-
-        for ($i = 1; $i <= 5; $i++) {
-            if ($taxes[$i] === '') {
-                continue;
-            }
-
-            for ($j = 1; $j <= 5; $j++) {
-                if ($i === $j || $taxes[$j] === '') {
-                    continue;
-                }
-
-                if ($taxes[$i] === $taxes[$j]) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private function normalizeScalarConfigValue(mixed $value): string

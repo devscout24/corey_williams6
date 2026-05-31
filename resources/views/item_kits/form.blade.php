@@ -250,7 +250,7 @@
                                 <hr>
                                 <div class="form-check form-switch mb-3">
                                     <input class="form-check-input" type="checkbox" role="switch" id="override_default_tax" name="override_default_tax" value="1" @checked(old('override_default_tax', $kit?->override_default_tax))>
-                                    <label class="form-check-label" for="override_default_tax">Override Default Tax</label>
+                                    <label class="form-check-label" for="override_default_tax">Override Default Tax Class</label>
                                 </div>
                             </div>
                             
