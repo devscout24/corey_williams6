@@ -35,16 +35,18 @@ Artisan::command('app:bind-identity', function () {
     $this->info("Bound identity: {$name} ({$ip})");
 })->purpose('Bind the LAN node identity to the .env file');
 
-function appBindIdentitySetEnv(string $contents, string $key, string $value): string
-{
-    $line = $key.'='.$value;
-    $pattern = '/^'.preg_quote($key, '/').'=.*/m';
+if (! function_exists('appBindIdentitySetEnv')) {
+    function appBindIdentitySetEnv(string $contents, string $key, string $value): string
+    {
+        $line = $key.'='.$value;
+        $pattern = '/^'.preg_quote($key, '/').'=.*/m';
 
-    if (preg_match($pattern, $contents) === 1) {
-        return (string) preg_replace($pattern, $line, $contents);
+        if (preg_match($pattern, $contents) === 1) {
+            return (string) preg_replace($pattern, $line, $contents);
+        }
+
+        $contents = rtrim($contents).PHP_EOL.$line.PHP_EOL;
+
+        return $contents;
     }
-
-    $contents = rtrim($contents).PHP_EOL.$line.PHP_EOL;
-
-    return $contents;
 }

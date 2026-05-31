@@ -11,10 +11,10 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
-require_once __DIR__.'/rony/items_module.php';
-require_once __DIR__.'/rony/receive_return_module.php';
-require_once __DIR__.'/rony/people_modules.php';
-require_once __DIR__.'/rony/sales_inventory_modules.php';
+require __DIR__.'/rony/items_module.php';
+require __DIR__.'/rony/receive_return_module.php';
+require __DIR__.'/rony/people_modules.php';
+require __DIR__.'/rony/sales_inventory_modules.php';
 
 Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
 Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');

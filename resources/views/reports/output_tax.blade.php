@@ -113,11 +113,130 @@
         color: #1a7f37;
     }
 
+    /* ── Input-tax styling ────────────────────────────────────────── */
+    .it-section {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        margin-top: 32px;
+        margin-bottom: 28px;
+    }
+    .it-section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .it-section-header .it-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+    .it-section-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+    .it-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+    .it-table th {
+        background: var(--gray-50);
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .it-table td {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--gray-50);
+        font-size: 0.92rem;
+        color: var(--gray-800);
+        vertical-align: middle;
+    }
+    .it-table tr:last-child td {
+        border-bottom: none;
+    }
+    .it-table .row-title {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+    .it-table .value-cell {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        font-variant-numeric: tabular-nums;
+    }
+    .it-table .vat-cell {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1a7f37;
+        font-variant-numeric: tabular-nums;
+    }
+    .it-table .blank-cell {
+        color: var(--gray-300);
+        font-style: italic;
+    }
+
+    /* Net VAT payable card */
+    .net-vat-section {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: #fff;
+        border-radius: 14px;
+        padding: 24px 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 32px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .net-vat-section .net-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .net-vat-section .net-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+    .net-vat-section .amount-payable {
+        color: #f87171; /* red-400 */
+    }
+    .net-vat-section .amount-refundable {
+        color: #4ade80; /* green-400 */
+    }
+
     @media print {
         .actions { display: none !important; }
-        .ot-section, .ot-grand-total {
+        .ot-section, .ot-grand-total, .it-section, .net-vat-section {
             box-shadow: none !important;
-            border: 1px solid #ccc;
+            border: 1px solid #ccc !important;
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .net-vat-section {
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .net-vat-section .net-amount {
+            color: #000 !important;
         }
     }
 </style>
@@ -224,7 +343,7 @@
 @endforeach
 
 {{-- ── Grand Total ──────────────────────────────────────────────────── --}}
-<div class="ot-grand-total">
+<div class="ot-grand-total mb-4">
     <div>
         <div class="gt-label">Grand Total – All Supplies (VAT Incl.)</div>
         <div class="text-muted small mt-1">Sum of Standard + Zero Rated + Exempt</div>
@@ -238,6 +357,103 @@
             <div class="gt-label">Total Output VAT</div>
             <div class="gt-vat">{{ $fmt($grandVat) }}</div>
         </div>
+    </div>
+</div>
+
+{{-- ── Input Tax Section ─────────────────────────────────────────────── --}}
+@php
+    $importsExVat   = $inputTaxData['imports']['total_excl_vat'];
+    $importsVat     = $inputTaxData['imports']['vat_amount'];
+    $domesticExVat  = $inputTaxData['domestic']['total_excl_vat'];
+    $domesticVat    = $inputTaxData['domestic']['vat_amount'];
+
+    $totalInputVat  = $importsVat + $domesticVat;
+    $totalPurchasesExVat = $importsExVat + $domesticExVat;
+
+    $netVat = $grandVat - $totalInputVat;
+@endphp
+
+<div class="it-section">
+    <div class="it-section-header">
+        <span class="it-badge">
+            <i class="bi bi-cart-check-fill"></i>
+            Input Tax
+        </span>
+        <div>
+            <h5>Input Tax (Purchases / Receivings)</h5>
+            <p class="mb-0 text-muted small">Import and domestic purchases with VAT details</p>
+        </div>
+    </div>
+
+    <table class="it-table">
+        <thead>
+            <tr>
+                <th>Purchase / Tax Type</th>
+                <th class="text-end">Total Purchases (Excl. VAT)</th>
+                <th class="text-end">VAT Paid / Claimable</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{-- Row 1: Imports Excl VAT --}}
+            <tr>
+                <td class="row-title">Value of Imports (Goods & Services)</td>
+                <td class="text-end value-cell">{{ $fmt($importsExVat) }}</td>
+                <td class="text-end blank-cell">—</td>
+            </tr>
+            {{-- Row 2: Imports VAT --}}
+            <tr>
+                <td class="row-title">VAT Paid to Comptroller of Customs on Imports</td>
+                <td class="text-end blank-cell">—</td>
+                <td class="text-end vat-cell">{{ $fmt($importsVat) }}</td>
+            </tr>
+            {{-- Row 3: Domestic Excl VAT --}}
+            <tr>
+                <td class="row-title">Value of Domestic Purchases on which VAT was paid</td>
+                <td class="text-end value-cell">{{ $fmt($domesticExVat) }}</td>
+                <td class="text-end blank-cell">—</td>
+            </tr>
+            {{-- Row 4: Domestic VAT --}}
+            <tr>
+                <td class="row-title">VAT Paid, Payable or Claimable on Local Taxable Supplies (Purchases)</td>
+                <td class="text-end blank-cell">—</td>
+                <td class="text-end vat-cell">{{ $fmt($domesticVat) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{{-- ── Input Tax Grand Total ────────────────────────────────────────── --}}
+<div class="ot-grand-total mt-0 mb-4" style="border-left-color: #7b1fa2;">
+    <div>
+        <div class="gt-label" style="color: #7b1fa2;">Grand Total – Input Tax (Purchases)</div>
+        <div class="text-muted small mt-1">Sum of Imports + Domestic Purchases</div>
+    </div>
+    <div class="d-flex gap-5 align-items-center">
+        <div class="text-end">
+            <div class="gt-label">Total Purchases Excl. VAT</div>
+            <div class="gt-value">{{ $fmt($totalPurchasesExVat) }}</div>
+        </div>
+        <div class="text-end">
+            <div class="gt-label">Total Input VAT</div>
+            <div class="gt-vat" style="color: #7b1fa2;">{{ $fmt($totalInputVat) }}</div>
+        </div>
+    </div>
+</div>
+
+{{-- ── Net VAT Summary ─────────────────────────────────────────────── --}}
+<div class="net-vat-section">
+    <div>
+        <div class="net-title">Net VAT Status for Period</div>
+        <div class="text-white-50 small mt-1">Output VAT ({{ $fmt($grandVat) }}) − Input VAT ({{ $fmt($totalInputVat) }})</div>
+    </div>
+    <div class="text-end">
+        @if($netVat >= 0)
+            <div class="gt-label text-white-50">Net VAT Payable</div>
+            <div class="net-amount amount-payable">+${{ $fmt($netVat) }}</div>
+        @else
+            <div class="gt-label text-white-50">Net VAT Refundable</div>
+            <div class="net-amount amount-refundable">-${{ $fmt(abs($netVat)) }}</div>
+        @endif
     </div>
 </div>
 

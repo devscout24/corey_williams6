@@ -1161,8 +1161,8 @@
                 <a href="{{ route('reports.generate', 'output_tax') }}" class="report-link">
                     <i class="bi bi-receipt-cutoff"></i>
                     <div>
-                        <strong>Output Tax</strong>
-                        <p class="mb-0 text-muted small">Standard, Zero Rated &amp; Exempt supplies with VAT-inclusive sales and VAT amounts</p>
+                        <strong>VAT Report (Output &amp; Input Tax)</strong>
+                        <p class="mb-0 text-muted small">VAT summary of sales (Standard, Zero, Exempt) and purchases (Imports, Domestic)</p>
                     </div>
                 </a>
                 <a href="{{ route('reports.generate', 'summary_taxes') }}" class="report-link">

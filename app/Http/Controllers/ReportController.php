@@ -1962,10 +1962,71 @@ class ReportController extends Controller
                     ],
                 ];
 
-                $title = 'Output Tax Report';
+                // ── Input Tax Queries ───────────────────────────────────────────────
+                $location = DB::table('phppos_locations')->where('location_id', $locationId)->first();
+                $locationCountry = strtolower(trim($location->country ?? ''));
+
+                $localCountries = array_filter(array_unique([
+                    $locationCountry,
+                    'saint vincent',
+                    'saint vincent and the grenadines',
+                    'st. vincent',
+                    'st. vincent & the grenadines',
+                    'svg'
+                ]));
+
+                // Imports query (where supplier country is NOT local)
+                $importsQuery = DB::table('phppos_receivings_items as ri')
+                    ->join('phppos_receivings as r', 'ri.receiving_id', '=', 'r.receiving_id')
+                    ->join('phppos_suppliers as s', 'r.supplier_id', '=', 's.person_id')
+                    ->join('phppos_people as p', 's.person_id', '=', 'p.person_id')
+                    ->selectRaw('
+                        SUM(ri.subtotal) AS total_excl_vat,
+                        SUM(ri.vat) AS vat_amount
+                    ')
+                    ->where('r.deleted', 0)
+                    ->whereBetween('r.receiving_time', [$startDateTime, $endDateTime])
+                    ->where('r.location_id', $locationId)
+                    ->where('p.country', '<>', '')
+                    ->whereNotNull('p.country')
+                    ->whereNotIn(DB::raw('LOWER(TRIM(p.country))'), $localCountries)
+                    ->first();
+
+                // Domestic query (where supplier is null OR country is local/empty)
+                $domesticQuery = DB::table('phppos_receivings_items as ri')
+                    ->join('phppos_receivings as r', 'ri.receiving_id', '=', 'r.receiving_id')
+                    ->leftJoin('phppos_suppliers as s', 'r.supplier_id', '=', 's.person_id')
+                    ->leftJoin('phppos_people as p', 's.person_id', '=', 'p.person_id')
+                    ->selectRaw('
+                        SUM(ri.subtotal) AS total_excl_vat,
+                        SUM(ri.vat) AS vat_amount
+                    ')
+                    ->where('r.deleted', 0)
+                    ->whereBetween('r.receiving_time', [$startDateTime, $endDateTime])
+                    ->where('r.location_id', $locationId)
+                    ->where(function ($query) use ($localCountries) {
+                        $query->whereNull('r.supplier_id')
+                            ->orWhereNull('p.country')
+                            ->orWhere('p.country', '=', '')
+                            ->orWhereIn(DB::raw('LOWER(TRIM(p.country))'), $localCountries);
+                    })
+                    ->first();
+
+                $inputTaxData = [
+                    'imports' => [
+                        'total_excl_vat' => (float) ($importsQuery->total_excl_vat ?? 0),
+                        'vat_amount'     => (float) ($importsQuery->vat_amount ?? 0),
+                    ],
+                    'domestic' => [
+                        'total_excl_vat' => (float) ($domesticQuery->total_excl_vat ?? 0),
+                        'vat_amount'     => (float) ($domesticQuery->vat_amount ?? 0),
+                    ],
+                ];
+
+                $title = 'VAT Report (Output & Input Tax)';
 
                 return view('reports.output_tax', compact(
-                    'outputTaxData', 'title', 'startDate', 'endDate', 'report'
+                    'outputTaxData', 'inputTaxData', 'title', 'startDate', 'endDate', 'report'
                 ));
             }
 
