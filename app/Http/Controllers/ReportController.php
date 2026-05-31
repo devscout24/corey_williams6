@@ -1896,6 +1896,79 @@ class ReportController extends Controller
                 $title = 'Detailed Timeclock Report (Under Construction)';
                 break;
 
+            case 'output_tax': {
+                // ── Standard Rated: lines where vat > 0 ──────────────────────────────
+                $standardQuery = DB::table('phppos_sales_items as si')
+                    ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+                    ->selectRaw('
+                        SUM(si.line_total + si.vat) AS total_incl_vat,
+                        SUM(si.vat)                 AS vat_amount
+                    ')
+                    ->where('s.deleted', 0)
+                    ->where('si.vat', '>', 0)
+                    ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+                    ->where('s.location_id', $locationId)
+                    ->first();
+
+                // ── Zero Rated: lines that have a tax-class snapshot but vat = 0 ──────
+                // (A snapshot row exists in phppos_sales_items_taxes → item had a tax class)
+                $zeroRatedQuery = DB::table('phppos_sales_items as si')
+                    ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+                    ->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('phppos_sales_items_taxes as sit')
+                            ->whereColumn('sit.sale_item_id', 'si.id');
+                    })
+                    ->selectRaw('
+                        SUM(si.line_total + si.vat) AS total_incl_vat,
+                        SUM(si.vat)                 AS vat_amount
+                    ')
+                    ->where('s.deleted', 0)
+                    ->where('si.vat', '=', 0)
+                    ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+                    ->where('s.location_id', $locationId)
+                    ->first();
+
+                // ── Exempt: lines with no tax-class snapshot and vat = 0 ─────────────
+                $exemptQuery = DB::table('phppos_sales_items as si')
+                    ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+                    ->whereNotExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('phppos_sales_items_taxes as sit')
+                            ->whereColumn('sit.sale_item_id', 'si.id');
+                    })
+                    ->selectRaw('
+                        SUM(si.line_total + si.vat) AS total_incl_vat,
+                        SUM(si.vat)                 AS vat_amount
+                    ')
+                    ->where('s.deleted', 0)
+                    ->where('si.vat', '=', 0)
+                    ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+                    ->where('s.location_id', $locationId)
+                    ->first();
+
+                $outputTaxData = [
+                    'standard' => [
+                        'total_incl_vat' => (float) ($standardQuery->total_incl_vat ?? 0),
+                        'vat_amount'     => (float) ($standardQuery->vat_amount ?? 0),
+                    ],
+                    'zero_rated' => [
+                        'total_incl_vat' => (float) ($zeroRatedQuery->total_incl_vat ?? 0),
+                        'vat_amount'     => (float) ($zeroRatedQuery->vat_amount ?? 0),
+                    ],
+                    'exempt' => [
+                        'total_incl_vat' => (float) ($exemptQuery->total_incl_vat ?? 0),
+                        'vat_amount'     => (float) ($exemptQuery->vat_amount ?? 0),
+                    ],
+                ];
+
+                $title = 'Output Tax Report';
+
+                return view('reports.output_tax', compact(
+                    'outputTaxData', 'title', 'startDate', 'endDate', 'report'
+                ));
+            }
+
             default:
                 return redirect()->back()->with('error', 'Report type not implemented yet.');
         }

@@ -1158,6 +1158,13 @@
             <!-- Tax Reports -->
             <div class="report-group" id="taxes">
                 <h2 class="mb-4">Tax Reports</h2>
+                <a href="{{ route('reports.generate', 'output_tax') }}" class="report-link">
+                    <i class="bi bi-receipt-cutoff"></i>
+                    <div>
+                        <strong>Output Tax</strong>
+                        <p class="mb-0 text-muted small">Standard, Zero Rated &amp; Exempt supplies with VAT-inclusive sales and VAT amounts</p>
+                    </div>
+                </a>
                 <a href="{{ route('reports.generate', 'summary_taxes') }}" class="report-link">
                     <i class="bi bi-calculator"></i>
                     <div>
@@ -1166,6 +1173,7 @@
                     </div>
                 </a>
             </div>
+
 
             <!-- Tiers Reports -->
             <div class="report-group" id="tiers">

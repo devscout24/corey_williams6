@@ -44,6 +44,14 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### May 31, 2026 (Output Tax Report)
+- **Output Tax Report Added:** New `output_tax` report under the Reports → Taxes section.
+- **Three supply categories:** Standard Rated (vat > 0), Zero Rated (has tax-class snapshot but vat = 0), and Exempt (no tax-class snapshot, vat = 0).
+- **Columns per section:** Supply Type label | Total Sales of [Type] Items Including VAT | VAT on Total Sales of [Type] Items.
+- **Custom view:** `resources/views/reports/output_tax.blade.php` — uses card-based layout with a grand-total footer.
+- **Controller:** `output_tax` case added to `ReportController::store()` using `phppos_sales_items` × `phppos_sales_items_taxes` EXISTS/NOT-EXISTS subqueries.
+- **No schema change required.**
+
 ### May 31, 2026 (Sales & Purchases VAT Formula Update)
 - **VAT Formula Updated:** Changed the VAT calculation from tax-inclusive `total_with_tax * rate / (1 + rate)` to tax-exclusive `VAT = total * rate` per item line.
 - **Cumulative stacking correction:** Fixed an issue where non-cumulative taxes were excluded from the total line price calculation.
