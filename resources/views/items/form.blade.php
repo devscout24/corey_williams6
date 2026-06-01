@@ -6,12 +6,26 @@
 
 @push('styles')
 <style>
-    /* Fix tab text visibility */
     .nav-tabs .nav-link {
         color: #495057;
     }
     .nav-tabs .nav-link.active {
         color: #0d6efd !important;
+    }
+    .variation-attr-group {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+        background: #f8f9fa;
+    }
+    .variation-attr-group label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+    }
+    .variation-attr-group .form-check {
+        margin-right: 0.75rem;
     }
 </style>
 @endpush
@@ -39,6 +53,9 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="variations-tab" data-bs-toggle="tab" data-bs-target="#variations" type="button" role="tab" aria-controls="variations" aria-selected="false">Variants</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
@@ -368,7 +385,82 @@
                         </div>
                     </div>
                     
-                    <!-- Advanced Tab (Serial & Extra SKUs) -->
+                    <!-- Variants Tab -->
+                    <div class="tab-pane fade" id="variations" role="tabpanel" aria-labelledby="variations-tab">
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0">Item Variants</h5>
+                                    <div>
+                                        <a href="{{ route('attributes.index') }}" class="btn btn-outline-secondary btn-sm me-2" target="_blank">
+                                            <i class="bi bi-gear"></i> Manage Attributes
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-variation">
+                                            <i class="bi bi-plus"></i> Add Variation
+                                        </button>
+                                    </div>
+                                </div>
+
+                                @if(count($attributes) === 0)
+                                    <div class="alert alert-info">
+                                        No attributes defined. 
+                                        <a href="{{ route('attributes.index') }}" target="_blank">Create attributes</a> 
+                                        first (e.g., Color, Size) to set up variants.
+                                    </div>
+                                @endif
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm align-middle" id="variations-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="min-width:140px">Name</th>
+                                                <th style="min-width:110px">SKU</th>
+                                                <th style="min-width:160px">Attribute Values</th>
+                                                <th style="min-width:90px">Cost</th>
+                                                <th style="min-width:80px">Markup Type</th>
+                                                <th style="min-width:80px">Markup</th>
+                                                <th style="min-width:90px">Unit Price</th>
+                                                <th style="min-width:140px">Suppliers</th>
+                                                <th style="width:50px">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="variations-tbody">
+                                            @php $varIndex = 0; @endphp
+                                            @foreach(old('variations', $variations) as $varIndex => $variation)
+                                                @php
+                                                    $vName = is_array($variation) ? ($variation['name'] ?? '') : ($variation->name ?? '');
+                                                    $vSku = is_array($variation) ? ($variation['item_number'] ?? '') : ($variation->item_number ?? '');
+                                                    $vCost = is_array($variation) ? ($variation['cost_price'] ?? '') : ($variation->cost_price ?? '');
+                                                    $vMarkup = is_array($variation) ? ($variation['markup'] ?? '') : ($variation->markup ?? '');
+                                                    $vMarkupType = is_array($variation) ? ($variation['markup_type'] ?? 'flat') : ($variation->markup_type ?? 'flat');
+                                                    $vPrice = is_array($variation) ? ($variation['unit_price'] ?? '') : ($variation->unit_price ?? '');
+                                                    $vId = is_array($variation) ? ($variation['id'] ?? '') : ($variation->id ?? '');
+                                                    $avIds = is_array($variation) ? ($variation['attribute_value_ids'] ?? []) : ($variation->attributeValues->pluck('id')->toArray() ?? []);
+                                                    $supIds = is_array($variation) ? ($variation['supplier_ids'] ?? []) : ($variation->suppliers->pluck('person_id')->toArray() ?? []);
+                                                @endphp
+                                                @include('items._variation_row', [
+                                                    'varIndex' => $varIndex,
+                                                    'vId' => $vId,
+                                                    'vName' => $vName,
+                                                    'vSku' => $vSku,
+                                                    'vCost' => $vCost,
+                                                    'vMarkup' => $vMarkup,
+                                                    'vMarkupType' => $vMarkupType,
+                                                    'vPrice' => $vPrice,
+                                                    'avIds' => $avIds,
+                                                    'supIds' => $supIds,
+                                                    'attributes' => $attributes,
+                                                    'suppliers' => $suppliers,
+                                                ])
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Tab -->
                     <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
                         <div class="row g-4">
                             <!-- Additional Item Numbers -->
@@ -386,54 +478,6 @@
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-additional-number"><i class="bi bi-plus"></i> Add Item Number</button>
                             </div>
-                            
-                            <!-- Serial Numbers -->
-                            <div class="col-md-12">
-                                <hr>
-                                <h5 class="mb-3">Serial Numbers</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm" id="serial-numbers-table">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Serial Number</th>
-                                                <th>Add to Inventory</th>
-                                                <th>Cost Price</th>
-                                                <th>Unit Price</th>
-                                                <th>Variation</th>
-                                                <th width="50">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @if(old('serial_numbers', $serial_numbers))
-                                                @foreach(old('serial_numbers', $serial_numbers) as $index => $serial)
-                                                    @php
-                                                        $sNum = is_array($serial) ? $serial : $serial->serial_number;
-                                                        $sCost = old('serial_cost_prices.'.$index, is_object($serial) ? $serial->cost_price : '');
-                                                        $sPrice = old('serial_unit_prices.'.$index, is_object($serial) ? $serial->unit_price : '');
-                                                        $sVarId = is_object($serial) ? ($serial->variation_id ?? '') : '';
-                                                    @endphp
-                                                    <tr>
-                                                        <td><input type="text" class="form-control" name="serial_numbers[]" value="{{ $sNum }}"></td>
-                                                        <td class="text-center">
-                                                            <input type="checkbox" class="form-check-input" name="add_to_inventory[]" value="1">
-                                                        </td>
-                                                        <td><input type="number" step="0.001" class="form-control" name="serial_cost_prices[]" value="{{ $sCost }}"></td>
-                                                        <td><input type="number" step="0.001" class="form-control" name="serial_unit_prices[]" value="{{ $sPrice }}"></td>
-                                                        <td>
-                                                            <select class="form-select form-select-sm" name="serial_variation[]">
-                                                                <option value="">None</option>
-                                                                <!-- Variations would be loaded here -->
-                                                            </select>
-                                                        </td>
-                                                        <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
-                                                    </tr>
-                                                @endforeach
-                                            @endif
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-serial-number"><i class="bi bi-plus"></i> Add Serial Number</button>
-                            </div>
                         </div>
                     </div>
                     
@@ -442,9 +486,8 @@
                         <div class="row g-3">
                             @for($i = 1; $i <= 10; $i++)
                                 @php
-                                    // In a real implementation, you'd get custom field config from config
                                     $fieldName = "Custom Field $i";
-                                    $fieldType = 'text'; // default
+                                    $fieldType = 'text';
                                     $required = false;
                                     $choices = [];
                                 @endphp
@@ -575,21 +618,76 @@
     </div>
 </template>
 
-<template id="serial-number-row">
-    <tr>
-        <td><input type="text" class="form-control" name="serial_numbers[]" value=""></td>
-        <td class="text-center"><input type="checkbox" class="form-check-input" name="add_to_inventory[]" value="1"></td>
-        <td><input type="number" step="0.001" class="form-control" name="serial_cost_prices[]" value=""></td>
-        <td><input type="number" step="0.001" class="form-control" name="serial_unit_prices[]" value=""></td>
-        <td><select class="form-select form-select-sm" name="serial_variation[]"><option value="">None</option></select></td>
-        <td class="text-center"><button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button></td>
+<template id="variation-row-template">
+    <tr class="variation-row" data-index="__INDEX__">
+        <td>
+            <input type="hidden" name="variations[__INDEX__][id]" value="">
+            <input type="text" class="form-control form-control-sm" name="variations[__INDEX__][name]" value="">
+        </td>
+        <td>
+            <input type="text" class="form-control form-control-sm" name="variations[__INDEX__][item_number]" value="">
+        </td>
+        <td>
+            @foreach($attributes as $attr)
+                <div class="variation-attr-group">
+                    <label>{{ $attr->name }}</label>
+                    <div class="d-flex flex-wrap">
+                        @foreach($attr->values as $val)
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox"
+                                    name="variations[__INDEX__][attribute_value_ids][]"
+                                    value="{{ $val->id }}"
+                                    id="var_attr_val___INDEX___{{ $val->id }}">
+                                <label class="form-check-label" for="var_attr_val___INDEX___{{ $val->id }}">{{ $val->name }}</label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.001" class="form-control" name="variations[__INDEX__][cost_price]" value="">
+            </div>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="variations[__INDEX__][markup_type]">
+                <option value="flat">Flat</option>
+                <option value="percentage">%</option>
+            </select>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.001" class="form-control variation-markup" name="variations[__INDEX__][markup]" value="">
+            </div>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" step="0.001" class="form-control variation-unit-price" name="variations[__INDEX__][unit_price]" value="">
+            </div>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="variations[__INDEX__][supplier_ids][]" multiple size="3">
+                <option value="">No supplier</option>
+                @foreach($suppliers as $supplier)
+                    <option value="{{ $supplier->person_id }}">{{ $supplier->company_name }}</option>
+                @endforeach
+            </select>
+        </td>
+        <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger remove-row" type="button"><i class="bi bi-trash"></i></button>
+        </td>
     </tr>
 </template>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Helper function to add rows from templates
+    let variationIndex = {{ count(old('variations', $variations)) }};
+
     function addRowFromTemplate(containerId, templateId, isTable = false) {
         const container = isTable ? document.querySelector(`#${containerId} tbody`) : document.getElementById(containerId);
         const template = document.getElementById(templateId);
@@ -597,6 +695,48 @@ document.addEventListener('DOMContentLoaded', function() {
             const clone = template.content.cloneNode(true);
             container.appendChild(clone);
         }
+    }
+
+    function addVariationRow(data = {}) {
+        const tbody = document.getElementById('variations-tbody');
+        const template = document.getElementById('variation-row-template');
+        if (!tbody || !template) return;
+
+        const idx = variationIndex++;
+        const html = template.innerHTML.replace(/__INDEX__/g, idx);
+        const wrapper = document.createElement('tbody');
+        wrapper.innerHTML = html;
+        const tr = wrapper.firstElementChild;
+
+        if (data.id) tr.querySelector(`[name="variations[${idx}][id]"]`).value = data.id;
+        if (data.name) tr.querySelector(`[name="variations[${idx}][name]"]`).value = data.name;
+        if (data.item_number) tr.querySelector(`[name="variations[${idx}][item_number]"]`).value = data.item_number;
+        if (data.cost_price) tr.querySelector(`[name="variations[${idx}][cost_price]"]`).value = data.cost_price;
+        if (data.markup) tr.querySelector(`[name="variations[${idx}][markup]"]`).value = data.markup;
+        if (data.markup_type) tr.querySelector(`[name="variations[${idx}][markup_type]"]`).value = data.markup_type;
+        if (data.unit_price) tr.querySelector(`[name="variations[${idx}][unit_price]"]`).value = data.unit_price;
+
+        // Set attribute value checkboxes
+        if (data.attribute_value_ids) {
+            data.attribute_value_ids.forEach(function(avId) {
+                const cb = tr.querySelector(`#var_attr_val_${idx}_${avId}`);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        // Set suppliers
+        if (data.supplier_ids) {
+            const sel = tr.querySelector(`[name="variations[${idx}][supplier_ids][]"]`);
+            if (sel) {
+                Array.from(sel.options).forEach(function(opt) {
+                    if (data.supplier_ids.includes(opt.value)) {
+                        opt.selected = true;
+                    }
+                });
+            }
+        }
+
+        tbody.appendChild(tr);
     }
 
     function updateUnitPriceFromMarkup() {
@@ -639,19 +779,39 @@ document.addEventListener('DOMContentLoaded', function() {
         addRowFromTemplate('secondary-suppliers-container', 'secondary-supplier-row');
     });
 
-    // Add serial number row
-    document.getElementById('add-serial-number')?.addEventListener('click', function() {
-        addRowFromTemplate('serial-numbers-table', 'serial-number-row', true);
+    // Add variation row
+    document.getElementById('add-variation')?.addEventListener('click', function() {
+        addVariationRow({});
     });
 
     document.getElementById('markup')?.addEventListener('input', updateUnitPriceFromMarkup);
     document.getElementById('cost_price')?.addEventListener('input', updateUnitPriceFromMarkup);
     document.getElementById('markup_type')?.addEventListener('change', updateUnitPriceFromMarkup);
+
+    // Variation inline pricing calculation
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('variation-markup') || e.target.closest('.variation-row')?.querySelector('.variation-markup')) {
+            const row = e.target.closest('tr.variation-row');
+            if (!row) return;
+            const cost = parseFloat(row.querySelector('[name*="[cost_price]"]')?.value) || 0;
+            const markup = parseFloat(row.querySelector('.variation-markup')?.value) || 0;
+            const markupType = row.querySelector('[name*="[markup_type]"]')?.value || 'flat';
+            const unitPriceInput = row.querySelector('.variation-unit-price');
+            if (!unitPriceInput) return;
+
+            if (markupType === 'flat') {
+                unitPriceInput.value = (cost + markup).toFixed(3);
+            } else if (markupType === 'percentage') {
+                unitPriceInput.value = (cost + (cost * markup / 100)).toFixed(3);
+            }
+        }
+    });
+
     // Remove rows via event delegation
     document.addEventListener('click', function(e) {
         const removeBtn = e.target.closest('.remove-row');
         if (removeBtn) {
-            const row = removeBtn.closest('.input-group') || removeBtn.closest('tr');
+            const row = removeBtn.closest('.input-group') || removeBtn.closest('tr.variation-row') || removeBtn.closest('tr');
             if (row) {
                 row.remove();
             }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attribute;
+use App\Models\ItemVariation;
 use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
 use App\Models\PhpposSupplier;
@@ -41,11 +43,8 @@ class ItemController extends Controller
 
         if ($column_prefs_val) {
             $selected_columns = explode(',', $column_prefs_val);
-            // Ensure we only have valid columns and maintain the order from $selected_columns
             $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
             
-            // Reconstruct all_columns so the dropdown shows SELECTED items in their saved order FIRST,
-            // then any unselected items afterwards.
             $ordered_all_columns = [];
             foreach ($selected_columns as $col) {
                 if (isset($all_columns[$col])) {
@@ -61,7 +60,6 @@ class ItemController extends Controller
         } else {
             $selected_columns = $default_columns;
             
-            // Even if no prefs, let's ensure $all_columns order matches $default_columns for consistency
             $ordered_all_columns = [];
             foreach ($default_columns as $col) {
                 if (isset($all_columns[$col])) {
@@ -115,6 +113,8 @@ class ItemController extends Controller
             ? $taxClasses->firstWhere('id', (int) $defaultTaxClassId)
             : null;
 
+        $attributes = Attribute::with('values')->where('deleted', 0)->whereNull('item_id')->orderBy('name')->get();
+
         return view('items.form', [
             'item' => null,
             'categories' => $categoryOptions,
@@ -123,10 +123,11 @@ class ItemController extends Controller
             'defaultTaxClass' => $defaultTaxClass,
             'tags' => '',
             'additional_item_numbers' => [],
-            'serial_numbers' => [],
             'secondary_categories' => [],
             'secondary_suppliers' => [],
             'item_files' => [],
+            'attributes' => $attributes,
+            'variations' => [],
         ]);
     }
 
@@ -153,11 +154,6 @@ class ItemController extends Controller
             ->pluck('item_number')
             ->all();
 
-        $serialNumbers = DB::table('phppos_items_serial_numbers')
-            ->where('item_id', $itemId)
-            ->get()
-            ->all();
-
         $secondaryCategories = DB::table('phppos_items_secondary_categories')
             ->where('item_id', $itemId)
             ->get()
@@ -175,6 +171,14 @@ class ItemController extends Controller
             ->get()
             ->all();
 
+        $attributes = Attribute::with('values')->where('deleted', 0)->whereNull('item_id')->orderBy('name')->get();
+
+        $variations = ItemVariation::with('attributeValues', 'suppliers')
+            ->where('item_id', $itemId)
+            ->where('deleted', 0)
+            ->get()
+            ->all();
+
         return view('items.form', [
             'item' => $item,
             'categories' => $categoryOptions,
@@ -183,10 +187,11 @@ class ItemController extends Controller
             'defaultTaxClass' => $defaultTaxClass,
             'tags' => $tags,
             'additional_item_numbers' => $additionalItemNumbers,
-            'serial_numbers' => $serialNumbers,
             'secondary_categories' => $secondaryCategories,
             'secondary_suppliers' => $secondarySuppliers,
             'item_files' => $itemFiles,
+            'attributes' => $attributes,
+            'variations' => $variations,
         ]);
     }
 
@@ -317,16 +322,29 @@ class ItemController extends Controller
             // Nested or array inputs
             'tags' => ['nullable', 'string'],
             'additional_item_numbers' => ['nullable', 'array'],
-            'serial_numbers' => ['nullable', 'array'],
-            'serial_cost_prices' => ['nullable', 'array'],
-            'serial_unit_prices' => ['nullable', 'array'],
             'secondary_categories' => ['nullable', 'array'],
             'secondary_suppliers' => ['nullable', 'array'],
             'images' => ['nullable', 'array'],
             'images.*' => ['file', 'mimes:jpg,jpeg,png,gif', 'max:4096'],
+
+            // Variation inputs
+            'variations' => ['nullable', 'array'],
+            'variations.*.name' => ['nullable', 'string', 'max:255'],
+            'variations.*.item_number' => ['nullable', 'string', 'max:255'],
+            'variations.*.attribute_value_ids' => ['nullable', 'array'],
+            'variations.*.attribute_value_ids.*' => ['integer'],
+            'variations.*.cost_price' => ['nullable', 'numeric'],
+            'variations.*.markup' => ['nullable', 'numeric'],
+            'variations.*.markup_type' => ['nullable', 'in:flat,percentage'],
+            'variations.*.unit_price' => ['nullable', 'numeric'],
+            'variations.*.promo_price' => ['nullable', 'numeric'],
+            'variations.*.start_date' => ['nullable', 'date'],
+            'variations.*.end_date' => ['nullable', 'date'],
+            'variations.*.reorder_level' => ['nullable', 'numeric'],
+            'variations.*.supplier_ids' => ['nullable', 'array'],
+            'variations.*.supplier_ids.*' => ['integer'],
         ]);
 
-        // Add custom fields validation
         for ($i = 1; $i <= 10; $i++) {
             $data["custom_field_{$i}_value"] = $request->input("custom_field_{$i}_value");
         }
@@ -361,8 +379,7 @@ class ItemController extends Controller
             'required_age' => $data['required_age'] ?? null,
             'ecommerce_shipping_class_id' => $data['ecommerce_shipping_class_id'] ?? null,
 
-            // 'tax_included' => !empty($data['tax_included']) ? 1 : 0,
-            'tax_included' => 1, // Default to true as per recent change, can be toggled in form
+            'tax_included' => 1,
             'is_service' => !empty($data['is_service']) ? 1 : 0,
             'item_inactive' => !empty($data['item_inactive']) ? 1 : 0,
             'is_barcoded' => !empty($data['is_barcoded']) ? 1 : 0,
@@ -447,23 +464,6 @@ class ItemController extends Controller
                 }
             }
 
-            // Sync serial numbers
-            DB::table('phppos_items_serial_numbers')->where('item_id', $itemId)->delete();
-            if (!empty($data['serial_numbers'])) {
-                foreach ($data['serial_numbers'] as $index => $serialNum) {
-                    if (empty($serialNum))
-                        continue;
-                    DB::table('phppos_items_serial_numbers')->insert([
-                        'item_id' => $itemId,
-                        'serial_number' => $serialNum,
-                        'cost_price' => $data['serial_cost_prices'][$index] ?? null,
-                        'unit_price' => $data['serial_unit_prices'][$index] ?? null,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-
             // Sync secondary categories
             DB::table('phppos_items_secondary_categories')->where('item_id', $itemId)->delete();
             if (!empty($data['secondary_categories'])) {
@@ -488,6 +488,77 @@ class ItemController extends Controller
                         'updated_at' => now()
                     ]);
                 }
+            }
+
+            // Sync variations
+            $existingVariationIds = ItemVariation::where('item_id', $itemId)->pluck('id')->toArray();
+            $submittedVariationIds = [];
+
+            if (!empty($data['variations'])) {
+                foreach ($data['variations'] as $varData) {
+                    $varPayload = [
+                        'item_id' => $itemId,
+                        'name' => $varData['name'] ?? '',
+                        'item_number' => $varData['item_number'] ?? null,
+                        'cost_price' => $varData['cost_price'] ?? 0,
+                        'markup' => $varData['markup'] ?? 0,
+                        'markup_type' => $varData['markup_type'] ?? 'flat',
+                        'unit_price' => $varData['unit_price'] ?? 0,
+                        'promo_price' => $varData['promo_price'] ?? null,
+                        'start_date' => $varData['start_date'] ?? null,
+                        'end_date' => $varData['end_date'] ?? null,
+                        'reorder_level' => $varData['reorder_level'] ?? null,
+                        'deleted' => 0,
+                    ];
+
+                    if (!empty($varData['id'])) {
+                        // Update existing variation
+                        ItemVariation::where('id', $varData['id'])->update($varPayload);
+                        $variationId = $varData['id'];
+                    } else {
+                        // Create new variation
+                        $variation = ItemVariation::create($varPayload);
+                        $variationId = $variation->id;
+                    }
+
+                    $submittedVariationIds[] = $variationId;
+
+                    // Sync attribute values for this variation
+                    DB::table('phppos_item_variation_attribute_values')
+                        ->where('item_variation_id', $variationId)
+                        ->delete();
+
+                    if (!empty($varData['attribute_value_ids'])) {
+                        foreach (array_filter($varData['attribute_value_ids']) as $avId) {
+                            DB::table('phppos_item_variation_attribute_values')->insert([
+                                'item_variation_id' => $variationId,
+                                'attribute_value_id' => $avId,
+                            ]);
+                        }
+                    }
+
+                    // Sync suppliers for this variation
+                    DB::table('phppos_item_variation_suppliers')
+                        ->where('item_variation_id', $variationId)
+                        ->delete();
+
+                    if (!empty($varData['supplier_ids'])) {
+                        foreach (array_filter($varData['supplier_ids']) as $supId) {
+                            DB::table('phppos_item_variation_suppliers')->insert([
+                                'item_variation_id' => $variationId,
+                                'supplier_id' => $supId,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Soft-delete variations not in the submitted set
+            $variationsToDelete = array_diff($existingVariationIds, $submittedVariationIds);
+            if (!empty($variationsToDelete)) {
+                ItemVariation::whereIn('id', $variationsToDelete)->update(['deleted' => 1]);
             }
         });
 
