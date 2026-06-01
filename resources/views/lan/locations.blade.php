@@ -25,7 +25,12 @@
                 <div class="card-header bg-transparent">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Known LAN Nodes</h5>
-                        <span class="text-muted small">{{ $locations->count() }} nodes</span>
+                        <div>
+                            <span class="text-muted small me-3">{{ $locations->count() }} nodes</span>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
+                                <i class="bi bi-plus-lg me-1"></i>Add Location
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -60,6 +65,24 @@
                                                     <i class="bi bi-arrow-repeat me-1"></i>Resync IP
                                                 </button>
                                             </form>
+                                        @else
+                                            <form action="{{ route('lan.locations.poke', $location) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-info" title="Send a poke to this node">
+                                                    <i class="bi bi-send me-1"></i>Poke
+                                                </button>
+                                            </form>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal" data-bs-target="#editLocationModal-{{ $location->id }}" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <form action="{{ route('lan.locations.destroy', $location) }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('Delete {{ $location->name }}?')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
                                         @endif
                                     </td>
                                 </tr>
@@ -67,12 +90,15 @@
                                 <tr>
                                     <td colspan="5" class="text-center py-5">
                                         <div class="text-muted mb-3">No LAN nodes discovered yet.</div>
-                                        <form action="{{ route('lan.locations.resync-ip') }}" method="POST">
+                                        <form action="{{ route('lan.locations.resync-ip') }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-primary">
+                                            <button type="submit" class="btn btn-primary me-2">
                                                 <i class="bi bi-plus-circle me-1"></i> Set Self Location
                                             </button>
                                         </form>
+                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
+                                            <i class="bi bi-plus-lg me-1"></i> Add Remote Location
+                                        </button>
                                     </td>
                                 </tr>
                             @endforelse
@@ -80,6 +106,40 @@
                     </table>
                 </div>
             </div>
+
+            @foreach($locations as $location)
+                @if(!$location->is_self)
+                <div class="modal fade" id="editLocationModal-{{ $location->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{{ route('lan.locations.update', $location) }}" method="POST">
+                                @csrf
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Location</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <div class="mb-3">
+                                        <label for="edit-name-{{ $location->id }}" class="form-label">Name</label>
+                                        <input type="text" name="name" id="edit-name-{{ $location->id }}" class="form-control"
+                                            value="{{ $location->name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="edit-ip-{{ $location->id }}" class="form-label">IP Address</label>
+                                        <input type="text" name="ip" id="edit-ip-{{ $location->id }}" class="form-control"
+                                            value="{{ $location->ip }}" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            @endforeach
         </div>
 
         <div class="col-12">
@@ -134,6 +194,34 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addLocationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('lan.locations.store') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Remote Location</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label for="add-name" class="form-label">Name</label>
+                        <input type="text" name="name" id="add-name" class="form-control" placeholder="e.g. Back-Office POS" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-ip" class="form-label">IP Address</label>
+                        <input type="text" name="ip" id="add-ip" class="form-control" placeholder="e.g. 192.168.1.100" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Location</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

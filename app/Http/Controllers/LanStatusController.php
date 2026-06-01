@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\TransferQueue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class LanStatusController extends Controller
@@ -22,6 +23,82 @@ class LanStatusController extends Controller
             ->get();
 
         return view('lan.locations', compact('locations', 'transfers'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ip' => ['required', 'string', 'max:45'],
+        ]);
+
+        Location::create([
+            'name' => $data['name'],
+            'ip' => $data['ip'],
+            'is_self' => false,
+        ]);
+
+        return redirect()->route('lan.locations')
+            ->with('status', "Location {$data['name']} ({$data['ip']}) added.");
+    }
+
+    public function update(Request $request, Location $location): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ip' => ['required', 'string', 'max:45'],
+        ]);
+
+        $location->update([
+            'name' => $data['name'],
+            'ip' => $data['ip'],
+        ]);
+
+        return redirect()->route('lan.locations')
+            ->with('status', "Location {$data['name']} updated.");
+    }
+
+    public function destroy(Location $location): RedirectResponse
+    {
+        if ($location->is_self) {
+            return redirect()->route('lan.locations')
+                ->with('error', 'Cannot delete the self location.');
+        }
+
+        $name = $location->name;
+        $location->delete();
+
+        return redirect()->route('lan.locations')
+            ->with('status', "Location {$name} deleted.");
+    }
+
+    public function poke(Location $location): RedirectResponse
+    {
+        if ($location->is_self || !$location->ip) {
+            return redirect()->route('lan.locations')
+                ->with('error', 'Cannot poke the self location or a location without an IP.');
+        }
+
+        $nodeIp = config('app.node_ip');
+        $nodeName = config('app.node_name');
+
+        try {
+            $response = Http::timeout(5)->post("http://{$location->ip}/api/lan/announce", [
+                'ip' => $nodeIp,
+                'name' => $nodeName,
+            ]);
+
+            if ($response->ok()) {
+                return redirect()->route('lan.locations')
+                    ->with('status', "Poke sent to {$location->name} ({$location->ip}) — host acknowledged.");
+            }
+
+            return redirect()->route('lan.locations')
+                ->with('error', "Poke sent to {$location->name} but target responded with {$response->status()}.");
+        } catch (\Throwable $e) {
+            return redirect()->route('lan.locations')
+                ->with('error', "Could not reach {$location->name} ({$location->ip}): {$e->getMessage()}");
+        }
     }
 
     public function resyncIp(Request $request): RedirectResponse
