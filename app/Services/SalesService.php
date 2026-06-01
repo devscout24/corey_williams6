@@ -12,7 +12,7 @@ class SalesService
     }
 
     /**
-     * @param array<int, array{item_id:int, quantity:float, unit_price:float, discount:float}> $items
+     * @param array<int, array{item_id:int, quantity:float, unit_price:float, discount:float, variation_id?:int|null}> $items
      * @param array<int, array{type:string, amount:float}> $payments
      */
     public function createSaleFromCart(
@@ -34,6 +34,7 @@ class SalesService
                     'quantity' => (float) $line['quantity'],
                     'unit_price' => (float) $line['unit_price'],
                     'discount' => (float) ($line['discount'] ?? 0),
+                    'variation_id' => isset($line['variation_id']) ? (int) $line['variation_id'] : null,
                 ])
                 ->filter(static fn (array $line): bool => $line['quantity'] > 0)
                 ->values();
@@ -168,6 +169,7 @@ class SalesService
 
                 $lineEntries[] = [
                     'item_id' => $itemId,
+                    'variation_id' => $line['variation_id'],
                     'quantity_purchased' => $qty,
                     'item_unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
@@ -233,6 +235,7 @@ class SalesService
                     $saleItemId = DB::table('phppos_sales_items')->insertGetId([
                         'sale_id' => $saleId,
                         'item_id' => $entry['item_id'],
+                        'item_variation_id' => $entry['variation_id'],
                         'quantity_purchased' => $entry['quantity_purchased'],
                         'item_unit_price' => $entry['item_unit_price'],
                         'line_total' => $entry['line_total'],

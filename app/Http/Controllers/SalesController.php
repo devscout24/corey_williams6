@@ -7,6 +7,7 @@ use App\Models\PhpposCurrencyExchangeRate;
 use App\Models\PhpposCustomer;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
+use App\Models\ItemVariation;
 use App\Models\PhpposLocation;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposTag;
@@ -488,26 +489,49 @@ class SalesController extends Controller
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
 
-        $itemsQuery = PhpposItem::where('deleted', 0)
-            ->where(function ($query) use ($term) {
+        $isSkuSearch = str_starts_with($term, '#');
+        if ($isSkuSearch) {
+            $term = substr($term, 1);
+        }
+
+        $itemsQuery = PhpposItem::where('deleted', 0);
+        if ($isSkuSearch) {
+            $itemsQuery->where(function ($query) use ($term) {
+                $query->where('item_id', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
+            });
+        } else {
+            $itemsQuery->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                     ->orWhere('item_id', $term)
-                    ->orWhere('product_id', $term);
+                    ->orWhere('product_id', 'LIKE', "%$term%");
             });
+        }
 
         if ($supplierId) {
             $itemsQuery->where('supplier_id', $supplierId);
         }
 
         $items = $itemsQuery->limit(10)
-            ->get(['item_id', 'name', 'unit_price']);
+            ->get(['item_id', 'name', 'unit_price'])
+            ->map(function ($item) {
+                $item->type = 'item';
+                return $item;
+            });
 
-        $kitsQuery = PhpposItemKit::where('deleted', 0)
-            ->where(function ($query) use ($term) {
+        $kitsQuery = PhpposItemKit::where('deleted', 0);
+        if ($isSkuSearch) {
+            $kitsQuery->where(function ($query) use ($term) {
+                $query->where('item_kit_number', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
+            });
+        } else {
+            $kitsQuery->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
                     ->orWhere('item_kit_number', $term)
-                    ->orWhere('product_id', $term);
+                    ->orWhere('product_id', 'LIKE', "%$term%");
             });
+        }
 
         if ($supplierId) {
             $kitsQuery->where('supplier_id', $supplierId);
@@ -518,10 +542,42 @@ class SalesController extends Controller
             ->map(function ($kit) {
                 $kit->item_id = 'KIT ' . $kit->id;
                 $kit->name = '[KIT] ' . $kit->name;
+                $kit->type = 'kit';
                 return $kit;
             });
 
-        $results = $items->concat($kits)->sortBy('name')->values();
+        $variationsQuery = ItemVariation::select([
+                'phppos_item_variations.id',
+                'phppos_item_variations.name',
+                'phppos_item_variations.unit_price',
+                'phppos_item_variations.cost_price',
+                'phppos_items.name as parent_item_name',
+            ])
+            ->join('phppos_items', 'phppos_item_variations.item_id', '=', 'phppos_items.item_id')
+            ->where('phppos_item_variations.deleted', 0);
+
+        if ($isSkuSearch) {
+            $variationsQuery->where(function ($query) use ($term) {
+                $query->where('phppos_item_variations.item_number', 'LIKE', "%$term%");
+            });
+        } else {
+            $variationsQuery->where(function ($query) use ($term) {
+                $query->where('phppos_item_variations.name', 'LIKE', "%$term%")
+                    ->orWhere('phppos_item_variations.item_number', 'LIKE', "%$term%");
+            });
+        }
+
+        $variations = $variationsQuery->limit(10)
+            ->get()
+            ->map(function ($variation) {
+                $variation->item_id = 'VAR ' . $variation->id;
+                $variation->display_name = $variation->name . ' (' . $variation->parent_item_name . ')';
+                $variation->type = 'variant';
+                unset($variation->parent_item_name, $variation->id);
+                return $variation;
+            });
+
+        $results = $items->concat($kits)->concat($variations)->sortBy('name')->values();
 
         return response()->json($results);
     }
@@ -535,7 +591,12 @@ class SalesController extends Controller
         $countBefore = count($cart['items']);
         $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
-        if (str_starts_with($itemIdStr, 'KIT ')) {
+        if (str_starts_with($itemIdStr, 'VAR ')) {
+            $variationId = (int) str_replace('VAR ', '', $itemIdStr);
+            $variation = ItemVariation::findOrFail($variationId);
+            $parentItem = PhpposItem::findOrFail($variation->item_id);
+            $this->addSingleItemToCart($parentItem, 1, $cart, $variation);
+        } elseif (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
             $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
             $this->addKitItemsToCart($kit, 1, $cart);
@@ -595,11 +656,13 @@ class SalesController extends Controller
         }
     }
 
-    private function addSingleItemToCart($item, $quantity, &$cart): void
+    private function addSingleItemToCart($item, $quantity, &$cart, $variation = null): void
     {
+        $itemId = $item->item_id;
+        $variationId = $variation?->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
-            if ($cartItem['item_id'] == $item->item_id) {
+            if ((int) $cartItem['item_id'] === $itemId && ($cartItem['variation_id'] ?? null) === $variationId) {
                 $existingKey = $key;
                 break;
             }
@@ -608,13 +671,17 @@ class SalesController extends Controller
         if ($existingKey !== null) {
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
-            $cart['items'][] = [
+            $entry = [
                 'item_id' => $item->item_id,
-                'name' => $item->name,
+                'name' => $variation ? $variation->name . ' (' . $item->name . ')' : $item->name,
                 'quantity' => $quantity,
-                'unit_price' => (float) $item->unit_price,
+                'unit_price' => (float) ($variation?->unit_price ?? $item->unit_price),
                 'discount' => 0,
             ];
+            if ($variation) {
+                $entry['variation_id'] = $variation->id;
+            }
+            $cart['items'][] = $entry;
         }
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
+use App\Models\ItemVariation;
 use App\Models\PhpposCategory;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
@@ -405,28 +406,51 @@ class ReceivingController extends Controller
         $term = $request->input('term');
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
-        
-        $itemsQuery = PhpposItem::where('deleted', 0)
-            ->where(function($query) use ($term) {
-                $query->where('name', 'LIKE', "%$term%")
-                      ->orWhere('item_id', $term)
-                      ->orWhere('product_id', $term);
+
+        $isSkuSearch = str_starts_with($term, '#');
+        if ($isSkuSearch) {
+            $term = substr($term, 1);
+        }
+
+        $itemsQuery = PhpposItem::where('deleted', 0);
+        if ($isSkuSearch) {
+            $itemsQuery->where(function ($query) use ($term) {
+                $query->where('item_id', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
             });
-        
+        } else {
+            $itemsQuery->where(function ($query) use ($term) {
+                $query->where('name', 'LIKE', "%$term%")
+                    ->orWhere('item_id', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
+            });
+        }
+
         if ($supplierId) {
             $itemsQuery->where('supplier_id', $supplierId);
         }
 
         $items = $itemsQuery->limit(10)
-            ->get(['item_id', 'name', 'cost_price']);
-
-        $kitsQuery = PhpposItemKit::where('deleted', 0)
-            ->where(function($query) use ($term) {
-                $query->where('name', 'LIKE', "%$term%")
-                      ->orWhere('item_kit_number', $term)
-                      ->orWhere('product_id', $term);
+            ->get(['item_id', 'name', 'cost_price'])
+            ->map(function ($item) {
+                $item->type = 'item';
+                return $item;
             });
-        
+
+        $kitsQuery = PhpposItemKit::where('deleted', 0);
+        if ($isSkuSearch) {
+            $kitsQuery->where(function ($query) use ($term) {
+                $query->where('item_kit_number', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
+            });
+        } else {
+            $kitsQuery->where(function ($query) use ($term) {
+                $query->where('name', 'LIKE', "%$term%")
+                    ->orWhere('item_kit_number', $term)
+                    ->orWhere('product_id', 'LIKE', "%$term%");
+            });
+        }
+
         if ($supplierId) {
             $kitsQuery->where('supplier_id', $supplierId);
         }
@@ -434,12 +458,44 @@ class ReceivingController extends Controller
         $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'cost_price'])
             ->map(function ($kit) {
-                $kit->item_id = 'KIT ' . $kit->id; // Using item_id for frontend compatibility
+                $kit->item_id = 'KIT ' . $kit->id;
                 $kit->name = '[KIT] ' . $kit->name;
+                $kit->type = 'kit';
                 return $kit;
             });
 
-        $results = $items->concat($kits)->sortBy('name')->values();
+        $variationsQuery = ItemVariation::select([
+                'phppos_item_variations.id',
+                'phppos_item_variations.name',
+                'phppos_item_variations.unit_price',
+                'phppos_item_variations.cost_price',
+                'phppos_items.name as parent_item_name',
+            ])
+            ->join('phppos_items', 'phppos_item_variations.item_id', '=', 'phppos_items.item_id')
+            ->where('phppos_item_variations.deleted', 0);
+
+        if ($isSkuSearch) {
+            $variationsQuery->where(function ($query) use ($term) {
+                $query->where('phppos_item_variations.item_number', 'LIKE', "%$term%");
+            });
+        } else {
+            $variationsQuery->where(function ($query) use ($term) {
+                $query->where('phppos_item_variations.name', 'LIKE', "%$term%")
+                    ->orWhere('phppos_item_variations.item_number', 'LIKE', "%$term%");
+            });
+        }
+
+        $variations = $variationsQuery->limit(10)
+            ->get()
+            ->map(function ($variation) {
+                $variation->item_id = 'VAR ' . $variation->id;
+                $variation->display_name = $variation->name . ' (' . $variation->parent_item_name . ')';
+                $variation->type = 'variant';
+                unset($variation->parent_item_name, $variation->id);
+                return $variation;
+            });
+
+        $results = $items->concat($kits)->concat($variations)->sortBy('name')->values();
 
         return response()->json($results);
     }
@@ -453,16 +509,19 @@ class ReceivingController extends Controller
         $countBefore = count($cart['items']);
         $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
-        if (str_starts_with($itemIdStr, 'KIT ')) {
+        if (str_starts_with($itemIdStr, 'VAR ')) {
+            $variationId = (int) str_replace('VAR ', '', $itemIdStr);
+            $variation = ItemVariation::findOrFail($variationId);
+            $parentItem = PhpposItem::findOrFail($variation->item_id);
+            $this->addSingleItemToCart($parentItem, 1, $cart, $variation);
+        } elseif (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
             $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
             $this->addKitItemsToCart($kit, 1, $cart);
 
-            // If kit has no component items, add the kit itself as a single line
             $countAfter = count($cart['items']);
             $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
             if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
-                // Fallback: add kit as a named line item using its own cost/price
                 $this->addKitAsLineItem($kit, 1, $cart);
             }
         } else {
@@ -514,11 +573,13 @@ class ReceivingController extends Controller
         }
     }
 
-    private function addSingleItemToCart($item, $quantity, &$cart)
+    private function addSingleItemToCart($item, $quantity, &$cart, $variation = null)
     {
+        $itemId = $item->item_id;
+        $variationId = $variation?->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
-            if ($cartItem['item_id'] == $item->item_id) {
+            if ((int) $cartItem['item_id'] === $itemId && ($cartItem['variation_id'] ?? null) === $variationId) {
                 $existingKey = $key;
                 break;
             }
@@ -527,13 +588,17 @@ class ReceivingController extends Controller
         if ($existingKey !== null) {
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
-            $cart['items'][] = [
+            $entry = [
                 'item_id' => $item->item_id,
-                'name' => $item->name,
+                'name' => $variation ? $variation->name . ' (' . $item->name . ')' : $item->name,
                 'quantity' => $quantity,
-                'cost_price' => $item->cost_price,
+                'cost_price' => $variation?->cost_price ?? $item->cost_price,
                 'discount' => 0,
             ];
+            if ($variation) {
+                $entry['variation_id'] = $variation->id;
+            }
+            $cart['items'][] = $entry;
         }
     }
 
@@ -728,9 +793,10 @@ class ReceivingController extends Controller
                 $totalVat += $lineVat;
 
                 PhpposReceivingItem::create([
-                    'receiving_id'   => $receiving->receiving_id,
-                    'item_id'        => $item['item_id'],
-                    'line'           => $index,
+                    'receiving_id'      => $receiving->receiving_id,
+                    'item_id'           => $item['item_id'],
+                    'item_variation_id' => $item['variation_id'] ?? null,
+                    'line'              => $index,
                     'quantity_purchased' => $item['quantity'],
                     'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
                     'item_cost_price'    => $item['cost_price'],

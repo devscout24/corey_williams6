@@ -73,11 +73,11 @@
         <!-- Left Side: Cart -->
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center position-relative">
                     <h6 class="m-0 font-weight-bold text-primary">Item Selection</h6>
                     <div class="input-group input-group-sm w-50">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" id="item_search" class="form-control bg-light border-start-0" placeholder="Search item or scan barcode..." autocomplete="off">
+                        <input type="text" id="item_search" class="form-control bg-light border-start-0" placeholder='Search item or scan barcode... (prefix "#" for SKU)' autocomplete="off">
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -234,7 +234,7 @@
 </div>
 
 <!-- Add Item Modal Placeholder or Search suggestions would go here -->
-<div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom" style="display:none; z-index: 1000; width: 300px;"></div>
+<div id="search_results" class="position-absolute shadow-sm bg-white rounded-bottom" style="display:none; z-index: 1000;"></div>
 
 @endsection
 
@@ -430,9 +430,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.length > 0) {
                         data.forEach(item => {
                             const div = document.createElement('div');
-                            div.className = 'p-2 border-bottom cursor-pointer hover-bg-light';
-                            div.style.cursor = 'pointer';
-                            div.innerHTML = `<strong>${item.name}</strong> <small class="text-muted">($${item.cost_price})</small>`;
+                            div.className = 'search-result-item';
+                            const type = item.type || 'item';
+                            const displayName = item.display_name || item.name;
+                            const price = item.type === 'kit'
+                                ? `$${parseFloat(item.cost_price || 0).toFixed(2)}`
+                                : `$${parseFloat(item.cost_price || item.unit_price || 0).toFixed(2)}`;
+                            div.innerHTML = `
+                                <span class="search-type-badge ${type}">${type}</span>
+                                <div class="search-result-info">
+                                    <div class="name">${displayName}</div>
+                                </div>
+                                <div class="search-result-price">${price}</div>
+                            `;
                             div.onclick = () => addItem(item.item_id);
                             resultsDiv.appendChild(div);
                         });
@@ -487,5 +497,71 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <style>
     .hover-bg-light:hover { background-color: #f8f9fa; }
+    #search_results {
+        border: 1px solid #d1d9e6;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        max-height: 360px;
+        overflow-y: auto;
+    }
+    #search_results .search-result-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid #eef2f6;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    #search_results .search-result-item:last-child {
+        border-bottom: none;
+    }
+    #search_results .search-result-item:hover {
+        background: #f0f4ff;
+    }
+    .search-type-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        padding: 2px 7px;
+        border-radius: 5px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        min-width: 38px;
+        text-align: center;
+    }
+    .search-type-badge.item {
+        background: #e8f0fe;
+        color: #1a73e8;
+    }
+    .search-type-badge.kit {
+        background: #f3e8ff;
+        color: #7c3aed;
+    }
+    .search-type-badge.variant {
+        background: #fff3e0;
+        color: #e65100;
+    }
+    .search-result-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .search-result-info .name {
+        font-weight: 600;
+        color: #0f172a;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .search-result-price {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
 </style>
 @endpush
