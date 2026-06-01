@@ -18,23 +18,29 @@
     }
     .report-meta h4 { margin: 0; color: var(--gray-900); font-size: 1.15rem; font-weight: 700; }
 
-    /* ── Output-tax section cards ─────────────────────────────────── */
-    .ot-section {
-        background: #fff;
+    /* ── Section card ──────────────────────────────────────────────── */
+    .ot-section, .it-section {
+        background: var(--gray-50);
         border-radius: 14px;
         box-shadow: var(--shadow-sm);
         overflow: hidden;
         margin-bottom: 28px;
     }
-
-    .ot-section-header {
+    .it-section { margin-top: 32px; }
+    .ot-section-header, .it-section-header {
         display: flex;
         align-items: center;
         gap: 12px;
         padding: 18px 24px;
         border-bottom: 1px solid var(--gray-100);
     }
-    .ot-section-header .ot-badge {
+    .ot-section-header h5, .it-section-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+    .ot-section-header .ot-badge, .it-section-header .it-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -48,45 +54,85 @@
     .ot-badge.standard  { background: #e8f5e9; color: #2e7d32; }
     .ot-badge.zero      { background: #e3f2fd; color: #1565c0; }
     .ot-badge.exempt    { background: #fce4ec; color: #880e4f; }
+    .it-badge           { background: #f3e5f5; color: #7b1fa2; }
 
-    .ot-section-header h5 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--gray-800);
+    /* ── Shared table styles ───────────────────────────────────────── */
+    .ot-table, .it-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: collapse;
     }
-
-    /* ── Three-column stats grid ──────────────────────────────────── */
-    .ot-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0;
-    }
-    .ot-stat-cell {
-        padding: 24px 28px;
-        border-right: 1px solid var(--gray-100);
-    }
-    .ot-stat-cell:last-child { border-right: none; }
-
-    .ot-stat-cell .stat-label {
-        font-size: 0.72rem;
+    .ot-table th, .it-table th {
+        background: var(--gray-100);
+        color: var(--gray-500);
+        font-size: 0.75rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.8px;
-        color: var(--gray-400);
-        font-weight: 600;
-        margin-bottom: 8px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--gray-200);
     }
-    .ot-stat-cell .stat-value {
-        font-size: 1.55rem;
+    .ot-table td, .it-table td {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 0.92rem;
+        color: var(--gray-800);
+        vertical-align: middle;
+    }
+    .ot-table tr:last-child td, .it-table tr:last-child td {
+        border-bottom: none;
+    }
+    .ot-table .row-label, .it-table .row-title {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+    .ot-table .value-cell, .it-table .value-cell {
+        font-size: 1.15rem;
         font-weight: 700;
         color: var(--gray-900);
         font-variant-numeric: tabular-nums;
     }
-    .ot-stat-cell.vat-cell .stat-value { color: #1a7f37; }
+    .ot-table .vat-cell, .it-table .vat-cell {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1a7f37;
+        font-variant-numeric: tabular-nums;
+    }
+    .it-table .blank-cell {
+        color: var(--gray-400);
+        font-style: italic;
+    }
+    .ot-table .grand-total td {
+        font-weight: 700;
+        border-top: 2px solid var(--gray-200);
+    }
+    .ot-table .grand-total .value-cell,
+    .ot-table .grand-total .vat-cell {
+        font-size: 1.25rem;
+    }
+    .ot-table .badge-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .ot-table .badge-row .ot-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.70rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    .ot-section-header p, .it-section-header p {
+        color: var(--gray-500);
+    }
 
     /* ── Grand total footer ───────────────────────────────────────── */
     .ot-grand-total {
-        background: #fff;
+        background: var(--gray-50);
         border-radius: 14px;
         box-shadow: var(--shadow-sm);
         padding: 22px 28px;
@@ -113,88 +159,7 @@
         color: #1a7f37;
     }
 
-    /* ── Input-tax styling ────────────────────────────────────────── */
-    .it-section {
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-        margin-top: 32px;
-        margin-bottom: 28px;
-    }
-    .it-section-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 18px 24px;
-        border-bottom: 1px solid var(--gray-100);
-    }
-    .it-section-header .it-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 14px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        background: #f3e5f5;
-        color: #7b1fa2;
-    }
-    .it-section-header h5 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--gray-800);
-    }
-    .it-table {
-        width: 100%;
-        margin-bottom: 0;
-        border-collapse: collapse;
-    }
-    .it-table th {
-        background: var(--gray-50);
-        color: var(--gray-500);
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        padding: 16px 24px;
-        border-bottom: 1px solid var(--gray-100);
-    }
-    .it-table td {
-        padding: 18px 24px;
-        border-bottom: 1px solid var(--gray-50);
-        font-size: 0.92rem;
-        color: var(--gray-800);
-        vertical-align: middle;
-    }
-    .it-table tr:last-child td {
-        border-bottom: none;
-    }
-    .it-table .row-title {
-        font-weight: 600;
-        color: var(--gray-900);
-    }
-    .it-table .value-cell {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: var(--gray-900);
-        font-variant-numeric: tabular-nums;
-    }
-    .it-table .vat-cell {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #1a7f37;
-        font-variant-numeric: tabular-nums;
-    }
-    .it-table .blank-cell {
-        color: var(--gray-300);
-        font-style: italic;
-    }
-
-    /* Net VAT payable card */
+    /* ── Net VAT payable card ──────────────────────────────────────── */
     .net-vat-section {
         background: linear-gradient(135deg, #1e293b, #0f172a);
         color: #fff;
@@ -216,28 +181,46 @@
         font-weight: 800;
         font-variant-numeric: tabular-nums;
     }
-    .net-vat-section .amount-payable {
-        color: #f87171; /* red-400 */
-    }
-    .net-vat-section .amount-refundable {
-        color: #4ade80; /* green-400 */
-    }
+    .net-vat-section .amount-payable { color: #f87171; }
+    .net-vat-section .amount-refundable { color: #4ade80; }
+    .net-vat-section .text-white-50 { color: rgba(255,255,255,.5); }
 
+    /* ── Dark mode overrides ────────────────────────────────────────── */
+    [data-theme='dark'] .ot-badge.standard { background: #1b5e20; color: #a5d6a7; }
+    [data-theme='dark'] .ot-badge.zero     { background: #0d47a1; color: #90caf9; }
+    [data-theme='dark'] .ot-badge.exempt   { background: #4a148c; color: #ce93d8; }
+    [data-theme='dark'] .it-badge          { background: #4a148c; color: #ce93d8; }
+    [data-theme='dark'] .ot-table .vat-cell,
+    [data-theme='dark'] .it-table .vat-cell,
+    [data-theme='dark'] .ot-grand-total .gt-vat { color: #4ade80; }
+    [data-theme='dark'] .net-vat-section {
+        background: var(--gray-100);
+        color: var(--gray-900);
+        box-shadow: var(--shadow-sm);
+    }
+    [data-theme='dark'] .net-vat-section .text-white-50 { color: var(--gray-500); }
+    [data-theme='dark'] .net-vat-section .amount-payable { color: #f87171; }
+    [data-theme='dark'] .net-vat-section .amount-refundable { color: #4ade80; }
+
+    /* ── Print ─────────────────────────────────────────────────────── */
     @media print {
-        .actions { display: none !important; }
-        .ot-section, .ot-grand-total, .it-section, .net-vat-section {
+        .sidebar, .topbar, .page-header, .sidebar-overlay, .actions { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        .page-content { padding: 20px !important; }
+        .report-meta { border: none !important; padding: 0 0 16px !important; }
+        .ot-section, .it-section, .ot-grand-total {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+            break-inside: avoid;
+        }
+        .net-vat-section {
             box-shadow: none !important;
             border: 1px solid #ccc !important;
             background: #fff !important;
             color: #000 !important;
         }
-        .net-vat-section {
-            background: #fff !important;
-            color: #000 !important;
-        }
-        .net-vat-section .net-amount {
-            color: #000 !important;
-        }
+        .net-vat-section .net-amount { color: #000 !important; }
+        .net-vat-section .text-white-50 { color: #666 !important; }
     }
 </style>
 @endpush
@@ -257,7 +240,7 @@
         <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-printer me-1"></i> Print
         </button>
-        <a href="{{ route('reports.generate', $report) }}" class="btn btn-sm btn-primary">
+        <a href="{{ route('reports.generate', ['report' => $report, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-sm btn-primary">
             <i class="bi bi-arrow-repeat me-1"></i> Regenerate
         </a>
     </div>
@@ -301,63 +284,52 @@
     $grandVat      = array_sum(array_column($outputTaxData, 'vat_amount'));
 @endphp
 
-{{-- ── Supply Sections ─────────────────────────────────────────────── --}}
-@foreach($sections as $sec)
-@php
-    $row = $outputTaxData[$sec['key']];
-@endphp
+{{-- ── Output Tax Table ─────────────────────────────────────────────── --}}
 <div class="ot-section">
     <div class="ot-section-header">
-        <span class="ot-badge {{ $sec['badge'] }}">
-            <i class="bi {{ $sec['icon'] }}"></i>
-            {{ ucfirst(str_replace('_', ' ', $sec['key'])) }}
+        <span class="ot-badge standard">
+            <i class="bi bi-receipt-cutoff"></i>
+            Output Tax
         </span>
         <div>
-            <h5>{{ $sec['label'] }}</h5>
-            <p class="mb-0 text-muted small">{{ $sec['desc'] }}</p>
+            <h5>Output Tax (Sales) – VAT Incl.</h5>
+            <p class="mb-0 text-muted small">Standard Rated, Zero Rated, and Exempt supplies</p>
         </div>
     </div>
 
-    <div class="ot-stats">
-        {{-- Column 1: Section label / description --}}
-        <div class="ot-stat-cell">
-            <div class="stat-label">Supply Type</div>
-            <div class="stat-value" style="font-size:1rem; font-weight:600; color:var(--gray-600);">
-                {{ $sec['label'] }}
-            </div>
-        </div>
-
-        {{-- Column 2: Total Sales incl. VAT --}}
-        <div class="ot-stat-cell">
-            <div class="stat-label">{{ $sec['col_total'] }}</div>
-            <div class="stat-value">{{ $fmt($row['total_incl_vat']) }}</div>
-        </div>
-
-        {{-- Column 3: VAT Amount --}}
-        <div class="ot-stat-cell vat-cell">
-            <div class="stat-label">{{ $sec['col_vat'] }}</div>
-            <div class="stat-value">{{ $fmt($row['vat_amount']) }}</div>
-        </div>
-    </div>
-</div>
-@endforeach
-
-{{-- ── Grand Total ──────────────────────────────────────────────────── --}}
-<div class="ot-grand-total mb-4">
-    <div>
-        <div class="gt-label">Grand Total – All Supplies (VAT Incl.)</div>
-        <div class="text-muted small mt-1">Sum of Standard + Zero Rated + Exempt</div>
-    </div>
-    <div class="d-flex gap-5 align-items-center">
-        <div class="text-end">
-            <div class="gt-label">Total Sales Incl. VAT</div>
-            <div class="gt-value">{{ $fmt($grandTotal) }}</div>
-        </div>
-        <div class="text-end">
-            <div class="gt-label">Total Output VAT</div>
-            <div class="gt-vat">{{ $fmt($grandVat) }}</div>
-        </div>
-    </div>
+    <table class="ot-table">
+        <thead>
+            <tr>
+                <th>Supply Type</th>
+                <th class="text-end">Total Sales Incl. VAT</th>
+                <th class="text-end">VAT on Total Sales</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($sections as $sec)
+            @php $row = $outputTaxData[$sec['key']]; @endphp
+            <tr>
+                <td class="row-label">
+                    <span class="badge-row">
+                        <span class="ot-badge {{ $sec['badge'] }}">
+                            <i class="bi {{ $sec['icon'] }}"></i>
+                            {{ ucfirst(str_replace('_', ' ', $sec['key'])) }}
+                        </span>
+                        <span>{{ $sec['label'] }}</span>
+                    </span>
+                </td>
+                <td class="text-end value-cell">{{ $fmt($row['total_incl_vat']) }}</td>
+                <td class="text-end vat-cell">{{ $fmt($row['vat_amount']) }}</td>
+            </tr>
+            @endforeach
+            {{-- Grand Total row --}}
+            <tr class="grand-total">
+                <td class="row-label">Grand Total – All Supplies</td>
+                <td class="text-end value-cell">{{ $fmt($grandTotal) }}</td>
+                <td class="text-end vat-cell">{{ $fmt($grandVat) }}</td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 {{-- ── Input Tax Section ─────────────────────────────────────────────── --}}

@@ -44,6 +44,14 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)
+- **VAT Report Sidebar Link:** Replaced placeholder `#` link in sidebar with a proper route to `reports.vat`, with active state detection.
+- **Monthly VAT Index Page:** New `GET /reports/vat` route and `ReportController@vatIndex` method that queries monthly output/input VAT from sales and receivings, merged by year-month. New `reports/vat_index.blade.php` view renders a table with Period, Output VAT, Input VAT, Net VAT (color-coded), and a "View" button that opens the detailed output_tax report directly for that month — skipping the parameter form entirely (passes `start_date`/`end_date` as query params to trigger the `generate()` short-circuit).
+- **Output Tax UI: Cards → Table:** Converted the output tax section from three individual cards to a single table with rows for Standard Rated, Zero Rated, and Exempt, plus a grand total row — matching the existing input tax table style.
+- **Dark Mode Support:** Replaced all hardcoded `#fff` backgrounds with `var(--gray-50)`, added `[data-theme='dark']` overrides for badges, VAT values, and net-vat card to render correctly in dark mode.
+- **Print Fix:** Added `.sidebar, .topbar, .page-header { display: none }` in print CSS so only the report content prints without sidebar/topbar chrome.
+- **Regenerate Button Fix:** Regenerate button now passes `start_date`/`end_date` as query params, skipping the parameter form and directly re-running the report for the same period.
+
 ### June 2, 2026 (LAN Locations CRUD + App URL + Port)
 - **LAN Locations CRUD with Modals:** Implemented full CRUD operations for LAN nodes (`LanStatusController`) with add/edit modals in the locations view. Added routes for create, update, and delete.
 - **Resync IP:** Added resync IP functionality for self location with action buttons in the locations view. Enhanced self location resync with better button placement and feedback.

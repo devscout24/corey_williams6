@@ -30,6 +30,7 @@ Route::middleware('auth:employee')->group(function (): void {
 
     Route::prefix('reports')->group(function () {
         Route::get('/', [ReportController::class,'index'])->name('reports.index');
+        Route::get('/vat', [ReportController::class,'vatIndex'])->name('reports.vat');
         Route::get('/generate/{report}', [ReportController::class,'generate'])->name('reports.generate');
         Route::post('/generate/{report}', [ReportController::class,'store'])->name('reports.store');
     });

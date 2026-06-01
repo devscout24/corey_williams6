@@ -2037,6 +2037,63 @@ class ReportController extends Controller
         return view('reports.tabular', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report'));
     }
 
+    public function vatIndex(): View
+    {
+        $locationId = $this->locationContextService->resolveLocationId(null);
+
+        $monthlyOutput = DB::table('phppos_sales_items as si')
+            ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+            ->selectRaw('
+                CAST(strftime(\'%Y\', s.created_at) AS INTEGER) as yr,
+                CAST(strftime(\'%m\', s.created_at) AS INTEGER) as mo,
+                SUM(si.vat) as output_vat
+            ')
+            ->where('s.deleted', 0)
+            ->where('s.location_id', $locationId)
+            ->groupBy('yr', 'mo')
+            ->orderBy('yr', 'desc')
+            ->orderBy('mo', 'desc')
+            ->get()
+            ->keyBy(fn($r) => $r->yr . '-' . str_pad($r->mo, 2, '0', STR_PAD_LEFT));
+
+        $monthlyInput = DB::table('phppos_receivings_items as ri')
+            ->join('phppos_receivings as r', 'ri.receiving_id', '=', 'r.receiving_id')
+            ->selectRaw('
+                CAST(strftime(\'%Y\', r.receiving_time) AS INTEGER) as yr,
+                CAST(strftime(\'%m\', r.receiving_time) AS INTEGER) as mo,
+                SUM(ri.vat) as input_vat
+            ')
+            ->where('r.deleted', 0)
+            ->where('r.location_id', $locationId)
+            ->groupBy('yr', 'mo')
+            ->orderBy('yr', 'desc')
+            ->orderBy('mo', 'desc')
+            ->get()
+            ->keyBy(fn($r) => $r->yr . '-' . str_pad($r->mo, 2, '0', STR_PAD_LEFT));
+
+        $keys = array_unique(array_merge($monthlyOutput->keys()->all(), $monthlyInput->keys()->all()));
+        rsort($keys);
+
+        $months = [];
+        foreach ($keys as $key) {
+            [$yr, $mo] = explode('-', $key);
+            $outputVat = (float) ($monthlyOutput->get($key)?->output_vat ?? 0);
+            $inputVat  = (float) ($monthlyInput->get($key)?->input_vat ?? 0);
+            $months[] = (object) [
+                'year'       => (int) $yr,
+                'month'      => (int) $mo,
+                'label'      => Carbon::create((int) $yr, (int) $mo, 1)->format('F Y'),
+                'start_date' => Carbon::create((int) $yr, (int) $mo, 1)->format('Y-m-d'),
+                'end_date'   => Carbon::create((int) $yr, (int) $mo, 1)->endOfMonth()->format('Y-m-d'),
+                'output_vat' => $outputVat,
+                'input_vat'  => $inputVat,
+                'net_vat'    => $outputVat - $inputVat,
+            ];
+        }
+
+        return view('reports.vat_index', compact('months'));
+    }
+
     private function resolveSimpleDateRange(string $simpleKey): array
     {
         $simpleKey = strtoupper(trim($simpleKey));
