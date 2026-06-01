@@ -5,7 +5,7 @@
 
 @push('styles')
 <!-- Selectize CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60Tq/x83PTegs8tC1rSm2Z0x2xYd6mDk2/XGkFhXU0ZpU1wHbgm6w2Uv7X/23Aw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
   .page-content-inner {
     max-width: 1000px;
@@ -149,9 +149,9 @@
 
 @push('scripts')
 <!-- jQuery (Required for Selectize) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
 <!-- Selectize JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7ziT+60A2u9m55C0xk1O81H2PqB1E2Qn2h7B1F34/jI2XoF6G2hF+pTqWpE1h2K8Z4Cxg8w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
   $(document).ready(function() {

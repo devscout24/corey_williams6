@@ -48,7 +48,7 @@
                         <div class="mb-4">
                             <label for="opening_amount" class="form-label fw-semibold text-secondary">Opening Cash Amount</label>
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light border-end-0 text-muted">$</span>
+                                <span class="input-group-text bg-light border-end-0 text-muted">EC</span>
                                 <input type="number" step="0.01" name="opening_amount" id="opening_amount" 
                                     class="form-control border-start-0 ps-1" 
                                     value="{{ number_format($lastCloseAmount, 2, '.', '') }}" 
@@ -56,7 +56,7 @@
                             </div>
                             @if($lastCloseAmount > 0)
                                 <div class="form-text text-muted mt-2">
-                                    <i class="bi bi-info-circle me-1"></i> Suggested from last close amount: <strong>${{ number_format($lastCloseAmount, 2) }}</strong>
+                                    <i class="bi bi-info-circle me-1"></i> Suggested from last close amount: <strong>EC{{ number_format($lastCloseAmount, 2) }}</strong>
                                 </div>
                             @endif
                         </div>
