@@ -5,6 +5,20 @@
 
 @section('content')
 <div class="container-fluid">
+    @if(session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="row g-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -22,6 +36,7 @@
                                 <th>IP</th>
                                 <th>Last Seen</th>
                                 <th>Self</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -37,10 +52,20 @@
                                             <span class="badge bg-secondary">No</span>
                                         @endif
                                     </td>
+                                    <td>
+                                        @if($location->is_self)
+                                            <form action="{{ route('lan.locations.resync-ip') }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Re-resolve LAN IP for this node">
+                                                    <i class="bi bi-arrow-repeat me-1"></i>Resync IP
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">No LAN nodes discovered yet.</td>
+                                    <td colspan="5" class="text-center text-muted">No LAN nodes discovered yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>

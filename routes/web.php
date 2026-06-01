@@ -50,6 +50,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
 
     Route::get('/lan/locations', [LanStatusController::class, 'index'])->name('lan.locations');
+    Route::post('/lan/locations/resync-ip', [LanStatusController::class, 'resyncIp'])->name('lan.locations.resync-ip');
 
    
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
