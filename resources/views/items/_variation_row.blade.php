@@ -46,7 +46,7 @@
     </td>
     <td>
         <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
+            <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
             <input type="number" step="0.001" class="form-control variation-cost" name="variations[{{ $varIndex }}][cost_price]" value="{{ $vCost }}">
         </div>
     </td>
@@ -58,13 +58,13 @@
     </td>
     <td>
         <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
+            <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
             <input type="number" step="0.001" class="form-control variation-markup" name="variations[{{ $varIndex }}][markup]" value="{{ $vMarkup }}">
         </div>
     </td>
     <td>
         <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
+            <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
             <input type="number" step="0.001" class="form-control variation-unit-price" name="variations[{{ $varIndex }}][unit_price]" value="{{ $vPrice }}">
         </div>
     </td>

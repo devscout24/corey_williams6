@@ -202,7 +202,7 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="cost_price">Cost Price</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">$</span>
+                                    <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                                     <input type="number" step="0.001" class="form-control" id="cost_price" name="cost_price" value="{{ old('cost_price', $item?->cost_price) }}" />
                                 </div>
                             </div>
@@ -216,14 +216,14 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="markup">Markup</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">$</span>
+                                    <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                                     <input type="number" step="0.001" class="form-control" id="markup" name="markup" value="{{ old('markup', $item?->markup) }}" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="unit_price">Unit Price</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">$</span>
+                                    <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                                     <input type="number" step="0.001" class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $item?->unit_price) }}" />
                                 </div>
                             </div>
@@ -464,6 +464,7 @@
                                                     'supIds' => $supIds,
                                                     'attributes' => $attributes,
                                                     'suppliers' => $suppliers,
+                                                    'baseCurrencySymbol' => $baseCurrencySymbol,
                                                 ])
                                             @endforeach
                                         </tbody>
@@ -649,7 +650,7 @@
         </td>
         <td>
             <div class="input-group input-group-sm">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                 <input type="number" step="0.001" class="form-control variation-cost" name="variations[__INDEX__][cost_price]" value="">
             </div>
         </td>
@@ -661,13 +662,13 @@
         </td>
         <td>
             <div class="input-group input-group-sm">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                 <input type="number" step="0.001" class="form-control variation-markup" name="variations[__INDEX__][markup]" value="">
             </div>
         </td>
         <td>
             <div class="input-group input-group-sm">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                 <input type="number" step="0.001" class="form-control variation-unit-price" name="variations[__INDEX__][unit_price]" value="">
             </div>
         </td>

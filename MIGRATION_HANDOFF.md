@@ -44,6 +44,29 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### June 2, 2026 (LAN Locations CRUD + App URL + Port)
+- **LAN Locations CRUD with Modals:** Implemented full CRUD operations for LAN nodes (`LanStatusController`) with add/edit modals in the locations view. Added routes for create, update, and delete.
+- **Resync IP:** Added resync IP functionality for self location with action buttons in the locations view. Enhanced self location resync with better button placement and feedback.
+- **Port Attribute:** Added `port` column to `phppos_locations` table. Updated `Location` model, `AnnouncePresence` and `SendItem` jobs, `LanStatusController`, and locations view to use port for LAN communication. Updated port defaults.
+- **App URL Display:** Added app URL display in the LAN locations view and updated default port values.
+
+### June 2, 2026 (Item Search with SKU Support)
+- **Sales Register Search:** Enhanced item search in `SalesController@searchItems` to support SKU-based lookup alongside name and item number. Results now include items, kits, and variations with proper display formatting.
+- **Receiving Register Search:** Updated `ReceivingController@searchItems` with SKU support and improved display for items, kits, and variations. Added variation details to search results.
+- **Sales Grid Display:** Improved the sales register grid (`sales/index.blade.php`) to show variation details and better item/kit/variation representation in the cart.
+
+### June 1-2, 2026 (Register Open/Close Flow)
+- **Register Open/Close:** Implemented full register open/close flow. Added `CheckRegisterOpen` middleware (checks if a register session is open before allowing sales), `register_open.blade.php` (open register form with opening cash amount), `register_close.blade.php` (close register summary with cash counts, sales totals, and discrepancy calculation), and updated `SalesController` with open/close logic.
+- **Tests:** Added `RegisterOpenCloseTest` with feature tests for the register open/close flow.
+- **Middleware Registration:** Registered `CheckRegisterOpen` middleware in `bootstrap/app.php`.
+
+### June 1-2, 2026 (Item Variations Management)
+- **Variations CRUD:** Added full item variation management with markup, cost price, unit price, and supplier associations. Created `phppos_item_variation_suppliers` pivot table with migration.
+- **Markup on Variations:** Added `markup` and `markup_type` columns to `phppos_item_variations` via migration.
+- **Dynamic Attribute Assignments:** Enhanced variation row UI with dynamic attribute assignment (size, color, etc.) and improved styling.
+- **Item Form:** Rebuilt the variations section in `items/form.blade.php` with a tabular layout for managing multiple variations, including supplier selection per variation.
+- **Model Updates:** Updated `ItemVariation` model with `suppliers` relationship and helper methods.
+
 ### May 31, 2026 (Output Tax Report)
 - **Output Tax Report Added:** New `output_tax` report under the Reports → Taxes section.
 - **Three supply categories:** Standard Rated (vat > 0), Zero Rated (has tax-class snapshot but vat = 0), and Exempt (no tax-class snapshot, vat = 0).
@@ -284,16 +307,24 @@ These rules are non-negotiable for this repo’s cleaned schema.
   - Added tags routes to `web.php`
   - Updated `phppos_tags` migration to match CI3 structure (added `ecommerce_tag_id`, `last_modified`, fixed indexes)
 - [x] **Item Kits:** Modernized UI to match the new Pos HTML Dashboard designs (tabs, dynamic rows, secondary categories/suppliers).
-- [ ] **Attributes:** Implement backend logic and modernize UI.
+- [x] **Attributes:** Implement backend logic and modernize UI.
+  - Added full item variations management with markup, cost price, unit price, and supplier associations.
+  - Created `phppos_item_variation_suppliers` pivot table.
+  - Added `markup`/`markup_type` columns to `phppos_item_variations`.
+  - Dynamic attribute assignments (size, color, etc.) with improved styling.
 - [ ] **Price Rules:** Implement backend logic and modernize UI.
 
 ### 4. Inventory Flow
-- [ ] Modernize the UI for Receivings, Returns, and Transfers to match the new Pos HTML Dashboard template.
+- [~] Modernize the UI for Receivings, Returns, and Transfers to match the new Pos HTML Dashboard template.
+  - **Receivings Register:** Updated item search with SKU support, variation details, and improved display (June 2).
 - [x] **Transfers Sync (UI):** Added target device registry (`sync_url` in locations table) and enabled peer-to-peer transfer sync for open, edit, and completed transfer events.
 - [x] **Transfers:** Added capability to create/save a transfer without completing, and edit open transfers (adjust quantities, close/complete).
 
 ### 5. Sales & Receipts
-- [ ] Modernize Sales Register UI.
+- [~] Modernize Sales Register UI.
+  - **Sales Register:** Enhanced item search with SKU support, items/kits/variations display, and variation details in cart (June 2).
+- [x] Implement Register Open/Close flow.
+  - Added `CheckRegisterOpen` middleware, open/close views, and sales controller logic with tests.
 - [ ] Implement VAT Reporting UI and backend integration.
 
 ### 6. Contacts

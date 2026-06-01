@@ -17,7 +17,9 @@ use Illuminate\View\View;
 
 class ItemController extends Controller
 {
-    
+    public function __construct(protected AppConfigService $configService)
+    {}
+
     public function index(): View
     {
         $employee_id = auth('employee')->id();
@@ -98,7 +100,6 @@ class ItemController extends Controller
             ->where('phppos_items.deleted', 0)
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
-
         return view('items.index', compact('items', 'all_columns', 'selected_columns'));
     }
 
@@ -114,6 +115,9 @@ class ItemController extends Controller
             : null;
 
         $attributes = Attribute::with('values')->where('deleted', 0)->whereNull('item_id')->orderBy('name')->get();
+        
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
 
         return view('items.form', [
             'item' => null,
@@ -128,6 +132,8 @@ class ItemController extends Controller
             'item_files' => [],
             'attributes' => $attributes,
             'variations' => [],
+            'baseCurrencyCode' => $baseCurrencyCode,
+            'baseCurrencySymbol' => $baseCurrencySymbol,
         ]);
     }
 
@@ -178,6 +184,9 @@ class ItemController extends Controller
             ->where('deleted', 0)
             ->get()
             ->all();
+        
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
 
         return view('items.form', [
             'item' => $item,
@@ -192,6 +201,8 @@ class ItemController extends Controller
             'item_files' => $itemFiles,
             'attributes' => $attributes,
             'variations' => $variations,
+            'baseCurrencyCode' => $baseCurrencyCode,
+            'baseCurrencySymbol' => $baseCurrencySymbol,
         ]);
     }
 
