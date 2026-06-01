@@ -22,7 +22,9 @@ class LanStatusController extends Controller
             ->take(50)
             ->get();
 
-        return view('lan.locations', compact('locations', 'transfers'));
+        $appUrl = config('app.url');
+
+        return view('lan.locations', compact('locations', 'transfers', 'appUrl'));
     }
 
     public function store(Request $request): RedirectResponse
