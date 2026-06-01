@@ -18,4 +18,11 @@ class Location extends Model
     {
         return $this->hasMany(TransferQueue::class, 'location_id');
     }
+
+    public function getUrlAttribute(): string
+    {
+        $port = $this->port ? ":{$this->port}" : '';
+
+        return "http://{$this->ip}{$port}";
+    }
 }

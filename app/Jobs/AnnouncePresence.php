@@ -43,7 +43,7 @@ class AnnouncePresence implements ShouldQueue
 
         foreach ($locations as $location) {
             try {
-                Http::timeout(3)->post("http://{$location->ip}/api/lan/announce", [
+                Http::timeout(3)->post("{$location->url}/api/lan/announce", [
                     'ip' => $nodeIp,
                     'name' => $nodeName,
                 ]);

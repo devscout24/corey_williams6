@@ -30,11 +30,13 @@ class LanStatusController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'ip' => ['required', 'string', 'max:45'],
+            'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ]);
 
         Location::create([
             'name' => $data['name'],
             'ip' => $data['ip'],
+            'port' => $data['port'] ?: null,
             'is_self' => false,
         ]);
 
@@ -47,11 +49,13 @@ class LanStatusController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'ip' => ['required', 'string', 'max:45'],
+            'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ]);
 
         $location->update([
             'name' => $data['name'],
             'ip' => $data['ip'],
+            'port' => $data['port'] ?: null,
         ]);
 
         return redirect()->route('lan.locations')
@@ -83,21 +87,21 @@ class LanStatusController extends Controller
         $nodeName = config('app.node_name');
 
         try {
-            $response = Http::timeout(5)->post("http://{$location->ip}/api/lan/announce", [
+            $response = Http::timeout(5)->post("{$location->url}/api/lan/announce", [
                 'ip' => $nodeIp,
                 'name' => $nodeName,
             ]);
 
             if ($response->ok()) {
                 return redirect()->route('lan.locations')
-                    ->with('status', "Poke sent to {$location->name} ({$location->ip}) — host acknowledged.");
+                    ->with('status', "Poke sent to {$location->name} at {$location->url} — host acknowledged.");
             }
 
             return redirect()->route('lan.locations')
-                ->with('error', "Poke sent to {$location->name} but target responded with {$response->status()}.");
+                ->with('error', "Poke sent to {$location->name} at {$location->url} but target responded with {$response->status()}.");
         } catch (\Throwable $e) {
             return redirect()->route('lan.locations')
-                ->with('error', "Could not reach {$location->name} ({$location->ip}): {$e->getMessage()}");
+                ->with('error', "Could not reach {$location->name} at {$location->url}: {$e->getMessage()}");
         }
     }
 

@@ -39,6 +39,7 @@
                             <tr>
                                 <th>Name</th>
                                 <th>IP</th>
+                                <th>Port</th>
                                 <th>Last Seen</th>
                                 <th>Self</th>
                                 <th>Actions</th>
@@ -49,6 +50,7 @@
                                 <tr>
                                     <td>{{ $location->name }}</td>
                                     <td>{{ $location->ip }}</td>
+                                    <td>{{ $location->port ?? 80 }}</td>
                                     <td>{{ $location->last_seen_at ? \Carbon\Carbon::parse($location->last_seen_at)->format('m/d/Y H:i') : 'Never' }}</td>
                                     <td>
                                         @if($location->is_self)
@@ -88,7 +90,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5">
+                                    <td colspan="6" class="text-center py-5">
                                         <div class="text-muted mb-3">No LAN nodes discovered yet.</div>
                                         <form action="{{ route('lan.locations.resync-ip') }}" method="POST" class="d-inline">
                                             @csrf
@@ -128,6 +130,11 @@
                                         <label for="edit-ip-{{ $location->id }}" class="form-label">IP Address</label>
                                         <input type="text" name="ip" id="edit-ip-{{ $location->id }}" class="form-control"
                                             value="{{ $location->ip }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="edit-port-{{ $location->id }}" class="form-label">Port</label>
+                                        <input type="number" name="port" id="edit-port-{{ $location->id }}" class="form-control"
+                                            value="{{ $location->port ?? 80 }}" min="1" max="65535">
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -215,6 +222,10 @@
                     <div class="mb-3">
                         <label for="add-ip" class="form-label">IP Address</label>
                         <input type="text" name="ip" id="add-ip" class="form-control" placeholder="e.g. 192.168.1.100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add-port" class="form-label">Port</label>
+                        <input type="number" name="port" id="add-port" class="form-control" placeholder="e.g. 80" value="80" min="1" max="65535">
                     </div>
                 </div>
                 <div class="modal-footer">

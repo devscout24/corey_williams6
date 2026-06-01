@@ -51,7 +51,7 @@ class SendItem implements ShouldQueue
                 return;
             }
 
-            $response = Http::timeout(10)->post("http://{$location->ip}/api/lan/receive", $payload);
+            $response = Http::timeout(10)->post("{$location->url}/api/lan/receive", $payload);
 
             if ($response->successful()) {
                 $transfer->update([
