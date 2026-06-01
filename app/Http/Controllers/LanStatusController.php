@@ -26,30 +26,41 @@ class LanStatusController extends Controller
 
     public function resyncIp(Request $request): RedirectResponse
     {
-        $self = Location::where('is_self', true)->first();
-        if (!$self) {
-            return redirect()->route('lan.locations')
-                ->with('error', 'No self location found to resync.');
-        }
-
         $ip = $this->resolveLanIp();
         if (!$ip) {
             return redirect()->route('lan.locations')
                 ->with('error', 'Could not resolve a LAN IP address. Check network connectivity.');
         }
 
-        $self->ip = $ip;
-        $self->save();
+        $host = gethostname();
+        $name = $host ?: 'unnamed';
+
+        $self = Location::where('is_self', true)->first();
+        if ($self) {
+            $self->ip = $ip;
+            $self->name = $name;
+            $self->save();
+        } else {
+            Location::create([
+                'ip' => $ip,
+                'name' => $name,
+                'is_self' => true,
+                'last_seen_at' => now(),
+            ]);
+        }
 
         $envPath = base_path('.env');
         if (file_exists($envPath)) {
             $env = file_get_contents($envPath);
             $env = $this->setEnvValue($env, 'APP_NODE_IP', $ip);
+            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
             file_put_contents($envPath, $env);
         }
 
+        $msg = $self ? "Self location IP re-synced to {$ip}." : "Self location created with IP {$ip}.";
+
         return redirect()->route('lan.locations')
-            ->with('status', "Self location IP re-synced to {$ip}.");
+            ->with('status', $msg);
     }
 
     private function resolveLanIp(): ?string

@@ -65,7 +65,15 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">No LAN nodes discovered yet.</td>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="text-muted mb-3">No LAN nodes discovered yet.</div>
+                                        <form action="{{ route('lan.locations.resync-ip') }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-plus-circle me-1"></i> Set Self Location
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
