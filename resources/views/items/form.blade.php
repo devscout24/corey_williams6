@@ -5,6 +5,7 @@
 @section('page-description', $item ? "Editing $item->name" : 'Create a new inventory item')
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
     .nav-tabs .nav-link {
         color: #495057;
@@ -12,20 +13,32 @@
     .nav-tabs .nav-link.active {
         color: #0d6efd !important;
     }
-    .variation-attr-group {
+    .attr-assignment {
         border: 1px solid #dee2e6;
         border-radius: 0.375rem;
         padding: 0.5rem 0.75rem;
         margin-bottom: 0.5rem;
         background: #f8f9fa;
     }
-    .variation-attr-group label {
-        font-weight: 600;
-        font-size: 0.85rem;
-        margin-bottom: 0.25rem;
+    .attr-assignment .form-check {
+        margin-right: 0.5rem;
+        margin-bottom: 0.15rem;
     }
-    .variation-attr-group .form-check {
-        margin-right: 0.75rem;
+    .attr-assignment .form-check-label {
+        font-size: 0.85rem;
+    }
+    .selectize-control.multi .selectize-input {
+        min-height: 38px;
+        padding: 4px 8px;
+    }
+    .selectize-control.multi .selectize-input > div {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+    }
+    .attr-select-dropdown .selectize-input {
+        font-size: 0.85rem;
+        min-height: 32px;
+        padding: 2px 8px;
     }
 </style>
 @endpush
@@ -415,7 +428,7 @@
                                             <tr>
                                                 <th style="min-width:140px">Name</th>
                                                 <th style="min-width:110px">SKU</th>
-                                                <th style="min-width:160px">Attribute Values</th>
+                                                <th style="min-width:220px">Attribute Values</th>
                                                 <th style="min-width:90px">Cost</th>
                                                 <th style="min-width:80px">Markup Type</th>
                                                 <th style="min-width:80px">Markup</th>
@@ -628,27 +641,16 @@
             <input type="text" class="form-control form-control-sm" name="variations[__INDEX__][item_number]" value="">
         </td>
         <td>
-            @foreach($attributes as $attr)
-                <div class="variation-attr-group">
-                    <label>{{ $attr->name }}</label>
-                    <div class="d-flex flex-wrap">
-                        @foreach($attr->values as $val)
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox"
-                                    name="variations[__INDEX__][attribute_value_ids][]"
-                                    value="{{ $val->id }}"
-                                    id="var_attr_val___INDEX___{{ $val->id }}">
-                                <label class="form-check-label" for="var_attr_val___INDEX___{{ $val->id }}">{{ $val->name }}</label>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
+            <div class="attr-assignments" data-index="__INDEX__">
+                <button type="button" class="btn btn-sm btn-outline-primary add-attr-assignment">
+                    <i class="bi bi-plus"></i> Attribute
+                </button>
+            </div>
         </td>
         <td>
             <div class="input-group input-group-sm">
                 <span class="input-group-text">$</span>
-                <input type="number" step="0.001" class="form-control" name="variations[__INDEX__][cost_price]" value="">
+                <input type="number" step="0.001" class="form-control variation-cost" name="variations[__INDEX__][cost_price]" value="">
             </div>
         </td>
         <td>
@@ -670,8 +672,7 @@
             </div>
         </td>
         <td>
-            <select class="form-select form-select-sm" name="variations[__INDEX__][supplier_ids][]" multiple size="3">
-                <option value="">No supplier</option>
+            <select class="form-select form-select-sm supplier-select" name="variations[__INDEX__][supplier_ids][]" multiple>
                 @foreach($suppliers as $supplier)
                     <option value="{{ $supplier->person_id }}">{{ $supplier->company_name }}</option>
                 @endforeach
@@ -683,139 +684,276 @@
     </tr>
 </template>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+@php
+    $attributesData = $attributes->map(fn($a) => [
+        'id' => $a->id,
+        'name' => $a->name,
+        'values' => $a->values->map(fn($v) => ['id' => $v->id, 'name' => $v->name]),
+    ])->values();
+@endphp
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Attributes data for dynamic population
+const ATTRIBUTES_DATA = @json($attributesData);
+
+function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function readSelectedIds($container) {
+    var raw = $container.attr('data-selected-ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch(e) { return []; }
+}
+
+function populateAttrValues($container, attrId, selectedIds) {
+    const $valuesDiv = $container.find('.attr-values');
+    const idx = $container.closest('.attr-assignments').data('index');
+    $valuesDiv.empty();
+
+    if (!attrId) return;
+
+    const attr = ATTRIBUTES_DATA.find(function(a) { return a.id == attrId; });
+    if (!attr) return;
+
+    attr.values.forEach(function(v) {
+        var checked = selectedIds && selectedIds.indexOf(v.id) !== -1 ? ' checked' : '';
+        var id = 'var_attr_val_' + idx + '_' + v.id;
+        $valuesDiv.append(
+            '<div class="form-check form-check-inline">' +
+                '<input class="form-check-input attr-value-cb" type="checkbox" ' +
+                    'name="variations[' + idx + '][attribute_value_ids][]" ' +
+                    'value="' + v.id + '" id="' + id + '"' + checked + '>' +
+                '<label class="form-check-label" for="' + id + '">' + v.name + '</label>' +
+            '</div>'
+        );
+    });
+}
+
+function initAttrSelect($select) {
+    if ($select[0] && $select[0].selectize) {
+        $select[0].selectize.destroy();
+    }
+    var $container = $select.closest('.attr-assignment');
+    var initialSelectedIds = readSelectedIds($container);
+    var initialAttrId = $select.val();
+    var initialized = false;
+
+    $select.selectize({
+        placeholder: 'Select Attribute...',
+        onInitialize: function() {
+            this.$wrapper.addClass('attr-select-dropdown');
+        },
+        onChange: function(value) {
+            if (!initialized) return;
+            var $c = $(this.$input).closest('.attr-assignment');
+            var prev = this.$input.data('prev-attr-id');
+            var selIds = prev == value ? (readSelectedIds($c) || []) : [];
+            populateAttrValues($c, value, selIds);
+            this.$input.data('prev-attr-id', value);
+        }
+    });
+
+    if (initialAttrId) {
+        populateAttrValues($container, initialAttrId, initialSelectedIds);
+        $select.data('prev-attr-id', initialAttrId);
+    }
+    initialized = true;
+}
+
+function initSupplierSelect($select) {
+    if ($select[0] && $select[0].selectize) {
+        $select[0].selectize.destroy();
+    }
+    $select.selectize({
+        placeholder: 'Search suppliers...',
+        plugins: ['remove_button'],
+    });
+}
+
+$(document).ready(function() {
 
     let variationIndex = {{ count(old('variations', $variations)) }};
 
-    function addRowFromTemplate(containerId, templateId, isTable = false) {
-        const container = isTable ? document.querySelector(`#${containerId} tbody`) : document.getElementById(containerId);
-        const template = document.getElementById(templateId);
-        if (container && template) {
-            const clone = template.content.cloneNode(true);
-            container.appendChild(clone);
+    function addRowFromTemplate(containerId, templateId, isTable) {
+        if (isTable === undefined) isTable = false;
+        const $container = isTable ? $('#' + containerId + ' tbody') : $('#' + containerId);
+        const $template = $('#' + templateId);
+        if ($container.length && $template.length) {
+            const clone = $template.html();
+            $container.append(clone);
         }
     }
 
-    function addVariationRow(data = {}) {
-        const tbody = document.getElementById('variations-tbody');
-        const template = document.getElementById('variation-row-template');
-        if (!tbody || !template) return;
+    function initRowSelectize($row) {
+        $row.find('.supplier-select').each(function() {
+            initSupplierSelect($(this));
+        });
+        $row.find('.attr-select').each(function() {
+            initAttrSelect($(this));
+        });
+    }
+
+    function addVariationRow(data) {
+        data = data || {};
+        const $tbody = $('#variations-tbody');
+        const $template = $('#variation-row-template');
+        if (!$tbody.length || !$template.length) return;
 
         const idx = variationIndex++;
-        const html = template.innerHTML.replace(/__INDEX__/g, idx);
-        const wrapper = document.createElement('tbody');
-        wrapper.innerHTML = html;
-        const tr = wrapper.firstElementChild;
+        const html = $template.html().replace(/__INDEX__/g, idx);
+        const $tr = $(html);
 
-        if (data.id) tr.querySelector(`[name="variations[${idx}][id]"]`).value = data.id;
-        if (data.name) tr.querySelector(`[name="variations[${idx}][name]"]`).value = data.name;
-        if (data.item_number) tr.querySelector(`[name="variations[${idx}][item_number]"]`).value = data.item_number;
-        if (data.cost_price) tr.querySelector(`[name="variations[${idx}][cost_price]"]`).value = data.cost_price;
-        if (data.markup) tr.querySelector(`[name="variations[${idx}][markup]"]`).value = data.markup;
-        if (data.markup_type) tr.querySelector(`[name="variations[${idx}][markup_type]"]`).value = data.markup_type;
-        if (data.unit_price) tr.querySelector(`[name="variations[${idx}][unit_price]"]`).value = data.unit_price;
+        if (data.id) $tr.find('[name="variations[' + idx + '][id]"]').val(data.id);
+        if (data.name) $tr.find('[name="variations[' + idx + '][name]"]').val(data.name);
+        if (data.item_number) $tr.find('[name="variations[' + idx + '][item_number]"]').val(data.item_number);
+        if (data.cost_price) $tr.find('[name="variations[' + idx + '][cost_price]"]').val(data.cost_price);
+        if (data.markup) $tr.find('[name="variations[' + idx + '][markup]"]').val(data.markup);
+        if (data.markup_type) $tr.find('[name="variations[' + idx + '][markup_type]"]').val(data.markup_type);
+        if (data.unit_price) $tr.find('[name="variations[' + idx + '][unit_price]"]').val(data.unit_price);
 
-        // Set attribute value checkboxes
-        if (data.attribute_value_ids) {
+        $tbody.append($tr);
+        initRowSelectize($tr);
+
+        // If data has attribute assignments, add them
+        if (data.attribute_value_ids && data.attribute_value_ids.length) {
+            const $assignments = $tr.find('.attr-assignments');
+            // Group attribute_value_ids by attribute
+            var attrMap = {};
             data.attribute_value_ids.forEach(function(avId) {
-                const cb = tr.querySelector(`#var_attr_val_${idx}_${avId}`);
-                if (cb) cb.checked = true;
+                ATTRIBUTES_DATA.forEach(function(attr) {
+                    attr.values.forEach(function(v) {
+                        if (v.id == avId) {
+                            if (!attrMap[attr.id]) {
+                                attrMap[attr.id] = { attr: attr, values: [] };
+                            }
+                            attrMap[attr.id].values.push(v);
+                        }
+                    });
+                });
+            });
+
+            Object.values(attrMap).forEach(function(group) {
+                var assignmentHtml = buildAttrAssignmentHtml(idx, group.attr.id, group.values);
+                $assignments.append(assignmentHtml);
+                var $lastAssignment = $assignments.find('.attr-assignment').last();
+                $lastAssignment.find('.attr-select').each(function() {
+                    initAttrSelect($(this));
+                });
             });
         }
 
-        // Set suppliers
+        // If data has suppliers, set them
         if (data.supplier_ids) {
-            const sel = tr.querySelector(`[name="variations[${idx}][supplier_ids][]"]`);
-            if (sel) {
-                Array.from(sel.options).forEach(function(opt) {
-                    if (data.supplier_ids.includes(opt.value)) {
-                        opt.selected = true;
-                    }
-                });
+            const selectize = $tr.find('.supplier-select')[0]?.selectize;
+            if (selectize) {
+                selectize.setValue(data.supplier_ids.map(String));
             }
         }
-
-        tbody.appendChild(tr);
     }
 
-    function updateUnitPriceFromMarkup() {
-        const costInput = document.getElementById('cost_price');
-        const markupTypeSelect = document.getElementById('markup_type');
-        const markupInput = document.getElementById('markup');
-        const unitInput = document.getElementById('unit_price');
+    function buildAttrAssignmentHtml(idx, selectedAttrId, selectedValues) {
+        selectedValues = selectedValues || [];
+        var selectedIds = selectedValues.map(function(sv) { return sv.id; });
+        var optionsHtml = '<option value="">— Select Attribute —</option>';
+        ATTRIBUTES_DATA.forEach(function(attr) {
+            optionsHtml += '<option value="' + attr.id + '"' +
+                (attr.id == selectedAttrId ? ' selected' : '') + '>' +
+                attr.name + '</option>';
+        });
 
-        if (!costInput || !markupInput || !unitInput || !markupTypeSelect) {
-            return;
-        }
-
-        const cost = parseFloat(costInput.value);
-        const markup = parseFloat(markupInput.value);
-        const markupType = markupTypeSelect.value;
-
-        if (!Number.isFinite(cost) || !Number.isFinite(markup)) {
-            return;
-        }
-
-        if (markupType === 'flat') {
-            unitInput.value = (cost + markup).toFixed(3);
-        } else if (markupType === 'percentage') {
-            unitInput.value = (cost + (cost * markup / 100)).toFixed(3);
-        }
+        return '<div class="attr-assignment mb-2 p-2 border rounded bg-light"' +
+                (selectedIds.length ? ' data-selected-ids=&quot;' + escapeAttr(JSON.stringify(selectedIds)) + '&quot;' : '') + '>' +
+            '<div class="d-flex align-items-center gap-2 mb-1">' +
+                '<select class="form-select form-select-sm attr-select flex-grow-1">' +
+                    optionsHtml +
+                '</select>' +
+                '<button class="btn btn-sm btn-outline-danger remove-attr-assignment" type="button">&times;</button>' +
+            '</div>' +
+            '<div class="attr-values d-flex flex-wrap gap-2"></div>' +
+        '</div>';
     }
+
+    // Initialize existing variation rows
+    $('#variations-tbody .variation-row').each(function() {
+        initRowSelectize($(this));
+    });
 
     // Add additional item number row
-    document.getElementById('add-additional-number')?.addEventListener('click', function() {
+    $('#add-additional-number').on('click', function() {
         addRowFromTemplate('additional-numbers-container', 'additional-number-row');
     });
 
     // Add secondary category row
-    document.getElementById('add-secondary-category')?.addEventListener('click', function() {
+    $('#add-secondary-category').on('click', function() {
         addRowFromTemplate('secondary-categories-container', 'secondary-category-row');
     });
 
     // Add secondary supplier row
-    document.getElementById('add-secondary-supplier')?.addEventListener('click', function() {
+    $('#add-secondary-supplier').on('click', function() {
         addRowFromTemplate('secondary-suppliers-container', 'secondary-supplier-row');
     });
 
     // Add variation row
-    document.getElementById('add-variation')?.addEventListener('click', function() {
+    $('#add-variation').on('click', function() {
         addVariationRow({});
     });
 
-    document.getElementById('markup')?.addEventListener('input', updateUnitPriceFromMarkup);
-    document.getElementById('cost_price')?.addEventListener('input', updateUnitPriceFromMarkup);
-    document.getElementById('markup_type')?.addEventListener('change', updateUnitPriceFromMarkup);
+    // Add attribute assignment to a variation row
+    $(document).on('click', '.add-attr-assignment', function() {
+        const $assignments = $(this).closest('.attr-assignments');
+        const idx = $assignments.data('index');
+        const html = buildAttrAssignmentHtml(idx, null, []);
+        $assignments.append(html);
+        const $newAssignment = $assignments.find('.attr-assignment').last();
+        $newAssignment.find('.attr-select').each(function() {
+            initAttrSelect($(this));
+        });
+        // Move the "Add Attribute" button to the end
+        $assignments.append($(this));
+    });
 
-    // Variation inline pricing calculation
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('variation-markup') || e.target.closest('.variation-row')?.querySelector('.variation-markup')) {
-            const row = e.target.closest('tr.variation-row');
-            if (!row) return;
-            const cost = parseFloat(row.querySelector('[name*="[cost_price]"]')?.value) || 0;
-            const markup = parseFloat(row.querySelector('.variation-markup')?.value) || 0;
-            const markupType = row.querySelector('[name*="[markup_type]"]')?.value || 'flat';
-            const unitPriceInput = row.querySelector('.variation-unit-price');
-            if (!unitPriceInput) return;
+    // Remove attribute assignment
+    $(document).on('click', '.remove-attr-assignment', function() {
+        $(this).closest('.attr-assignment').remove();
+    });
 
-            if (markupType === 'flat') {
-                unitPriceInput.value = (cost + markup).toFixed(3);
-            } else if (markupType === 'percentage') {
-                unitPriceInput.value = (cost + (cost * markup / 100)).toFixed(3);
-            }
+    // Markup calculation for item-level
+    $('#markup, #cost_price, #markup_type').on('input change', function() {
+        var cost = parseFloat($('#cost_price').val()) || 0;
+        var markup = parseFloat($('#markup').val()) || 0;
+        var markupType = $('#markup_type').val();
+        if (markupType === 'flat') {
+            $('#unit_price').val((cost + markup).toFixed(3));
+        } else if (markupType === 'percentage') {
+            $('#unit_price').val((cost + (cost * markup / 100)).toFixed(3));
         }
     });
 
-    // Remove rows via event delegation
-    document.addEventListener('click', function(e) {
-        const removeBtn = e.target.closest('.remove-row');
-        if (removeBtn) {
-            const row = removeBtn.closest('.input-group') || removeBtn.closest('tr.variation-row') || removeBtn.closest('tr');
-            if (row) {
-                row.remove();
-            }
+    // Variation inline pricing calculation
+    $(document).on('input', '.variation-markup, .variation-cost', function() {
+        var $row = $(this).closest('tr.variation-row');
+        var cost = parseFloat($row.find('.variation-cost').val()) || 0;
+        var markup = parseFloat($row.find('.variation-markup').val()) || 0;
+        var markupType = $row.find('[name*="[markup_type]"]').val() || 'flat';
+        var $unitPrice = $row.find('.variation-unit-price');
+        if (markupType === 'flat') {
+            $unitPrice.val((cost + markup).toFixed(3));
+        } else if (markupType === 'percentage') {
+            $unitPrice.val((cost + (cost * markup / 100)).toFixed(3));
         }
+    });
+
+    $(document).on('change', '[name*="[markup_type]"]', function() {
+        $(this).closest('tr.variation-row').find('.variation-markup').trigger('input');
+    });
+
+    // Remove rows via event delegation
+    $(document).on('click', '.remove-row', function() {
+        var $target = $(this).closest('.input-group, tr.variation-row, tr');
+        if ($target.length) $target.remove();
     });
 });
 </script>

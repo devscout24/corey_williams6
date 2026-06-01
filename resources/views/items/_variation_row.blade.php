@@ -1,29 +1,48 @@
 <tr class="variation-row" data-index="{{ $varIndex }}">
     <td>
         <input type="hidden" name="variations[{{ $varIndex }}][id]" value="{{ $vId }}">
-        <input type="text" class="form-control form-control-sm" name="variations[{{ $varIndex }}][name]" value="{{ $vName }}">
+        <input type="text" class="form-control form-control-sm" name="variations[{{ $varIndex }}][name]" value="{{ $vName }}" placeholder="e.g. Red Large">
     </td>
     <td>
-        <input type="text" class="form-control form-control-sm" name="variations[{{ $varIndex }}][item_number]" value="{{ $vSku }}">
+        <input type="text" class="form-control form-control-sm" name="variations[{{ $varIndex }}][item_number]" value="{{ $vSku }}" placeholder="SKU">
     </td>
     <td>
-        @foreach($attributes as $attr)
-            <div class="variation-attr-group">
-                <label>{{ $attr->name }}</label>
-                <div class="d-flex flex-wrap">
-                    @foreach($attr->values as $val)
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox"
-                                name="variations[{{ $varIndex }}][attribute_value_ids][]"
-                                value="{{ $val->id }}"
-                                id="var_attr_val_{{ $varIndex }}_{{ $val->id }}"
-                                {{ in_array($val->id, $avIds) ? 'checked' : '' }}>
-                            <label class="form-check-label" for="var_attr_val_{{ $varIndex }}_{{ $val->id }}">{{ $val->name }}</label>
-                        </div>
-                    @endforeach
+        <div class="attr-assignments" data-index="{{ $varIndex }}">
+            @php
+                $groupedAv = [];
+                foreach ($attributes as $attr) {
+                    foreach ($attr->values as $val) {
+                        if (in_array($val->id, $avIds)) {
+                            $groupedAv[$attr->id]['attribute'] = $attr;
+                            $groupedAv[$attr->id]['values'][] = $val;
+                        }
+                    }
+                }
+            @endphp
+
+            @foreach($groupedAv as $attrId => $group)
+                @php $selectedValIds = collect($group['values'])->pluck('id'); @endphp
+                <div class="attr-assignment mb-2 p-2 border rounded bg-light"
+                     data-selected-ids='{{ $selectedValIds->toJson() }}'>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <select class="form-select form-select-sm attr-select flex-grow-1">
+                            <option value="">— Select Attribute —</option>
+                            @foreach($attributes as $attr)
+                                <option value="{{ $attr->id }}" {{ $attr->id == $attrId ? 'selected' : '' }}>
+                                    {{ $attr->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button class="btn btn-sm btn-outline-danger remove-attr-assignment" type="button">&times;</button>
+                    </div>
+                    <div class="attr-values d-flex flex-wrap gap-2"></div>
                 </div>
-            </div>
-        @endforeach
+            @endforeach
+
+            <button type="button" class="btn btn-sm btn-outline-primary add-attr-assignment">
+                <i class="bi bi-plus"></i> Attribute
+            </button>
+        </div>
     </td>
     <td>
         <div class="input-group input-group-sm">
@@ -50,7 +69,7 @@
         </div>
     </td>
     <td>
-        <select class="form-select form-select-sm" name="variations[{{ $varIndex }}][supplier_ids][]" multiple size="3">
+        <select class="form-select form-select-sm supplier-select" name="variations[{{ $varIndex }}][supplier_ids][]" multiple>
             @foreach($suppliers as $supplier)
                 <option value="{{ $supplier->person_id }}" {{ in_array($supplier->person_id, $supIds) ? 'selected' : '' }}>{{ $supplier->company_name }}</option>
             @endforeach
