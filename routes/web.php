@@ -78,6 +78,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
     Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
+    Route::get('/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
+
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
 });
 

@@ -144,6 +144,13 @@ class EmployeeController extends Controller
         return $this->saveEmployee($request, $employeeService, $employeeId);
     }
 
+    public function profile(): View
+    {
+        $employee = auth('employee')->user()->load('person');
+
+        return view('employees.profile', compact('employee'));
+    }
+
     public function destroy(int $employeeId): RedirectResponse
     {
         PhpposEmployee::query()

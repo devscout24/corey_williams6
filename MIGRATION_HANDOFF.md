@@ -311,6 +311,8 @@ These rules are non-negotiable for this repo’s cleaned schema.
 ## 🚀 Upcoming (Pending Tasks)
 
 ### 1. Auth & Security
+- [x] **Topbar User Dropdown:** Replaced static "Shaun Marphy / Admin" with dynamic name/role/initials from the authenticated employee. Added a Bootstrap dropdown with **Profile** and **Logout** options.
+- [x] **Profile Page:** Added `GET /profile` route and `EmployeeController@profile` method. Simple view displaying the logged-in employee's name, initials, username, email, phone, title, and employee number.
 - [ ] Implement 2FA flow (`allow_employees_to_use_2fa` + `secret_key_2fa`).
 - [ ] Implement employee reset-password endpoints and email templates (parity with CI3).
 

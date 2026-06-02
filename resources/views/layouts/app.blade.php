@@ -95,13 +95,32 @@
                     <div class="topbar-icon-btn" id="themeToggle" title="Toggle Dark Mode">
                         <i class="bi bi-moon-fill" id="themeIcon"></i>
                     </div>
-                    <div class="topbar-icon-btn"><i class="bi bi-bell"></i><span class="badge-dot"></span></div>
-                    <div class="topbar-user">
-                        <div class="topbar-user-info">
-                            <div class="topbar-user-name">Shaun Marphy</div>
-                            <div class="topbar-user-role">Admin</div>
+                    {{-- <div class="topbar-icon-btn"><i class="bi bi-bell"></i><span class="badge-dot"></span></div> --}}
+                    @php
+                        $currentEmployee = auth('employee')->user();
+                        $currentPerson = $currentEmployee?->person;
+                        $employeeName = $currentPerson ? ($currentPerson->full_name ?? trim($currentPerson->first_name . ' ' . $currentPerson->last_name)) : 'Employee';
+                        $employeeRole = $currentPerson?->title ?? 'Employee';
+                        $employeeInitials = $currentPerson ? strtoupper(substr($currentPerson->first_name, 0, 1) . substr($currentPerson->last_name, 0, 1)) : '??';
+                    @endphp
+                    <div class="dropdown">
+                        <div class="topbar-user dropdown-toggle border-0" data-bs-toggle="dropdown" aria-expanded="false" role="button">
+                            <div class="topbar-user-info">
+                                <div class="topbar-user-name">{{ $employeeName }}</div>
+                                <div class="topbar-user-role">{{ $employeeRole }}</div>
+                            </div>
+                            <div class="topbar-avatar">{{ $employeeInitials }}</div>
                         </div>
-                        <div class="topbar-avatar">SM</div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 radius-lg mt-2">
+                            <li><a class="dropdown-item py-2 px-3" href="{{ route('employee.profile') }}"><i class="bi bi-person me-2"></i> Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="{{ route('employee.logout') }}">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item py-2 px-3"><i class="bi bi-box-arrow-right me-2"></i> Logout</button>
+                                </form>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </header>
