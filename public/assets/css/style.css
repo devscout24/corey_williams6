@@ -1304,3 +1304,26 @@ input, select, textarea { font-family: var(--font); }
   color: var(--gray-500) !important;
   opacity: 1;
 }
+
+/* =============================================
+   PRINT
+   ============================================= */
+@media print {
+  .sidebar,
+  .topbar,
+  .sidebar-overlay,
+  .no-print {
+    display: none !important;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  .report-meta .actions,
+  .page-content .actions {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}

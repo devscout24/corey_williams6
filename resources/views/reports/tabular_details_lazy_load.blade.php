@@ -35,6 +35,23 @@
         <a href="{{ route('reports.index') }}" class="btn btn-sm btn-light me-2">
             <i class="bi bi-arrow-left me-1"></i> Back to Reports
         </a>
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i> Download
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                <li>
+                    <a class="dropdown-item" href="{{ route('reports.generate', $report) }}?{{ http_build_query(array_merge(request()->query(), ['export_excel' => '1', 'format' => 'xls', 'show_summary_only' => '0'])) }}">
+                        <i class="bi bi-file-earmark-excel me-2 text-success"></i> Excel (.xls)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('reports.generate', $report) }}?{{ http_build_query(array_merge(request()->query(), ['export_excel' => '1', 'format' => 'csv', 'show_summary_only' => '0'])) }}">
+                        <i class="bi bi-filetype-csv me-2 text-primary"></i> CSV (.csv)
+                    </a>
+                </li>
+            </ul>
+        </div>
         <button onclick="window.print()" class="btn btn-sm btn-outline-secondary me-2">
             <i class="bi bi-printer me-1"></i> Print
         </button>

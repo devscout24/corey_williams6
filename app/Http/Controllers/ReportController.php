@@ -212,7 +212,9 @@ class ReportController extends Controller
 
             case 'detailed_sales':
                 $showSummaryOnly = $request->boolean('show_summary_only');
-                $exportExcel = $request->boolean('export_excel');
+                $exportFormat = $request->input('export_format', '');
+                $exportExcel = $exportFormat !== '' ? true : $request->boolean('export_excel');
+                $format = $exportFormat !== '' ? $exportFormat : $request->input('format', 'xls');
                 $registerId = $request->input('register_id', 'all');
 
                 $itemsSubquery = DB::table('phppos_sales_items')
@@ -321,6 +323,10 @@ class ReportController extends Controller
                 $headers[] = ['data' => 'Comment', 'align' => 'right'];
 
                 $title = 'Detailed Sales Report';
+
+                if ($exportExcel) {
+                    return $this->exportDetailedSales($data, $headers, $title, $startDate, $endDate, $locationCount, $format);
+                }
 
                 return view('reports.tabular_details_lazy_load', compact(
                     'data', 'headers', 'title', 'startDate', 'endDate', 'report',
@@ -2338,5 +2344,91 @@ class ReportController extends Controller
         };
 
         return [$start->toDateString(), $end->toDateString()];
+    }
+
+    private function exportDetailedSales($data, $headers, $title, $startDate, $endDate, $locationCount, $format)
+    {
+        $filteredHeaders = array_filter($headers, function ($h) {
+            return !in_array($h['data'], ['']);
+        });
+        $columnLabels = [];
+        foreach ($filteredHeaders as $h) {
+            $columnLabels[] = $h['data'];
+        }
+
+        $rows = [];
+        foreach ($data as $row) {
+            $rowArr = [
+                $row->sale_id,
+            ];
+            if ($locationCount > 1) {
+                $rowArr[] = $row->location_name ?? '';
+            }
+            $rowArr[] = $row->created_at ?? '';
+            $rowArr[] = $row->register_name ?? '';
+            $rowArr[] = $row->items_purchased ?? 0;
+            $rowArr[] = $row->sold_by_employee ?? '';
+            $rowArr[] = $row->customer_name ?? '';
+            $rowArr[] = $row->customer_email ?? '';
+            $rowArr[] = $row->customer_phone ?? '';
+            $rowArr[] = number_format($row->subtotal ?? 0, 2);
+            $rowArr[] = number_format($row->total ?? 0, 2);
+            $rowArr[] = number_format($row->tip ?? 0, 2);
+            $rowArr[] = number_format($row->tax ?? 0, 2);
+            $rowArr[] = number_format($row->profit ?? 0, 2);
+            $rowArr[] = number_format(($row->subtotal ?? 0) - ($row->profit ?? 0), 2);
+            $rowArr[] = $row->payment_type ?? '';
+            $rowArr[] = $row->comment ?? '';
+            $rows[] = $rowArr;
+        }
+
+        $safeTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $title);
+
+        if ($format === 'csv') {
+            $callback = function () use ($columnLabels, $rows) {
+                $output = fopen('php://output', 'w');
+                fputcsv($output, $columnLabels);
+                foreach ($rows as $row) {
+                    fputcsv($output, $row);
+                }
+                fclose($output);
+            };
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $safeTitle . '.csv"',
+            ]);
+        }
+
+        // Default: XLS (HTML table format)
+        $html = '<html>';
+        $html .= '<head><meta charset="UTF-8"><title>' . htmlspecialchars($title) . '</title>';
+        $html .= '<style>
+            table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11pt; }
+            th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+            th { background: #f0f0f0; font-weight: bold; }
+            td.r { text-align: right; }
+        </style></head><body>';
+        $html .= '<h2>' . htmlspecialchars($title) . '</h2>';
+        $html .= '<p>Range: ' . htmlspecialchars($startDate) . ' to ' . htmlspecialchars($endDate) . '</p>';
+        $html .= '<table><thead><tr>';
+        foreach ($columnLabels as $label) {
+            $html .= '<th>' . htmlspecialchars($label) . '</th>';
+        }
+        $html .= '</tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $html .= '<tr>';
+            foreach ($row as $i => $cell) {
+                $align = ($headers[$i]['align'] ?? 'left') === 'right' ? ' class="r"' : '';
+                $html .= '<td' . $align . '>' . htmlspecialchars((string) $cell) . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+        $html .= '</body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel',
+            'Content-Disposition' => 'attachment; filename="' . $safeTitle . '.xls"',
+        ]);
     }
 }

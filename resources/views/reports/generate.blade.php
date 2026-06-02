@@ -122,12 +122,11 @@
 
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Export Options</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="export_excel" id="exportExcel">
-                            <label class="form-check-label" for="exportExcel">
-                                Export to Excel
-                            </label>
-                        </div>
+                        <select name="export_format" class="form-select mb-2">
+                            <option value="">View Report</option>
+                            <option value="xls">Download Excel (.xls)</option>
+                            <option value="csv">Download CSV (.csv)</option>
+                        </select>
                         @if($report == 'detailed_sales')
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" name="show_summary_only" id="showSummaryOnly">
@@ -144,6 +143,7 @@
                             </label>
                         </div>
                         @endif
+                        <input type="hidden" name="export_excel" value="0">
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-5">
