@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import html
 import json
 import re
 from collections import Counter
@@ -353,6 +352,7 @@ def write_report(graph: Graph) -> None:
             "- `graph.html`: interactive local browser graph.",
             "- `graph.json`: machine-readable graph with nodes, edges, files, lines, and confidence tags.",
             "- `GRAPH_REPORT.md`: this summary.",
+            "- `KNOWLEDGE_BASE_SETUP.md`: setup steps, update commands, agent notes, missing pieces, and troubleshooting.",
         ]
     )
     (OUT / "GRAPH_REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -363,7 +363,7 @@ def write_html(graph: Graph) -> None:
         "nodes": list(graph.nodes.values()),
         "edges": graph.edges,
     }
-    payload = json.dumps(data, ensure_ascii=False)
+    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     html_doc = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -405,6 +405,7 @@ canvas {{ width:100%; height:100%; display:block; }}
 <label>Type</label>
 <select id="type"><option value="">All types</option></select>
 <button id="fit">Refit Graph</button>
+<p id="visibleStats" class="type"></p>
 <p class="type">Tip: click a node or a list item to inspect links. This graph is generated locally from source files.</p>
 <div id="list"></div>
 </aside>
@@ -413,33 +414,70 @@ canvas {{ width:100%; height:100%; display:block; }}
 <section class="detail" id="detail" hidden></section>
 </main>
 </div>
-<script id="graph-data" type="application/json">{html.escape(payload)}</script>
+<script id="graph-data" type="application/json">{payload}</script>
 <script>
 const data = JSON.parse(document.getElementById('graph-data').textContent);
 const nodes = data.nodes.map((n, i) => ({{...n, x: Math.random()*900+80, y: Math.random()*600+80, vx:0, vy:0, i}}));
 const nodeById = new Map(nodes.map(n => [n.id, n]));
 const edges = data.edges.map(e => ({{...e, sourceNode: nodeById.get(e.source), targetNode: nodeById.get(e.target)}})).filter(e => e.sourceNode && e.targetNode);
+const degree = new Map(nodes.map(n => [n.id, 0]));
+for (const e of edges) {{ degree.set(e.source, (degree.get(e.source) || 0) + 1); degree.set(e.target, (degree.get(e.target) || 0) + 1); }}
 const colors = {{route:'#38bdf8', controller:'#f97316', model:'#22c55e', table:'#a78bfa', view:'#facc15', method:'#fb7185', doc_section:'#cbd5e1'}};
+const typeOrder = ['route','controller','controller_action','method','model','model_ref','table','table_ref','view','route_name','doc_section'];
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
 const search = document.getElementById('search');
 const type = document.getElementById('type');
 const list = document.getElementById('list');
 const detail = document.getElementById('detail');
+const visibleStats = document.getElementById('visibleStats');
 document.getElementById('nodeCount').textContent = nodes.length.toLocaleString();
 document.getElementById('edgeCount').textContent = edges.length.toLocaleString();
 for (const t of [...new Set(nodes.map(n => n.type))].sort()) {{
   const option = document.createElement('option'); option.value = t; option.textContent = t; type.appendChild(option);
 }}
 let selected = null, scale = 1, ox = 0, oy = 0;
-function resize() {{ canvas.width = canvas.clientWidth * devicePixelRatio; canvas.height = canvas.clientHeight * devicePixelRatio; }}
+function resize() {{ canvas.width = Math.max(320, canvas.clientWidth) * devicePixelRatio; canvas.height = Math.max(320, canvas.clientHeight) * devicePixelRatio; layoutNodes(); }}
 addEventListener('resize', resize); resize();
 function filteredNodes() {{
   const q = search.value.toLowerCase();
-  return nodes.filter(n => (!type.value || n.type === type.value) && (!q || (n.label + ' ' + n.id + ' ' + (n.file||'')).toLowerCase().includes(q))).slice(0, 350);
+  return nodes
+    .filter(n => (!type.value || n.type === type.value) && (!q || (n.label + ' ' + n.id + ' ' + (n.file||'')).toLowerCase().includes(q)))
+    .sort((a, b) => {{
+      const typeScore = (typeOrder.indexOf(a.type) === -1 ? 99 : typeOrder.indexOf(a.type)) - (typeOrder.indexOf(b.type) === -1 ? 99 : typeOrder.indexOf(b.type));
+      return q ? typeScore || a.label.localeCompare(b.label) : (degree.get(b.id) || 0) - (degree.get(a.id) || 0) || typeScore || a.label.localeCompare(b.label);
+    }})
+    .slice(0, 520);
+}}
+function visibleEdges(visibleSet) {{ return edges.filter(e => visibleSet.has(e.source) && visibleSet.has(e.target)); }}
+function layoutNodes() {{
+  const active = filteredNodes();
+  const w = Math.max(320, canvas.clientWidth || 900);
+  const h = Math.max(320, canvas.clientHeight || 700);
+  const byType = new Map();
+  for (const n of active) {{ if (!byType.has(n.type)) byType.set(n.type, []); byType.get(n.type).push(n); }}
+  const types = [...byType.keys()].sort((a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b)));
+  const cx = w / 2, cy = h / 2, rx = Math.max(140, w * 0.38), ry = Math.max(120, h * 0.34);
+  types.forEach((t, ti) => {{
+    const group = byType.get(t);
+    const angle = (Math.PI * 2 * ti / Math.max(1, types.length)) - Math.PI / 2;
+    const gx = cx + Math.cos(angle) * rx * 0.55;
+    const gy = cy + Math.sin(angle) * ry * 0.55;
+    const radius = 24 + Math.sqrt(group.length) * 14;
+    group.forEach((n, i) => {{
+      const a = Math.PI * 2 * i / Math.max(1, group.length);
+      n.x = gx + Math.cos(a) * radius;
+      n.y = gy + Math.sin(a) * radius;
+      n.vx = 0; n.vy = 0;
+    }});
+  }});
 }}
 function updateList() {{
-  const visible = filteredNodes().slice(0, 80);
+  const active = filteredNodes();
+  const activeSet = new Set(active.map(n => n.id));
+  const shownEdges = visibleEdges(activeSet);
+  visibleStats.textContent = `Showing ${{active.length.toLocaleString()}} nodes and ${{shownEdges.length.toLocaleString()}} edges`;
+  const visible = active.slice(0, 80);
   list.innerHTML = '';
   for (const n of visible) {{
     const row = document.createElement('div'); row.className = 'row';
@@ -460,29 +498,33 @@ function selectNode(n) {{
 function tick() {{
   const visible = new Set(filteredNodes().map(n => n.id));
   const active = nodes.filter(n => visible.has(n.id));
-  for (const e of edges) {{
-    if (!visible.has(e.source) || !visible.has(e.target)) continue;
+  for (const e of visibleEdges(visible)) {{
     const a=e.sourceNode,b=e.targetNode, dx=b.x-a.x, dy=b.y-a.y, dist=Math.max(1, Math.hypot(dx,dy));
-    const force=(dist-140)*0.0008; const fx=dx*force, fy=dy*force;
+    const force=(dist-120)*0.00035; const fx=dx*force, fy=dy*force;
     a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
   }}
-  for (let i=0;i<active.length;i++) for (let j=i+1;j<Math.min(active.length,i+40);j++) {{
+  for (let i=0;i<active.length;i++) for (let j=i+1;j<Math.min(active.length,i+20);j++) {{
     const a=active[i], b=active[j], dx=b.x-a.x, dy=b.y-a.y, d2=Math.max(25, dx*dx+dy*dy), f=80/d2;
     a.vx -= dx*f; a.vy -= dy*f; b.vx += dx*f; b.vy += dy*f;
   }}
-  for (const n of active) {{ n.vx += (canvas.width/devicePixelRatio/2 - n.x)*0.0007; n.vy += (canvas.height/devicePixelRatio/2 - n.y)*0.0007; n.x += n.vx; n.y += n.vy; n.vx *= .86; n.vy *= .86; }}
+  for (const n of active) {{ n.vx += (canvas.width/devicePixelRatio/2 - n.x)*0.00015; n.vy += (canvas.height/devicePixelRatio/2 - n.y)*0.00015; n.x += n.vx; n.y += n.vy; n.vx *= .75; n.vy *= .75; }}
 }}
 function draw() {{
   tick();
   const w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h); ctx.save(); ctx.scale(devicePixelRatio, devicePixelRatio); ctx.translate(ox, oy); ctx.scale(scale, scale);
   const visible = new Set(filteredNodes().map(n => n.id));
+  const shownEdges = visibleEdges(visible);
   ctx.lineWidth = 1; ctx.globalAlpha = .22; ctx.strokeStyle = '#94a3b8';
-  for (const e of edges) if (visible.has(e.source) && visible.has(e.target)) {{ ctx.beginPath(); ctx.moveTo(e.sourceNode.x,e.sourceNode.y); ctx.lineTo(e.targetNode.x,e.targetNode.y); ctx.stroke(); }}
+  for (const e of shownEdges) {{ ctx.beginPath(); ctx.moveTo(e.sourceNode.x,e.sourceNode.y); ctx.lineTo(e.targetNode.x,e.targetNode.y); ctx.stroke(); }}
   ctx.globalAlpha = 1;
   for (const n of nodes) if (visible.has(n.id)) {{
     const r = selected?.id === n.id ? 8 : 5;
     ctx.fillStyle = colors[n.type] || '#64748b'; ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); ctx.fill();
     if (selected?.id === n.id || ['controller','model','table','route'].includes(n.type)) {{ ctx.fillStyle='#e5e7eb'; ctx.font='12px system-ui'; ctx.fillText(n.label.slice(0,34), n.x+9, n.y+4); }}
+  }}
+  if (shownEdges.length === 0) {{
+    ctx.fillStyle = '#94a3b8'; ctx.font = '14px system-ui';
+    ctx.fillText('No edges in the current filter. Clear search/type or click Refit Graph.', 24, 32);
   }}
   ctx.restore(); requestAnimationFrame(draw);
 }}
@@ -491,8 +533,10 @@ canvas.addEventListener('click', ev => {{
   let best=null, bd=Infinity; for (const n of filteredNodes()) {{ const d=Math.hypot(n.x-x,n.y-y); if (d<bd) {{ best=n; bd=d; }} }}
   if (best && bd<18) selectNode(best);
 }});
-document.getElementById('fit').onclick = () => {{ for (const n of nodes) {{ n.x=Math.random()*canvas.clientWidth; n.y=Math.random()*canvas.clientHeight; }} }};
-search.oninput = updateList; type.onchange = updateList; updateList(); draw();
+document.getElementById('fit').onclick = () => {{ layoutNodes(); updateList(); }};
+search.oninput = () => {{ layoutNodes(); updateList(); }};
+type.onchange = () => {{ layoutNodes(); updateList(); }};
+layoutNodes(); updateList(); draw();
 </script>
 </body>
 </html>"""
