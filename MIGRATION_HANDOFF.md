@@ -6,6 +6,16 @@
 2. **Context & Past Work:** If you need historical context or want to know what has already been done, **look into the `History` section below**.
 3. **Next Tasks:** If you need to know what needs to be done next, **look into the `Upcoming` section below**.
 4. **Always Update:** You MUST ALWAYS UPDATE this `MIGRATION_HANDOFF.md` file when you complete a task or change the project state. Ensure the `History` and `Upcoming` sections remain accurate and up to date.
+5. **Knowledge Base First:** Before changing code, use the local knowledge base as a reference point:
+  - Read `graphify-out/GRAPH_REPORT.md` for the current project map and key domains.
+  - Use `graphify-out/graph.json` as the machine-readable graph of routes, controllers, models, tables, views, docs, and relationships.
+  - Read `graphify-out/KNOWLEDGE_BASE_SETUP.md` for setup, update, missing-piece, and agent-usage notes.
+  - Treat `graphify-out/graph.html` as a human visual aid only; the agent-critical artifact is `graph.json`.
+6. **Always Update Knowledge Base:** When you add/change routes, controllers, models, relationships, migrations, Blade route links, tests, or important docs, regenerate the local knowledge base from the project root:
+  ```powershell
+  python tools\build_knowledge_base.py
+  ```
+  This updates `graphify-out/graph.json`, `graphify-out/graph.html`, and `graphify-out/GRAPH_REPORT.md`. If the knowledge base output changes, keep those changes with the task so the graph stays aligned with the code.
 
 ### ✅ Migration / Seeder Rules (STRICT)
 These rules are non-negotiable for this repo’s cleaned schema.

@@ -13230,7 +13230,7 @@
       "label": "✅ Migration / Seeder Rules (STRICT)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 10,
+      "line": 20,
       "level": 3
     },
     {
@@ -13238,7 +13238,7 @@
       "label": "✅ Environment Assumptions (Current Project)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 36,
+      "line": 46,
       "level": 3
     },
     {
@@ -13246,7 +13246,7 @@
       "label": "📜 History (Completed Work)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 45,
+      "line": 55,
       "level": 2
     },
     {
@@ -13254,7 +13254,7 @@
       "label": "June 2, 2026 (ZKTeco U560 Device Monitor)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 47,
+      "line": 57,
       "level": 3
     },
     {
@@ -13262,7 +13262,7 @@
       "label": "June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 57,
+      "line": 67,
       "level": 3
     },
     {
@@ -13270,7 +13270,7 @@
       "label": "June 2, 2026 (LAN Locations CRUD + App URL + Port)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 65,
+      "line": 75,
       "level": 3
     },
     {
@@ -13278,7 +13278,7 @@
       "label": "June 2, 2026 (Item Search with SKU Support)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 71,
+      "line": 81,
       "level": 3
     },
     {
@@ -13286,7 +13286,7 @@
       "label": "June 1-2, 2026 (Register Open/Close Flow)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 76,
+      "line": 86,
       "level": 3
     },
     {
@@ -13294,7 +13294,7 @@
       "label": "June 1-2, 2026 (Item Variations Management)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 81,
+      "line": 91,
       "level": 3
     },
     {
@@ -13302,7 +13302,7 @@
       "label": "May 31, 2026 (Output Tax Report)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 88,
+      "line": 98,
       "level": 3
     },
     {
@@ -13310,7 +13310,7 @@
       "label": "May 31, 2026 (Sales & Purchases VAT Formula Update)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 96,
+      "line": 106,
       "level": 3
     },
     {
@@ -13318,7 +13318,7 @@
       "label": "May 31, 2026 (Sales VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 101,
+      "line": 111,
       "level": 3
     },
     {
@@ -13326,7 +13326,7 @@
       "label": "May 31, 2026 (Purchases VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 108,
+      "line": 118,
       "level": 3
     },
     {
@@ -13334,7 +13334,7 @@
       "label": "May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 116,
+      "line": 126,
       "level": 3
     },
     {
@@ -13342,7 +13342,7 @@
       "label": "May 31, 2026 (Tax Classes Unification)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 121,
+      "line": 131,
       "level": 3
     },
     {
@@ -13350,7 +13350,7 @@
       "label": "May 25, 2026 (Purchases Closing Date + VAT Rates)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 126,
+      "line": 136,
       "level": 3
     },
     {
@@ -13358,7 +13358,7 @@
       "label": "May 20, 2026 (LAN Sync System)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 130,
+      "line": 140,
       "level": 3
     },
     {
@@ -13366,7 +13366,7 @@
       "label": "May 20, 2026 (Transfer Sync → LAN)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 136,
+      "line": 146,
       "level": 3
     },
     {
@@ -13374,7 +13374,7 @@
       "label": "May 21, 2026 (Installer Wizard)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 142,
+      "line": 152,
       "level": 3
     },
     {
@@ -13382,7 +13382,7 @@
       "label": "May 21, 2026 (LAN UI + Manual Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 146,
+      "line": 156,
       "level": 3
     },
     {
@@ -13390,7 +13390,7 @@
       "label": "May 21, 2026 (Items: Markup Auto-Calc)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 150,
+      "line": 160,
       "level": 3
     },
     {
@@ -13398,7 +13398,7 @@
       "label": "May 18, 2026 (Config: Taxes + Tax Classes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 154,
+      "line": 164,
       "level": 3
     },
     {
@@ -13406,7 +13406,7 @@
       "label": "May 18, 2026 (Labels: Sheet Mode UI & Print Layout)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 159,
+      "line": 169,
       "level": 3
     },
     {
@@ -13414,7 +13414,7 @@
       "label": "May 17, 2026 (Sales Register: Tags + Favorites Grid)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 164,
+      "line": 174,
       "level": 3
     },
     {
@@ -13422,7 +13422,7 @@
       "label": "May 15, 2026 (Customers Form Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 169,
+      "line": 179,
       "level": 3
     },
     {
@@ -13430,7 +13430,7 @@
       "label": "May 14, 2026 (Customers Module Modernization)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 172,
+      "line": 182,
       "level": 3
     },
     {
@@ -13438,7 +13438,7 @@
       "label": "May 14, 2026 (Reports: Location Context TypeError Fix)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 178,
+      "line": 188,
       "level": 3
     },
     {
@@ -13446,7 +13446,7 @@
       "label": "May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 183,
+      "line": 193,
       "level": 3
     },
     {
@@ -13454,7 +13454,7 @@
       "label": "May 13, 2026 (Sales Currency + Flow Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 189,
+      "line": 199,
       "level": 3
     },
     {
@@ -13462,7 +13462,7 @@
       "label": "May 10, 2026 (Orders & Receivings Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 197,
+      "line": 207,
       "level": 3
     },
     {
@@ -13470,7 +13470,7 @@
       "label": "May 10, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 213,
+      "line": 223,
       "level": 3
     },
     {
@@ -13478,7 +13478,7 @@
       "label": "May 6, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 218,
+      "line": 228,
       "level": 3
     },
     {
@@ -13486,7 +13486,7 @@
       "label": "May 7, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 222,
+      "line": 232,
       "level": 3
     },
     {
@@ -13494,7 +13494,7 @@
       "label": "May 1, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 233,
+      "line": 243,
       "level": 3
     },
     {
@@ -13502,7 +13502,7 @@
       "label": "1. Auth & Security",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 313,
+      "line": 323,
       "level": 3
     },
     {
@@ -13510,7 +13510,7 @@
       "label": "2. Dashboard & Modules",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 319,
+      "line": 329,
       "level": 3
     },
     {
@@ -13518,7 +13518,7 @@
       "label": "3. Inventory & Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 322,
+      "line": 332,
       "level": 3
     },
     {
@@ -13526,7 +13526,7 @@
       "label": "4. Inventory Flow",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 337,
+      "line": 347,
       "level": 3
     },
     {
@@ -13534,7 +13534,7 @@
       "label": "5. Sales & Receipts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 343,
+      "line": 353,
       "level": 3
     },
     {
@@ -13542,7 +13542,7 @@
       "label": "6. Contacts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 350,
+      "line": 360,
       "level": 3
     },
     {
@@ -13550,7 +13550,7 @@
       "label": "7. Messages",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 354,
+      "line": 364,
       "level": 3
     },
     {
@@ -13558,7 +13558,7 @@
       "label": "8. Store Config & Employees",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 357,
+      "line": 367,
       "level": 3
     },
     {
@@ -13566,7 +13566,7 @@
       "label": "9. Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 300,
+      "line": 310,
       "level": 3
     },
     {
@@ -13574,7 +13574,7 @@
       "label": "🚀 Upcoming (Pending Tasks)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 311,
+      "line": 321,
       "level": 2
     },
     {

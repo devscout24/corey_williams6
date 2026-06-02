@@ -73,4 +73,4 @@ Generated from local static analysis of routes, controllers, models, migrations,
 - `graph.html`: interactive local browser graph.
 - `graph.json`: machine-readable graph with nodes, edges, files, lines, and confidence tags.
 - `GRAPH_REPORT.md`: this summary.
-- `KNOWLEDGE_BASE_SETUP.md`: setup steps, regeneration commands, missing pieces, and recommended next steps.
+- `KNOWLEDGE_BASE_SETUP.md`: setup steps, update commands, agent notes, missing pieces, and troubleshooting.

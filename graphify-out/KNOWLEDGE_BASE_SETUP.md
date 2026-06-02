@@ -4,6 +4,49 @@ This folder contains a local, Graphify-style knowledge base for the Laravel POS 
 
 It was created because the official `graphify` command was not installed on this machine, and `uv` was also not available on PATH. Instead of waiting on a global install, I added a repo-local generator that can be run with the Python already available here.
 
+## Quick Start
+
+From PowerShell:
+
+```powershell
+cd C:\Users\Raihan\Herd\LaravelPos
+python tools\build_knowledge_base.py
+```
+
+Then open this file in your browser:
+
+```text
+C:\Users\Raihan\Herd\LaravelPos\graphify-out\graph.html
+```
+
+If you are using VS Code Live Server, this URL should also work:
+
+```text
+http://127.0.0.1:5500/graphify-out/graph.html
+```
+
+You do not need Laravel, Vite, PHP Artisan, or a database connection to view this graph. The graph page is static HTML with the graph data embedded inside it.
+
+If the graph looks empty, do a hard refresh:
+
+```text
+Ctrl + F5
+```
+
+The left sidebar should show node and edge counts. The latest expected values are:
+
+```text
+Nodes: 2,679
+Edges: 3,388
+```
+
+If those counts are blank, the browser is still using an old broken cached copy or JavaScript failed to start. Regenerate the file and refresh again:
+
+```powershell
+cd C:\Users\Raihan\Herd\LaravelPos
+python tools\build_knowledge_base.py
+```
+
 ## What Was Created
 
 - `tools/build_knowledge_base.py`
@@ -106,6 +149,58 @@ Then open:
 ```text
 graphify-out\graph.html
 ```
+
+This updates all local knowledge-base outputs:
+
+- `graphify-out/graph.json`
+- `graphify-out/graph.html`
+- `graphify-out/GRAPH_REPORT.md`
+
+Use this after:
+
+- adding or changing routes
+- adding or changing controllers
+- adding or changing models or relationships
+- adding or changing migrations
+- changing Blade views that link to named routes
+- updating project docs such as `MIGRATION_HANDOFF.md`
+
+You do not need admin permission for this local update step.
+
+## What Matters For Agents
+
+For an AI agent, the most important file is:
+
+```text
+graphify-out\graph.json
+```
+
+That is the machine-readable graph. It contains nodes, edges, file paths, line numbers, relationship types, and confidence tags.
+
+The next most useful files are:
+
+```text
+graphify-out\GRAPH_REPORT.md
+graphify-out\KNOWLEDGE_BASE_SETUP.md
+```
+
+These give the agent a human-readable project summary, update procedure, and caveats.
+
+The visual file is mostly for humans:
+
+```text
+graphify-out\graph.html
+```
+
+If the HTML viewer is ugly or incomplete, that does not mean the whole knowledge base is useless. The agent can still use `graph.json` and the Markdown summaries. The HTML graph is a convenience layer.
+
+Important limitation: this local version does not automatically make Codex read the graph before every task. If you want the agent to use it, explicitly say something like:
+
+```text
+Before changing code, check graphify-out/graph.json and graphify-out/GRAPH_REPORT.md for relevant routes, controllers, models, and tables.
+```
+
+The official Graphify install is better for agent workflows because it adds the real `graphify query` command and Codex integration instructions.
 
 ## What The Local Generator Scans
 
@@ -247,4 +342,3 @@ graphify query "Where does LAN transfer sync flow through the app?"
 graphify query "Which migrations still alter active tables?"
 graphify query "Which controllers touch VAT reporting?"
 ```
-
