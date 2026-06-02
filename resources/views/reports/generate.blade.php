@@ -57,6 +57,19 @@
                         </select>
                     </div>
 
+                    @if($report == 'detailed_sales')
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Register</label>
+                        <select name="register_id" class="form-select">
+                            <option value="all">All Registers</option>
+                            @foreach($registers as $reg)
+                                <option value="{{ $reg->register_id }}">{{ $reg->name }}@if($reg->location_name) ({{ $reg->location_name }})@endif</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    @if($report != 'detailed_sales')
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Group By</label>
                         <select name="group_by" class="form-select">
@@ -66,6 +79,7 @@
                             <option value="year">Year</option>
                         </select>
                     </div>
+                    @endif
 
                     @if(isset($employees))
                     <div class="mb-4">
@@ -114,12 +128,22 @@
                                 Export to Excel
                             </label>
                         </div>
+                        @if($report == 'detailed_sales')
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="show_summary_only" id="showSummaryOnly">
+                            <label class="form-check-label" for="showSummaryOnly">
+                                Show Summary Only
+                            </label>
+                        </div>
+                        @endif
+                        @if($report != 'detailed_sales')
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" name="top_level_categories_only" id="topLevelCategoriesOnly">
                             <label class="form-check-label" for="topLevelCategoriesOnly">
                                 Top Level Categories Only
                             </label>
                         </div>
+                        @endif
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-5">

@@ -42,8 +42,13 @@ class ReportController extends Controller
             ->join('phppos_people', 'phppos_employees.person_id', '=', 'phppos_people.person_id')
             ->select('phppos_employees.person_id', 'phppos_people.first_name', 'phppos_people.last_name')
             ->get();
+
+        $registers = DB::table('phppos_registers')
+            ->leftJoin('phppos_locations', 'phppos_registers.location_id', '=', 'phppos_locations.location_id')
+            ->select('phppos_registers.register_id', 'phppos_registers.name', 'phppos_locations.name as location_name')
+            ->get();
         
-        return view('reports.generate', compact('report', 'title', 'locations', 'paymentTypes', 'customers', 'employees'));
+        return view('reports.generate', compact('report', 'title', 'locations', 'paymentTypes', 'customers', 'employees', 'registers'));
     }
 
     public function store(Request $request, string $report)
@@ -206,16 +211,121 @@ class ReportController extends Controller
                 return view('reports.graphical', compact('chartData', 'summary', 'title', 'startDate', 'endDate', 'report', 'chartType'));
 
             case 'detailed_sales':
-                $query = DB::table('phppos_sales')
-                    ->select('sale_id', 'created_at', 'customer_name', 'subtotal', 'total', 'tax', 'profit', 'payment_type')
-                    ->where('deleted', 0);
-                $data = $applySalesFilters($query)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+                $showSummaryOnly = $request->boolean('show_summary_only');
+                $exportExcel = $request->boolean('export_excel');
+                $registerId = $request->input('register_id', 'all');
 
-                $headers = ['Sale ID', 'Date', 'Customer', 'Subtotal', 'Tax', 'Total', 'Profit', 'Payment'];
-                $title = "Detailed Sales Report";
-                break;
+                $itemsSubquery = DB::table('phppos_sales_items')
+                    ->select('sale_id', DB::raw('COALESCE(SUM(quantity_purchased), 0) as total_items'))
+                    ->groupBy('sale_id');
+
+                $query = DB::table('phppos_sales')
+                    ->join('phppos_locations', 'phppos_sales.location_id', '=', 'phppos_locations.location_id')
+                    ->leftJoin('phppos_registers', 'phppos_sales.register_id', '=', 'phppos_registers.register_id')
+                    ->leftJoin('phppos_people as employee', 'phppos_sales.employee_id', '=', 'employee.person_id')
+                    ->leftJoin('phppos_people as sold_by', 'phppos_sales.sold_by_employee_id', '=', 'sold_by.person_id')
+                    ->leftJoin('phppos_people as customer', 'phppos_sales.customer_id', '=', 'customer.person_id')
+                    ->leftJoin('phppos_customers as customer_data', 'phppos_sales.customer_id', '=', 'customer_data.person_id')
+                    ->leftJoinSub($itemsSubquery, 'items_qty', 'phppos_sales.sale_id', '=', 'items_qty.sale_id')
+                    ->select(
+                        'phppos_sales.sale_id',
+                        'phppos_sales.customer_id',
+                        'phppos_sales.created_at',
+                        'phppos_sales.subtotal',
+                        'phppos_sales.total',
+                        'phppos_sales.tax',
+                        'phppos_sales.profit',
+                        'phppos_sales.payment_type',
+                        'phppos_sales.comment',
+                        'phppos_sales.tip',
+                        'phppos_sales.customer_name as denormalized_customer',
+                        'phppos_locations.name as location_name',
+                        'phppos_registers.name as register_name',
+                        'items_qty.total_items as items_purchased',
+                        DB::raw("COALESCE(CONCAT(employee.first_name, ' ', employee.last_name), '') as employee_name"),
+                        DB::raw("COALESCE(CONCAT(sold_by.first_name, ' ', sold_by.last_name), '') as sold_by_employee"),
+                        DB::raw("COALESCE(CONCAT(customer.first_name, ' ', customer.last_name), '') as customer_name"),
+                        'customer.email as customer_email',
+                        'customer.phone_number as customer_phone',
+                        'customer.person_id as customer_person_id',
+                        'customer_data.account_number'
+                    )
+                    ->where('phppos_sales.deleted', 0);
+
+                $query = $applySalesFilters($query);
+
+                if ($registerId !== 'all') {
+                    $query->where('phppos_sales.register_id', $registerId);
+                }
+
+                if ($saleType === 'sales') {
+                    $query->where('items_qty.total_items', '>', 0);
+                } elseif ($saleType === 'returns') {
+                    $query->where('items_qty.total_items', '<', 0);
+                }
+
+                $locationCount = DB::table('phppos_locations')->count();
+
+                $summaryQuery = DB::table('phppos_sales')
+                    ->select(
+                        DB::raw('COALESCE(SUM(subtotal), 0) as subtotal'),
+                        DB::raw('COALESCE(SUM(total), 0) as total'),
+                        DB::raw('COALESCE(SUM(tax), 0) as tax'),
+                        DB::raw('COALESCE(SUM(profit), 0) as profit')
+                    )
+                    ->where('deleted', 0);
+                $summaryTotals = $applySalesFilters(clone $summaryQuery)->first();
+
+                $summaryTotalsArray = [
+                    'subtotal' => (float) ($summaryTotals->subtotal ?? 0),
+                    'total' => (float) ($summaryTotals->total ?? 0),
+                    'tax' => (float) ($summaryTotals->tax ?? 0),
+                    'profit' => (float) ($summaryTotals->profit ?? 0),
+                    'cogs' => (float) (($summaryTotals->subtotal ?? 0) - ($summaryTotals->profit ?? 0)),
+                ];
+
+                $perPage = 50;
+                $page = $request->input('page', 1);
+
+                if ($showSummaryOnly || $exportExcel) {
+                    $totalRows = 0;
+                    $data = $query->orderBy('phppos_sales.created_at', 'desc')->get();
+                } else {
+                    $totalRows = $query->count();
+                    $data = $query->orderBy('phppos_sales.created_at', 'desc')
+                        ->offset(($page - 1) * $perPage)
+                        ->limit($perPage)
+                        ->get();
+                }
+
+                $headers = [
+                    ['data' => 'Sale ID', 'align' => 'left'],
+                ];
+                if ($locationCount > 1) {
+                    $headers[] = ['data' => 'Location', 'align' => 'left'];
+                }
+                $headers[] = ['data' => 'Date', 'align' => 'left'];
+                $headers[] = ['data' => 'Register', 'align' => 'left'];
+                $headers[] = ['data' => 'Items', 'align' => 'left'];
+                $headers[] = ['data' => 'Sold By', 'align' => 'left'];
+                $headers[] = ['data' => 'Customer', 'align' => 'left'];
+                $headers[] = ['data' => 'Email', 'align' => 'left'];
+                $headers[] = ['data' => 'Phone', 'align' => 'left'];
+                $headers[] = ['data' => 'Subtotal', 'align' => 'right'];
+                $headers[] = ['data' => 'Total', 'align' => 'right'];
+                $headers[] = ['data' => 'Tip', 'align' => 'right'];
+                $headers[] = ['data' => 'Tax', 'align' => 'right'];
+                $headers[] = ['data' => 'Profit', 'align' => 'right'];
+                $headers[] = ['data' => 'COGS', 'align' => 'right'];
+                $headers[] = ['data' => 'Payment', 'align' => 'right'];
+                $headers[] = ['data' => 'Comment', 'align' => 'right'];
+
+                $title = 'Detailed Sales Report';
+
+                return view('reports.tabular_details_lazy_load', compact(
+                    'data', 'headers', 'title', 'startDate', 'endDate', 'report',
+                    'summaryTotalsArray', 'locationCount', 'totalRows', 'page', 'perPage', 'showSummaryOnly'
+                ));
 
             case 'summary_categories':
                 $query = DB::table('phppos_sales_items')
@@ -2035,6 +2145,104 @@ class ReportController extends Controller
         }
 
         return view('reports.tabular', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report'));
+    }
+
+    public function getReportDetails(Request $request, string $report): \Illuminate\Http\JsonResponse
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json(['headers' => [], 'details_data' => []]);
+        }
+
+        $items = DB::table('phppos_sales_items')
+            ->join('phppos_items', 'phppos_sales_items.item_id', '=', 'phppos_items.item_id')
+            ->leftJoin('phppos_categories', 'phppos_items.category_id', '=', 'phppos_categories.id')
+            ->leftJoin('phppos_manufacturers', 'phppos_items.manufacturer_id', '=', 'phppos_manufacturers.id')
+            ->leftJoin('phppos_suppliers', 'phppos_items.supplier_id', '=', 'phppos_suppliers.person_id')
+            ->select(
+                'phppos_sales_items.sale_id',
+                'phppos_items.item_id',
+                'phppos_items.item_number',
+                'phppos_items.product_id as item_product_id',
+                'phppos_items.name as item_name',
+                'phppos_categories.name as category',
+                'phppos_items.size',
+                'phppos_manufacturers.name as manufacturer',
+                'phppos_suppliers.company_name as supplier_name',
+                'phppos_suppliers.person_id as supplier_id',
+                'phppos_sales_items.serialnumber',
+                'phppos_sales_items.description',
+                'phppos_sales_items.item_unit_price as unit_price',
+                'phppos_sales_items.quantity_purchased',
+                'phppos_sales_items.subtotal',
+                'phppos_sales_items.line_total as total',
+                'phppos_sales_items.tax',
+                'phppos_sales_items.profit',
+                'phppos_sales_items.discount_percent',
+                DB::raw("'item' as row_flag")
+            )
+            ->whereIn('phppos_sales_items.sale_id', $ids);
+
+        $itemKits = DB::table('phppos_sales_item_kits')
+            ->join('phppos_item_kits', 'phppos_sales_item_kits.item_kit_id', '=', 'phppos_item_kits.id')
+            ->leftJoin('phppos_categories', 'phppos_item_kits.category_id', '=', 'phppos_categories.id')
+            ->leftJoin('phppos_manufacturers', 'phppos_item_kits.manufacturer_id', '=', 'phppos_manufacturers.id')
+            ->select(
+                'phppos_sales_item_kits.sale_id',
+                'phppos_item_kits.id as item_id',
+                'phppos_item_kits.item_kit_number as item_number',
+                'phppos_item_kits.product_id as item_product_id',
+                'phppos_item_kits.name as item_name',
+                'phppos_categories.name as category',
+                DB::raw("NULL as size"),
+                'phppos_manufacturers.name as manufacturer',
+                DB::raw("NULL as supplier_name"),
+                DB::raw("NULL as supplier_id"),
+                DB::raw("NULL as serialnumber"),
+                DB::raw("NULL as description"),
+                'phppos_sales_item_kits.item_kit_unit_price as unit_price',
+                'phppos_sales_item_kits.quantity_purchased',
+                'phppos_sales_item_kits.subtotal',
+                'phppos_sales_item_kits.line_total as total',
+                'phppos_sales_item_kits.tax',
+                'phppos_sales_item_kits.profit',
+                DB::raw("NULL as discount_percent"),
+                DB::raw("'item_kit' as row_flag")
+            )
+            ->whereIn('phppos_sales_item_kits.sale_id', $ids);
+
+        $combined = $items->union($itemKits)->get();
+
+        $detailsData = [];
+        foreach ($combined as $row) {
+            $detailsData[$row->sale_id][] = $row;
+        }
+
+        $detailHeaders = [
+            ['data' => 'Item ID', 'align' => 'left'],
+            ['data' => 'Item Number', 'align' => 'left'],
+            ['data' => 'Product ID', 'align' => 'left'],
+            ['data' => 'Name', 'align' => 'left'],
+            ['data' => 'Category', 'align' => 'left'],
+            ['data' => 'Size', 'align' => 'left'],
+            ['data' => 'Supplier', 'align' => 'left'],
+            ['data' => 'Manufacturer', 'align' => 'left'],
+            ['data' => 'Serial', 'align' => 'left'],
+            ['data' => 'Description', 'align' => 'left'],
+            ['data' => 'Unit Price', 'align' => 'left'],
+            ['data' => 'Qty', 'align' => 'left'],
+            ['data' => 'Subtotal', 'align' => 'right'],
+            ['data' => 'Total', 'align' => 'right'],
+            ['data' => 'Tax', 'align' => 'right'],
+            ['data' => 'Profit', 'align' => 'right'],
+            ['data' => 'Discount', 'align' => 'right'],
+        ];
+
+        return response()->json([
+            'headers' => $detailHeaders,
+            'details_data' => $detailsData,
+        ]);
     }
 
     public function vatIndex(): View

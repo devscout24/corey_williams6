@@ -33,6 +33,7 @@ Route::middleware('auth:employee')->group(function (): void {
         Route::get('/vat', [ReportController::class,'vatIndex'])->name('reports.vat');
         Route::get('/generate/{report}', [ReportController::class,'generate'])->name('reports.generate');
         Route::post('/generate/{report}', [ReportController::class,'store'])->name('reports.store');
+        Route::post('/details/{report}', [ReportController::class,'getReportDetails'])->name('reports.details');
     });
 
     Route::get('/transfers/out', [TransferController::class, 'outIndex'])->name('transfers.out');
