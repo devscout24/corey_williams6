@@ -102,7 +102,9 @@
         <thead>
             <tr>
                 <th>Period</th>
+                <th class="text-end">Output (Taxable Value)</th>
                 <th class="text-end">Output VAT</th>
+                <th class="text-end">Input (Taxable Value)</th>
                 <th class="text-end">Input VAT</th>
                 <th class="text-end">Net VAT</th>
                 <th class="text-center">Action</th>
@@ -112,7 +114,9 @@
             @forelse($months as $m)
             <tr>
                 <td class="period-cell">{{ $m->label }}</td>
+                <td class="text-end value-cell">{{ number_format($m->taxable_output, 2) }}</td>
                 <td class="text-end value-cell">{{ number_format($m->output_vat, 2) }}</td>
+                <td class="text-end value-cell">{{ number_format($m->taxable_input, 2) }}</td>
                 <td class="text-end value-cell">{{ number_format($m->input_vat, 2) }}</td>
                 <td class="text-end value-cell {{ $m->net_vat >= 0 ? 'vat-positive' : 'vat-negative' }}">
                     {{ $m->net_vat >= 0 ? '+' : '-' }}${{ number_format(abs($m->net_vat), 2) }}
@@ -126,7 +130,7 @@
             </tr>
             @empty
             <tr class="empty-row">
-                <td colspan="5">No VAT data yet. Complete some sales and purchases to see monthly summaries.</td>
+                <td colspan="7">No VAT data yet. Complete some sales and purchases to see monthly summaries.</td>
             </tr>
             @endforelse
         </tbody>

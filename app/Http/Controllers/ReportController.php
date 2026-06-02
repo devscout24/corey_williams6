@@ -2260,6 +2260,7 @@ class ReportController extends Controller
             ->selectRaw('
                 CAST(strftime(\'%Y\', s.created_at) AS INTEGER) as yr,
                 CAST(strftime(\'%m\', s.created_at) AS INTEGER) as mo,
+                SUM(si.line_total + si.vat) as taxable_output,
                 SUM(si.vat) as output_vat
             ')
             ->where('s.deleted', 0)
@@ -2275,6 +2276,7 @@ class ReportController extends Controller
             ->selectRaw('
                 CAST(strftime(\'%Y\', r.receiving_time) AS INTEGER) as yr,
                 CAST(strftime(\'%m\', r.receiving_time) AS INTEGER) as mo,
+                SUM(ri.subtotal + ri.vat) as taxable_input,
                 SUM(ri.vat) as input_vat
             ')
             ->where('r.deleted', 0)
@@ -2299,7 +2301,9 @@ class ReportController extends Controller
                 'label'      => Carbon::create((int) $yr, (int) $mo, 1)->format('F Y'),
                 'start_date' => Carbon::create((int) $yr, (int) $mo, 1)->format('Y-m-d'),
                 'end_date'   => Carbon::create((int) $yr, (int) $mo, 1)->endOfMonth()->format('Y-m-d'),
+                'taxable_output' => (float) ($monthlyOutput->get($key)?->taxable_output ?? 0),
                 'output_vat' => $outputVat,
+                'taxable_input' => (float) ($monthlyInput->get($key)?->taxable_input ?? 0),
                 'input_vat'  => $inputVat,
                 'net_vat'    => $outputVat - $inputVat,
             ];
