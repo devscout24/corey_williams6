@@ -44,6 +44,16 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### June 2, 2026 (ZKTeco U560 Device Monitor)
+- **ZKTeco Monitoring View:** New `GET /zkteco` route and `ZktecoController@index` page that provides a real-time monitoring dashboard for ZKTeco U560 (or any ZKTeco TCP/IP) biometric device.
+- **Connectivity Indicator:** Prominent color-coded status dot (green = connected, red = disconnected, amber pulse = connecting) with text label next to the device config form.
+- **Device Info Card:** Shows device name, serial number, firmware version, platform, OS version, and device time after a successful connection test.
+- **Attendance Data:** "Fetch Attendance" button loads all attendance records from the device; displays a summary card (total records, today's count, unique users) and a full paginated-style table with User ID, Timestamp, and State columns, sorted newest-first.
+- **Device Configuration:** Inline form for IP address and port (default 4370), saved to `phppos_app_config` via `AppConfigService` (keys: `zkteco_device_ip`, `zkteco_device_port`).
+- **Library:** Installed `rats/zkteco` (^002.0) — pure PHP ZKTeco protocol library using UDP sockets.
+- **Service Layer:** `ZktecoService` wraps the library with config persistence and error handling.
+- **Sidebar:** Added "Device Monitor" link with fingerprint icon between VAT Report and Messages.
+
 ### June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)
 - **VAT Report Sidebar Link:** Replaced placeholder `#` link in sidebar with a proper route to `reports.vat`, with active state detection.
 - **Monthly VAT Index Page:** New `GET /reports/vat` route and `ReportController@vatIndex` method that queries monthly output/input VAT from sales and receivings, merged by year-month. New `reports/vat_index.blade.php` view renders a table with Period, Output VAT, Input VAT, Net VAT (color-coded), and a "View" button that opens the detailed output_tax report directly for that month — skipping the parameter form entirely (passes `start_date`/`end_date` as query params to trigger the `generate()` short-circuit).

@@ -6,6 +6,7 @@ use App\Http\Controllers\ConfigController;
 use App\Http\Controllers\LanStatusController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\ZktecoController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
@@ -57,6 +58,11 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/lan/locations/{location}', [LanStatusController::class, 'update'])->name('lan.locations.update');
     Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');
     Route::post('/lan/locations/{location}/poke', [LanStatusController::class, 'poke'])->name('lan.locations.poke');
+
+    Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
+    Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');
+    Route::get('/zkteco/attendance', [ZktecoController::class, 'attendance'])->name('zkteco.attendance');
+    Route::post('/zkteco/config', [ZktecoController::class, 'saveConfig'])->name('zkteco.save-config');
 
    
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');

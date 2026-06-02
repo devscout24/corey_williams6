@@ -84,6 +84,11 @@
                     <i class="bi bi-geo-alt-fill"></i><span>Locations</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{{ route('zkteco.index') }}" class="nav-link {{ request()->routeIs('zkteco.*') ? 'active' : '' }}">
+                    <i class="bi bi-fingerprint"></i><span>Device Monitor</span>
+                </a>
+            </div>
             <div class="nav-item"><a href="{{ route('messages.index') }}" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Messages</span></a></div>
         </nav>
 
