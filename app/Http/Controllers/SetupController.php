@@ -32,6 +32,7 @@ class SetupController extends Controller
             'app_name' => ['required', 'string', 'max:255'],
             'storage_path' => ['nullable', 'string', 'max:255'],
             'node_name' => ['required', 'string', 'max:255'],
+            'store_location_name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255'],
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
@@ -60,6 +61,17 @@ class SetupController extends Controller
 
         Artisan::call('migrate', ['--force' => true]);
         Artisan::call('db:seed', ['--force' => true]);
+
+        // Ensure the primary store location has the configured name.
+        DB::table('phppos_locations')->updateOrInsert(
+            ['location_id' => 1],
+            [
+                'name' => $data['store_location_name'],
+                'deleted' => 0,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
         DB::transaction(function () use ($data): void {
             $nameParts = preg_split('/\s+/', trim($data['full_name']));

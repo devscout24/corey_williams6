@@ -4,9 +4,9 @@ Generated from local static analysis of routes, controllers, models, migrations,
 
 ## Snapshot
 
-- Nodes: 2,679
-- Edges: 3,388
-- Routes: 159
+- Nodes: 2,688
+- Edges: 3,399
+- Routes: 161
 - Controllers: 31
 - Models: 65
 - Tables/table refs: 125
@@ -28,12 +28,12 @@ Generated from local static analysis of routes, controllers, models, migrations,
 - PhpposLocation [model_ref], degree 60
 - phppos_items [table], degree 56 (database/migrations/2026_05_10_232648_add_reorder_level_to_items_tables.php:35)
 - layouts.app [view], degree 53
-- routes/web.php [route_file], degree 50
+- routes/web.php [route_file], degree 52
 - phppos_item_kits [table], degree 49 (database/migrations/2026_05_01_000037_create_phppos_item_kits_table.php:11)
 - PhpposSupplier [model_ref], degree 48
 - PhpposItemKit [model_ref], degree 48
+- MIGRATION_HANDOFF.md [doc_file], degree 48
 - PhpposCategory [model_ref], degree 46
-- MIGRATION_HANDOFF.md [doc_file], degree 46
 - phppos_receivings [table], degree 43 (database/migrations/2026_05_01_000070_create_phppos_receivings_table.php:11)
 - phppos_employees [table], degree 38 (database/migrations/2026_05_10_224324_add_commission_fields_to_tables.php:39)
 - PhpposEmployee [model_ref], degree 37
@@ -42,13 +42,13 @@ Generated from local static analysis of routes, controllers, models, migrations,
 ## Relationship Types
 
 - has_column: 875
-- defines: 657
+- defines: 659
 - uses_model: 568
-- contains: 199
-- links_to_route: 174
-- declares: 159
-- handled_by: 159
-- calls: 159
+- contains: 201
+- links_to_route: 175
+- declares: 161
+- handled_by: 161
+- calls: 161
 - extends: 145
 - creates: 125
 - renders: 75

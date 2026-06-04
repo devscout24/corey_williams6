@@ -55,6 +55,7 @@ Route::middleware('auth:employee')->group(function (): void {
 
     Route::get('/lan/locations', [LanStatusController::class, 'index'])->name('lan.locations');
     Route::post('/lan/locations', [LanStatusController::class, 'store'])->name('lan.locations.store');
+    Route::post('/lan/locations/self-name', [LanStatusController::class, 'updateSelfName'])->name('lan.locations.self-name');
     Route::post('/lan/locations/resync-ip', [LanStatusController::class, 'resyncIp'])->name('lan.locations.resync-ip');
     Route::post('/lan/locations/{location}', [LanStatusController::class, 'update'])->name('lan.locations.update');
     Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');

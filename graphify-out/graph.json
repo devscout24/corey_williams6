@@ -1,7 +1,7 @@
 {
   "metadata": {
     "project": "LaravelPos",
-    "root": "C:\\Users\\Raihan\\Herd\\LaravelPos",
+    "root": "C:\\Users\\raihan\\Herd\\LaravelPos",
     "generator": "tools/build_knowledge_base.py",
     "style": "graphify-compatible local knowledge graph"
   },
@@ -435,18 +435,25 @@
       "line": 147
     },
     {
+      "id": "method:app/Http/Controllers/EmployeeController.php:updateProfile",
+      "label": "updateProfile",
+      "type": "method",
+      "file": "app/Http/Controllers/EmployeeController.php",
+      "line": 154
+    },
+    {
       "id": "method:app/Http/Controllers/EmployeeController.php:destroy",
       "label": "destroy",
       "type": "method",
       "file": "app/Http/Controllers/EmployeeController.php",
-      "line": 154
+      "line": 194
     },
     {
       "id": "method:app/Http/Controllers/EmployeeController.php:saveEmployee",
       "label": "saveEmployee",
       "type": "method",
       "file": "app/Http/Controllers/EmployeeController.php",
-      "line": 163
+      "line": 203
     },
     {
       "id": "file:app/Http/Controllers/InventoryColumnSettingController.php",
@@ -834,53 +841,60 @@
       "file": "resources/views/lan/locations.blade.php"
     },
     {
+      "id": "method:app/Http/Controllers/LanStatusController.php:updateSelfName",
+      "label": "updateSelfName",
+      "type": "method",
+      "file": "app/Http/Controllers/LanStatusController.php",
+      "line": 30
+    },
+    {
       "id": "method:app/Http/Controllers/LanStatusController.php:store",
       "label": "store",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 30
+      "line": 52
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:update",
       "label": "update",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 49
+      "line": 71
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:destroy",
       "label": "destroy",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 67
+      "line": 89
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:poke",
       "label": "poke",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 81
+      "line": 103
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:resyncIp",
       "label": "resyncIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 110
+      "line": 132
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:resolveLanIp",
       "label": "resolveLanIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 149
+      "line": 175
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:setEnvValue",
       "label": "setEnvValue",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 173
+      "line": 199
     },
     {
       "id": "file:app/Http/Controllers/MessageController.php",
@@ -1812,28 +1826,28 @@
       "label": "resolveLanIp",
       "type": "method",
       "file": "app/Http/Controllers/SetupController.php",
-      "line": 100
+      "line": 112
     },
     {
       "id": "method:app/Http/Controllers/SetupController.php:setEnvValue",
       "label": "setEnvValue",
       "type": "method",
       "file": "app/Http/Controllers/SetupController.php",
-      "line": 124
+      "line": 136
     },
     {
       "id": "method:app/Http/Controllers/SetupController.php:isInstalled",
       "label": "isInstalled",
       "type": "method",
       "file": "app/Http/Controllers/SetupController.php",
-      "line": 136
+      "line": 148
     },
     {
       "id": "method:app/Http/Controllers/SetupController.php:markInstalled",
       "label": "markInstalled",
       "type": "method",
       "file": "app/Http/Controllers/SetupController.php",
-      "line": 141
+      "line": 153
     },
     {
       "id": "file:app/Http/Controllers/SupplierController.php",
@@ -13250,11 +13264,27 @@
       "level": 2
     },
     {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 4, 2026 (Editable Profile Page)",
+      "label": "June 4, 2026 (Editable Profile Page)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 57,
+      "level": 3
+    },
+    {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 4, 2026 (Location Labels: Setup + LAN Locations)",
+      "label": "June 4, 2026 (Location Labels: Setup + LAN Locations)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 65,
+      "level": 3
+    },
+    {
       "id": "doc-section:MIGRATION_HANDOFF.md:June 2, 2026 (ZKTeco U560 Device Monitor)",
       "label": "June 2, 2026 (ZKTeco U560 Device Monitor)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 57,
+      "line": 69,
       "level": 3
     },
     {
@@ -13262,7 +13292,7 @@
       "label": "June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 67,
+      "line": 79,
       "level": 3
     },
     {
@@ -13270,7 +13300,7 @@
       "label": "June 2, 2026 (LAN Locations CRUD + App URL + Port)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 75,
+      "line": 87,
       "level": 3
     },
     {
@@ -13278,7 +13308,7 @@
       "label": "June 2, 2026 (Item Search with SKU Support)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 81,
+      "line": 93,
       "level": 3
     },
     {
@@ -13286,7 +13316,7 @@
       "label": "June 1-2, 2026 (Register Open/Close Flow)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 86,
+      "line": 98,
       "level": 3
     },
     {
@@ -13294,7 +13324,7 @@
       "label": "June 1-2, 2026 (Item Variations Management)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 91,
+      "line": 103,
       "level": 3
     },
     {
@@ -13302,7 +13332,7 @@
       "label": "May 31, 2026 (Output Tax Report)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 98,
+      "line": 110,
       "level": 3
     },
     {
@@ -13310,7 +13340,7 @@
       "label": "May 31, 2026 (Sales & Purchases VAT Formula Update)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 106,
+      "line": 118,
       "level": 3
     },
     {
@@ -13318,7 +13348,7 @@
       "label": "May 31, 2026 (Sales VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 111,
+      "line": 123,
       "level": 3
     },
     {
@@ -13326,7 +13356,7 @@
       "label": "May 31, 2026 (Purchases VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 118,
+      "line": 130,
       "level": 3
     },
     {
@@ -13334,7 +13364,7 @@
       "label": "May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 126,
+      "line": 138,
       "level": 3
     },
     {
@@ -13342,7 +13372,7 @@
       "label": "May 31, 2026 (Tax Classes Unification)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 131,
+      "line": 143,
       "level": 3
     },
     {
@@ -13350,7 +13380,7 @@
       "label": "May 25, 2026 (Purchases Closing Date + VAT Rates)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 136,
+      "line": 148,
       "level": 3
     },
     {
@@ -13358,7 +13388,7 @@
       "label": "May 20, 2026 (LAN Sync System)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 140,
+      "line": 152,
       "level": 3
     },
     {
@@ -13366,7 +13396,7 @@
       "label": "May 20, 2026 (Transfer Sync → LAN)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 146,
+      "line": 158,
       "level": 3
     },
     {
@@ -13374,7 +13404,7 @@
       "label": "May 21, 2026 (Installer Wizard)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 152,
+      "line": 164,
       "level": 3
     },
     {
@@ -13382,7 +13412,7 @@
       "label": "May 21, 2026 (LAN UI + Manual Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 156,
+      "line": 168,
       "level": 3
     },
     {
@@ -13390,7 +13420,7 @@
       "label": "May 21, 2026 (Items: Markup Auto-Calc)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 160,
+      "line": 172,
       "level": 3
     },
     {
@@ -13398,7 +13428,7 @@
       "label": "May 18, 2026 (Config: Taxes + Tax Classes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 164,
+      "line": 176,
       "level": 3
     },
     {
@@ -13406,7 +13436,7 @@
       "label": "May 18, 2026 (Labels: Sheet Mode UI & Print Layout)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 169,
+      "line": 181,
       "level": 3
     },
     {
@@ -13414,7 +13444,7 @@
       "label": "May 17, 2026 (Sales Register: Tags + Favorites Grid)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 174,
+      "line": 186,
       "level": 3
     },
     {
@@ -13422,7 +13452,7 @@
       "label": "May 15, 2026 (Customers Form Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 179,
+      "line": 191,
       "level": 3
     },
     {
@@ -13430,7 +13460,7 @@
       "label": "May 14, 2026 (Customers Module Modernization)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 182,
+      "line": 194,
       "level": 3
     },
     {
@@ -13438,7 +13468,7 @@
       "label": "May 14, 2026 (Reports: Location Context TypeError Fix)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 188,
+      "line": 200,
       "level": 3
     },
     {
@@ -13446,7 +13476,7 @@
       "label": "May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 193,
+      "line": 205,
       "level": 3
     },
     {
@@ -13454,7 +13484,7 @@
       "label": "May 13, 2026 (Sales Currency + Flow Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 199,
+      "line": 211,
       "level": 3
     },
     {
@@ -13462,7 +13492,7 @@
       "label": "May 10, 2026 (Orders & Receivings Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 207,
+      "line": 219,
       "level": 3
     },
     {
@@ -13470,7 +13500,7 @@
       "label": "May 10, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 223,
+      "line": 235,
       "level": 3
     },
     {
@@ -13478,7 +13508,7 @@
       "label": "May 6, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 228,
+      "line": 240,
       "level": 3
     },
     {
@@ -13486,7 +13516,7 @@
       "label": "May 7, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 232,
+      "line": 244,
       "level": 3
     },
     {
@@ -13494,7 +13524,7 @@
       "label": "May 1, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 243,
+      "line": 255,
       "level": 3
     },
     {
@@ -13502,7 +13532,7 @@
       "label": "1. Auth & Security",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 323,
+      "line": 335,
       "level": 3
     },
     {
@@ -13510,7 +13540,7 @@
       "label": "2. Dashboard & Modules",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 329,
+      "line": 341,
       "level": 3
     },
     {
@@ -13518,7 +13548,7 @@
       "label": "3. Inventory & Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 332,
+      "line": 344,
       "level": 3
     },
     {
@@ -13526,7 +13556,7 @@
       "label": "4. Inventory Flow",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 347,
+      "line": 359,
       "level": 3
     },
     {
@@ -13534,7 +13564,7 @@
       "label": "5. Sales & Receipts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 353,
+      "line": 365,
       "level": 3
     },
     {
@@ -13542,7 +13572,7 @@
       "label": "6. Contacts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 360,
+      "line": 372,
       "level": 3
     },
     {
@@ -13550,7 +13580,7 @@
       "label": "7. Messages",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 364,
+      "line": 376,
       "level": 3
     },
     {
@@ -13558,7 +13588,7 @@
       "label": "8. Store Config & Employees",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 367,
+      "line": 379,
       "level": 3
     },
     {
@@ -13566,7 +13596,7 @@
       "label": "9. Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 310,
+      "line": 322,
       "level": 3
     },
     {
@@ -13574,7 +13604,7 @@
       "label": "🚀 Upcoming (Pending Tasks)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 321,
+      "line": 333,
       "level": 2
     },
     {
@@ -14082,6 +14112,11 @@
     {
       "id": "route-name:lan.locations.update",
       "label": "lan.locations.update",
+      "type": "route_name"
+    },
+    {
+      "id": "route-name:lan.locations.self-name",
+      "label": "lan.locations.self-name",
       "type": "route_name"
     },
     {
@@ -16348,7 +16383,7 @@
       "label": "GET /setup",
       "type": "route",
       "file": "routes/web.php",
-      "line": 20,
+      "line": 21,
       "action": "index"
     },
     {
@@ -16366,7 +16401,7 @@
       "label": "POST /setup",
       "type": "route",
       "file": "routes/web.php",
-      "line": 21,
+      "line": 22,
       "action": "store"
     },
     {
@@ -16379,7 +16414,7 @@
       "label": "GET /",
       "type": "route",
       "file": "routes/web.php",
-      "line": 25,
+      "line": 26,
       "action": "index"
     },
     {
@@ -16397,7 +16432,7 @@
       "label": "GET /modules",
       "type": "route",
       "file": "routes/web.php",
-      "line": 27,
+      "line": 28,
       "action": "index"
     },
     {
@@ -16405,7 +16440,7 @@
       "label": "GET /config",
       "type": "route",
       "file": "routes/web.php",
-      "line": 29,
+      "line": 30,
       "action": "index"
     },
     {
@@ -16423,7 +16458,7 @@
       "label": "POST /config",
       "type": "route",
       "file": "routes/web.php",
-      "line": 30,
+      "line": 31,
       "action": "update"
     },
     {
@@ -16436,7 +16471,7 @@
       "label": "GET /",
       "type": "route",
       "file": "routes/web.php",
-      "line": 33,
+      "line": 34,
       "action": "index"
     },
     {
@@ -16454,7 +16489,7 @@
       "label": "GET /vat",
       "type": "route",
       "file": "routes/web.php",
-      "line": 34,
+      "line": 35,
       "action": "vatIndex"
     },
     {
@@ -16467,7 +16502,7 @@
       "label": "GET /generate/{report}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 35,
+      "line": 36,
       "action": "generate"
     },
     {
@@ -16480,7 +16515,7 @@
       "label": "POST /generate/{report}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 36,
+      "line": 37,
       "action": "store"
     },
     {
@@ -16493,7 +16528,7 @@
       "label": "POST /details/{report}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 37,
+      "line": 38,
       "action": "getReportDetails"
     },
     {
@@ -16506,7 +16541,7 @@
       "label": "GET /transfers/out",
       "type": "route",
       "file": "routes/web.php",
-      "line": 40,
+      "line": 41,
       "action": "outIndex"
     },
     {
@@ -16524,7 +16559,7 @@
       "label": "GET /transfers/in",
       "type": "route",
       "file": "routes/web.php",
-      "line": 41,
+      "line": 42,
       "action": "inIndex"
     },
     {
@@ -16537,7 +16572,7 @@
       "label": "GET /transfers/new",
       "type": "route",
       "file": "routes/web.php",
-      "line": 42,
+      "line": 43,
       "action": "create"
     },
     {
@@ -16550,7 +16585,7 @@
       "label": "POST /transfers/item",
       "type": "route",
       "file": "routes/web.php",
-      "line": 43,
+      "line": 44,
       "action": "addItem"
     },
     {
@@ -16563,7 +16598,7 @@
       "label": "POST /transfers/item/{index}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 44,
+      "line": 45,
       "action": "editItem"
     },
     {
@@ -16576,7 +16611,7 @@
       "label": "DELETE /transfers/item/{index}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 45,
+      "line": 46,
       "action": "removeItem"
     },
     {
@@ -16589,7 +16624,7 @@
       "label": "POST /transfers/location",
       "type": "route",
       "file": "routes/web.php",
-      "line": 46,
+      "line": 47,
       "action": "setLocation"
     },
     {
@@ -16602,7 +16637,7 @@
       "label": "POST /transfers/supplier",
       "type": "route",
       "file": "routes/web.php",
-      "line": 47,
+      "line": 48,
       "action": "setSupplier"
     },
     {
@@ -16615,7 +16650,7 @@
       "label": "GET /transfers/categories",
       "type": "route",
       "file": "routes/web.php",
-      "line": 48,
+      "line": 49,
       "action": "categories"
     },
     {
@@ -16628,7 +16663,7 @@
       "label": "GET /transfers/search",
       "type": "route",
       "file": "routes/web.php",
-      "line": 49,
+      "line": 50,
       "action": "search"
     },
     {
@@ -16641,7 +16676,7 @@
       "label": "POST /transfers/complete",
       "type": "route",
       "file": "routes/web.php",
-      "line": 50,
+      "line": 51,
       "action": "complete"
     },
     {
@@ -16654,7 +16689,7 @@
       "label": "POST /transfers/save",
       "type": "route",
       "file": "routes/web.php",
-      "line": 51,
+      "line": 52,
       "action": "save"
     },
     {
@@ -16667,7 +16702,7 @@
       "label": "GET /transfers/edit/{id}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 52,
+      "line": 53,
       "action": "edit"
     },
     {
@@ -16680,7 +16715,7 @@
       "label": "POST /transfers/cancel",
       "type": "route",
       "file": "routes/web.php",
-      "line": 53,
+      "line": 54,
       "action": "cancel"
     },
     {
@@ -16693,7 +16728,7 @@
       "label": "GET /lan/locations",
       "type": "route",
       "file": "routes/web.php",
-      "line": 55,
+      "line": 56,
       "action": "index"
     },
     {
@@ -16711,7 +16746,7 @@
       "label": "POST /lan/locations",
       "type": "route",
       "file": "routes/web.php",
-      "line": 56,
+      "line": 57,
       "action": "store"
     },
     {
@@ -16720,11 +16755,24 @@
       "type": "controller_action"
     },
     {
+      "id": "route:POST:/lan/locations/self-name:LanStatusController:updateSelfName",
+      "label": "POST /lan/locations/self-name",
+      "type": "route",
+      "file": "routes/web.php",
+      "line": 58,
+      "action": "updateSelfName"
+    },
+    {
+      "id": "method-ref:LanStatusController.updateSelfName",
+      "label": "LanStatusController@updateSelfName",
+      "type": "controller_action"
+    },
+    {
       "id": "route:POST:/lan/locations/resync-ip:LanStatusController:resyncIp",
       "label": "POST /lan/locations/resync-ip",
       "type": "route",
       "file": "routes/web.php",
-      "line": 57,
+      "line": 59,
       "action": "resyncIp"
     },
     {
@@ -16737,7 +16785,7 @@
       "label": "POST /lan/locations/{location}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 58,
+      "line": 60,
       "action": "update"
     },
     {
@@ -16750,7 +16798,7 @@
       "label": "POST /lan/locations/{location}/delete",
       "type": "route",
       "file": "routes/web.php",
-      "line": 59,
+      "line": 61,
       "action": "destroy"
     },
     {
@@ -16763,7 +16811,7 @@
       "label": "POST /lan/locations/{location}/poke",
       "type": "route",
       "file": "routes/web.php",
-      "line": 60,
+      "line": 62,
       "action": "poke"
     },
     {
@@ -16776,7 +16824,7 @@
       "label": "GET /zkteco",
       "type": "route",
       "file": "routes/web.php",
-      "line": 62,
+      "line": 64,
       "action": "index"
     },
     {
@@ -16794,7 +16842,7 @@
       "label": "GET /zkteco/connect",
       "type": "route",
       "file": "routes/web.php",
-      "line": 63,
+      "line": 65,
       "action": "connect"
     },
     {
@@ -16807,7 +16855,7 @@
       "label": "GET /zkteco/attendance",
       "type": "route",
       "file": "routes/web.php",
-      "line": 64,
+      "line": 66,
       "action": "attendance"
     },
     {
@@ -16820,7 +16868,7 @@
       "label": "POST /zkteco/config",
       "type": "route",
       "file": "routes/web.php",
-      "line": 65,
+      "line": 67,
       "action": "saveConfig"
     },
     {
@@ -16833,7 +16881,7 @@
       "label": "GET /app_files/view/{fileId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 68,
+      "line": 70,
       "action": "view"
     },
     {
@@ -16851,7 +16899,7 @@
       "label": "GET /orders",
       "type": "route",
       "file": "routes/web.php",
-      "line": 70,
+      "line": 72,
       "action": "index"
     },
     {
@@ -16869,7 +16917,7 @@
       "label": "POST /orders",
       "type": "route",
       "file": "routes/web.php",
-      "line": 71,
+      "line": 73,
       "action": "store"
     },
     {
@@ -16882,7 +16930,7 @@
       "label": "GET /orders/pull-list",
       "type": "route",
       "file": "routes/web.php",
-      "line": 72,
+      "line": 74,
       "action": "pullList"
     },
     {
@@ -16895,7 +16943,7 @@
       "label": "GET /orders/search-items",
       "type": "route",
       "file": "routes/web.php",
-      "line": 73,
+      "line": 75,
       "action": "searchItems"
     },
     {
@@ -16908,7 +16956,7 @@
       "label": "GET /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 74,
+      "line": 76,
       "action": "show"
     },
     {
@@ -16921,7 +16969,7 @@
       "label": "GET /orders/{receivingId}/edit",
       "type": "route",
       "file": "routes/web.php",
-      "line": 75,
+      "line": 77,
       "action": "edit"
     },
     {
@@ -16934,7 +16982,7 @@
       "label": "PUT /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 76,
+      "line": 78,
       "action": "update"
     },
     {
@@ -16947,7 +16995,7 @@
       "label": "POST /orders/{receivingId}/close",
       "type": "route",
       "file": "routes/web.php",
-      "line": 77,
+      "line": 79,
       "action": "close"
     },
     {
@@ -16960,7 +17008,7 @@
       "label": "GET /orders/{receivingId}/print",
       "type": "route",
       "file": "routes/web.php",
-      "line": 78,
+      "line": 80,
       "action": "print"
     },
     {
@@ -16973,7 +17021,7 @@
       "label": "DELETE /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 79,
+      "line": 81,
       "action": "destroy"
     },
     {
@@ -16986,7 +17034,7 @@
       "label": "GET /profile",
       "type": "route",
       "file": "routes/web.php",
-      "line": 81,
+      "line": 83,
       "action": "profile"
     },
     {
@@ -16995,11 +17043,24 @@
       "type": "controller_action"
     },
     {
+      "id": "route:POST:/profile:EmployeeController:updateProfile",
+      "label": "POST /profile",
+      "type": "route",
+      "file": "routes/web.php",
+      "line": 84,
+      "action": "updateProfile"
+    },
+    {
+      "id": "method-ref:EmployeeController.updateProfile",
+      "label": "EmployeeController@updateProfile",
+      "type": "controller_action"
+    },
+    {
       "id": "route:POST:/logout:EmployeeAuthController:logout",
       "label": "POST /logout",
       "type": "route",
       "file": "routes/web.php",
-      "line": 83,
+      "line": 86,
       "action": "logout"
     },
     {
@@ -17017,7 +17078,7 @@
       "label": "GET /login",
       "type": "route",
       "file": "routes/web.php",
-      "line": 87,
+      "line": 90,
       "action": "showLoginForm"
     },
     {
@@ -17030,7 +17091,7 @@
       "label": "POST /login",
       "type": "route",
       "file": "routes/web.php",
-      "line": 88,
+      "line": 91,
       "action": "login"
     },
     {
@@ -17761,6 +17822,18 @@
     },
     {
       "source": "method:app/Http/Controllers/EmployeeController.php:profile",
+      "target": "class-ref:PhpposEmployee",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\EmployeeController",
+      "target": "method:app/Http/Controllers/EmployeeController.php:updateProfile",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/EmployeeController.php:updateProfile",
       "target": "class-ref:PhpposEmployee",
       "type": "uses_model",
       "confidence": "EXTRACTED"
@@ -18515,6 +18588,18 @@
     },
     {
       "source": "class:App\\Http\\Controllers\\LanStatusController",
+      "target": "method:app/Http/Controllers/LanStatusController.php:updateSelfName",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:updateSelfName",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\LanStatusController",
       "target": "method:app/Http/Controllers/LanStatusController.php:store",
       "type": "defines",
       "confidence": "EXTRACTED"
@@ -18529,12 +18614,6 @@
       "source": "class:App\\Http\\Controllers\\LanStatusController",
       "target": "method:app/Http/Controllers/LanStatusController.php:update",
       "type": "defines",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/LanStatusController.php:update",
-      "target": "class-ref:Location",
-      "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
@@ -20326,12 +20405,6 @@
     {
       "source": "method:app/Http/Controllers/SetupController.php:index",
       "target": "class-ref:PhpposPerson",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/SetupController.php:index",
-      "target": "class-ref:PhpposEmployee",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -32597,6 +32670,18 @@
     },
     {
       "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 4, 2026 (Editable Profile Page)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 4, 2026 (Location Labels: Setup + LAN Locations)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
       "target": "doc-section:MIGRATION_HANDOFF.md:June 2, 2026 (ZKTeco U560 Device Monitor)",
       "type": "contains",
       "confidence": "EXTRACTED"
@@ -33420,6 +33505,12 @@
     {
       "source": "view:lan.locations",
       "target": "route-name:lan.locations.update",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:lan.locations",
+      "target": "route-name:lan.locations.self-name",
       "type": "links_to_route",
       "confidence": "EXTRACTED"
     },
@@ -37049,6 +37140,24 @@
     },
     {
       "source": "file:routes/web.php",
+      "target": "route:POST:/lan/locations/self-name:LanStatusController:updateSelfName",
+      "type": "declares",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/lan/locations/self-name:LanStatusController:updateSelfName",
+      "target": "class-ref:LanStatusController",
+      "type": "handled_by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/lan/locations/self-name:LanStatusController:updateSelfName",
+      "target": "method-ref:LanStatusController.updateSelfName",
+      "type": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:routes/web.php",
       "target": "route:POST:/lan/locations/resync-ip:LanStatusController:resyncIp",
       "type": "declares",
       "confidence": "EXTRACTED"
@@ -37404,6 +37513,24 @@
     {
       "source": "route:GET:/profile:EmployeeController:profile",
       "target": "method-ref:EmployeeController.profile",
+      "type": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:routes/web.php",
+      "target": "route:POST:/profile:EmployeeController:updateProfile",
+      "type": "declares",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/profile:EmployeeController:updateProfile",
+      "target": "class-ref:EmployeeController",
+      "type": "handled_by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/profile:EmployeeController:updateProfile",
+      "target": "method-ref:EmployeeController.updateProfile",
       "type": "calls",
       "confidence": "EXTRACTED"
     },

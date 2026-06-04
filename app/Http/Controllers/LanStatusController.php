@@ -27,6 +27,28 @@ class LanStatusController extends Controller
         return view('lan.locations', compact('locations', 'transfers', 'appUrl'));
     }
 
+    public function updateSelfName(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $self = Location::where('is_self', true)->first();
+        if ($self) {
+            $self->name = $data['name'];
+            $self->save();
+        }
+
+        $envPath = base_path('.env');
+        if (file_exists($envPath)) {
+            $env = file_get_contents($envPath);
+            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $data['name']);
+            file_put_contents($envPath, $env);
+        }
+
+        return redirect()->route('lan.locations')->with('status', 'Self location label updated.');
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -115,8 +137,10 @@ class LanStatusController extends Controller
                 ->with('error', 'Could not resolve a LAN IP address. Check network connectivity.');
         }
 
+        // Never overwrite the configured node name during IP resync.
+        $configuredName = config('app.node_name');
         $host = gethostname();
-        $name = $host ?: 'unnamed';
+        $name = $configuredName ?: ($host ?: 'unnamed');
 
         $self = Location::where('is_self', true)->first();
         if ($self) {
@@ -136,7 +160,9 @@ class LanStatusController extends Controller
         if (file_exists($envPath)) {
             $env = file_get_contents($envPath);
             $env = $this->setEnvValue($env, 'APP_NODE_IP', $ip);
-            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
+            if (!$configuredName) {
+                $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
+            }
             file_put_contents($envPath, $env);
         }
 

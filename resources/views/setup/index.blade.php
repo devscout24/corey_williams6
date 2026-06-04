@@ -29,6 +29,13 @@
                         <div class="mb-3">
                             <label class="form-label">Node Name</label>
                             <input type="text" name="node_name" class="form-control" value="{{ old('node_name', gethostname()) }}" required>
+                            <div class="form-text">This label is shown in the LAN Locations module for this device.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Store Location Name</label>
+                            <input type="text" name="store_location_name" class="form-control" value="{{ old('store_location_name', 'Main Store') }}" required>
+                            <div class="form-text">This is the location name used in POS data (sales, inventory, reports).</div>
                         </div>
 
                         <hr class="my-4">

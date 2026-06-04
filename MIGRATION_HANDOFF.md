@@ -54,6 +54,18 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### June 4, 2026 (Editable Profile Page)
+- **Profile Edit/Save:** Enhanced `/profile` page to support inline editing via jQuery. Fields (first_name, last_name, email, phone_number, title, employee_number, username) convert from spans to text inputs when Edit button is clicked.
+- **Dynamic Header Updates:** On successful save, the avatar initials and full name header automatically update based on the edited first_name and last_name values.
+- **Backend Controller:** Added `EmployeeController@updateProfile()` method that validates all profile fields, updates both `phppos_people` and `phppos_employees` records, and returns JSON success/error responses.
+- **Route:** Added `POST /profile` route (within auth middleware) to handle AJAX profile updates.
+- **jQuery Script:** Inline script toggles Edit/Save/Cancel buttons, converts spans ↔ inputs, collects form data, posts via CSRF-protected AJAX, and refreshes the display on success.
+- **Libraries:** Full jQuery 3.7.1 (not Slim) loaded to support AJAX functionality; Slim version was causing "$.ajax is not a function" errors.
+
+### June 4, 2026 (Location Labels: Setup + LAN Locations)
+- **Setup:** Added a required "Store Location Name" field to the setup wizard; it persists to `phppos_locations` (location_id=1) so POS data uses a human label.
+- **LAN Locations:** Self node label is now editable from the LAN Locations module, and "Resync IP" no longer overwrites the configured node name.
+
 ### June 2, 2026 (ZKTeco U560 Device Monitor)
 - **ZKTeco Monitoring View:** New `GET /zkteco` route and `ZktecoController@index` page that provides a real-time monitoring dashboard for ZKTeco U560 (or any ZKTeco TCP/IP) biometric device.
 - **Connectivity Indicator:** Prominent color-coded status dot (green = connected, red = disconnected, amber pulse = connecting) with text label next to the device config form.

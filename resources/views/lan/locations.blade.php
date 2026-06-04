@@ -69,6 +69,9 @@
                                                     <i class="bi bi-arrow-repeat me-1"></i>Resync IP
                                                 </button>
                                             </form>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editSelfNameModal" title="Edit self label">
+                                                <i class="bi bi-pencil me-1"></i>Edit Label
+                                            </button>
                                         @else
                                             <form action="{{ route('lan.locations.poke', $location) }}" method="POST" class="d-inline">
                                                 @csrf
@@ -203,6 +206,31 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editSelfNameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('lan.locations.self-name') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Self Location Label</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label for="self-name" class="form-label">Name</label>
+                        <input type="text" name="name" id="self-name" class="form-control" value="{{ $locations->firstWhere('is_self', true)?->name ?? config('app.node_name') }}" required>
+                        <div class="form-text">This label is used when other nodes discover this device.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
