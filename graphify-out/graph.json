@@ -4022,7 +4022,7 @@
       "label": "AppServiceProvider",
       "type": "class",
       "file": "app/Providers/AppServiceProvider.php",
-      "line": 9,
+      "line": 12,
       "namespace": "App\\Providers"
     },
     {
@@ -4035,14 +4035,14 @@
       "label": "register",
       "type": "method",
       "file": "app/Providers/AppServiceProvider.php",
-      "line": 14
+      "line": 17
     },
     {
       "id": "method:app/Providers/AppServiceProvider.php:boot",
       "label": "boot",
       "type": "method",
       "file": "app/Providers/AppServiceProvider.php",
-      "line": 22
+      "line": 25
     },
     {
       "id": "file:app/Providers/NativeAppServiceProvider.php",

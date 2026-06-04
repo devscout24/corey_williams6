@@ -3,7 +3,7 @@
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon"><i class="bi bi-shop"></i></div>
             <div class="sidebar-brand-info">
-                <div class="sidebar-brand-name">Main Branch</div>
+                <div class="sidebar-brand-name">{{ $currentStoreLocationName ?? 'Main Branch' }}</div>
                 <div class="sidebar-brand-role">Administrator</div>
             </div>
         </div>

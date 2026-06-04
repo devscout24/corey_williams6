@@ -18,7 +18,7 @@
                 <i class="bi bi-shop"></i>
             </div>
             <div>
-                <div class="brand-text-name">Main Branch</div>
+                <div class="brand-text-name">{{ $currentStoreLocationName ?? 'Main Branch' }}</div>
                 <div class="brand-text-role">Administrator</div>
             </div>
         </div>

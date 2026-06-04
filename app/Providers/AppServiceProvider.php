@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Models\Location;
+use App\Services\LocationContextService;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,28 +32,39 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        if (!Schema::hasTable('locations')) {
-            return;
+        if (Schema::hasTable('locations')) {
+            $nodeIp = config('app.node_ip');
+            if ($nodeIp) {
+                $nodeName = config('app.node_name');
+
+                $location = Location::query()->firstWhere('is_self', true);
+                if (!$location) {
+                    $location = Location::firstOrCreate(
+                        ['ip' => $nodeIp],
+                        ['name' => $nodeName, 'is_self' => true]
+                    );
+                }
+
+                $location->name = $nodeName;
+                $location->ip = $nodeIp;
+                $location->is_self = true;
+                $location->save();
+            }
         }
 
-        $nodeIp = config('app.node_ip');
-        if (!$nodeIp) {
-            return;
+        // Share the current store location name (POS location) with all views.
+        $storeLocationName = null;
+        try {
+            if (Schema::hasTable('phppos_locations')) {
+                $locationId = app(LocationContextService::class)->resolveLocationId();
+                $storeLocationName = DB::table('phppos_locations')
+                    ->where('location_id', $locationId)
+                    ->value('name');
+            }
+        } catch (\Throwable $e) {
+            $storeLocationName = null;
         }
 
-        $nodeName = config('app.node_name');
-
-        $location = Location::where('is_self', true)->first();
-        if (!$location) {
-            $location = Location::firstOrCreate(
-                ['ip' => $nodeIp],
-                ['name' => $nodeName, 'is_self' => true]
-            );
-        }
-
-        $location->name = $nodeName;
-        $location->ip = $nodeIp;
-        $location->is_self = true;
-        $location->save();
+        View::share('currentStoreLocationName', $storeLocationName);
     }
 }

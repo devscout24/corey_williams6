@@ -2,7 +2,9 @@
 
 @section('title', 'Dashboard | POS System')
 @section('page-title', 'Executive Dashboard')
-@section('page-description', 'Overview of your business performance at Main Branch')
+@section('page-description')
+Overview of your business performance at {{ $currentStoreLocationName ?? 'Main Branch' }}
+@endsection
 
 @push('styles')
 <style>
@@ -90,8 +92,8 @@
         text-decoration: none;
     }
 
-    .cmd-btn-primary:hover { 
-        background: var(--primary-dark); 
+    .cmd-btn-primary:hover {
+        background: var(--primary-dark);
         color: #fff;
     }
 
@@ -109,9 +111,9 @@
         text-decoration: none;
     }
 
-    .cmd-item:hover { 
-        background: var(--gray-50); 
-        color: var(--primary); 
+    .cmd-item:hover {
+        background: var(--gray-50);
+        color: var(--primary);
     }
 
     .cmd-item-left {
@@ -293,7 +295,7 @@
                 <div class="activity-info">
                     <div class="activity-title">Sale #{{ $sale->sale_id }}</div>
                     <div class="activity-meta">
-                        {{ \Carbon\Carbon::parse($sale->created_at)->diffForHumans() }} &bull; 
+                        {{ \Carbon\Carbon::parse($sale->created_at)->diffForHumans() }} &bull;
                         {{ ($sale->first_name || $sale->last_name) ? $sale->first_name . ' ' . $sale->last_name : 'Walk-in Customer' }}
                     </div>
                 </div>
