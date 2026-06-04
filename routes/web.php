@@ -3,13 +3,14 @@
 use App\Http\Controllers\AppFileController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\ConfigController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LanStatusController;
-use App\Http\Controllers\SetupController;
-use App\Http\Controllers\TransferController;
-use App\Http\Controllers\ZktecoController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SetupController;
+use App\Http\Controllers\TransferController;
+use App\Http\Controllers\ZktecoController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/rony/items_module.php';
@@ -25,7 +26,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
 
     Route::get('/modules', [ModuleController::class, 'index'])->name('modules.list');
-    
+
     Route::get('/config', [ConfigController::class, 'index'])->name('config.index');
     Route::post('/config', [ConfigController::class, 'update'])->name('config.update');
 
@@ -64,7 +65,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/zkteco/attendance', [ZktecoController::class, 'attendance'])->name('zkteco.attendance');
     Route::post('/zkteco/config', [ZktecoController::class, 'saveConfig'])->name('zkteco.save-config');
 
-   
+
     Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
@@ -79,6 +80,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
     Route::get('/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
+    Route::post('/profile', [EmployeeController::class, 'updateProfile'])->name('employee.profile.update');
 
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
 });

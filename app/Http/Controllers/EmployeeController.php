@@ -151,6 +151,46 @@ class EmployeeController extends Controller
         return view('employees.profile', compact('employee'));
     }
 
+    public function updateProfile(Request $request)
+    {
+        $employee = auth('employee')->user();
+        $person = $employee->person;
+
+        $validated = $request->validate([
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone_number' => 'nullable|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'employee_number' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            if ($person) {
+                $person->update([
+                    'first_name' => $validated['first_name'] ?? $person->first_name,
+                    'last_name' => $validated['last_name'] ?? $person->last_name,
+                    'email' => $validated['email'] ?? $person->email,
+                    'phone_number' => $validated['phone_number'] ?? $person->phone_number,
+                    'title' => $validated['title'] ?? $person->title,
+                ]);
+            }
+
+            if (isset($validated['username'])) {
+                $employee->update(['username' => $validated['username']]);
+            }
+
+            if (isset($validated['employee_number'])) {
+                $employee->update(['employee_number' => $validated['employee_number']]);
+            }
+
+            return response()->json(['message' => 'Profile updated successfully'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error updating profile: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function destroy(int $employeeId): RedirectResponse
     {
         PhpposEmployee::query()
