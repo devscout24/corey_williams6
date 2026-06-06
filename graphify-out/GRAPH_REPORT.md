@@ -4,8 +4,8 @@ Generated from local static analysis of routes, controllers, models, migrations,
 
 ## Snapshot
 
-- Nodes: 2,688
-- Edges: 3,399
+- Nodes: 2,691
+- Edges: 3,402
 - Routes: 161
 - Controllers: 31
 - Models: 65
@@ -30,9 +30,9 @@ Generated from local static analysis of routes, controllers, models, migrations,
 - layouts.app [view], degree 53
 - routes/web.php [route_file], degree 52
 - phppos_item_kits [table], degree 49 (database/migrations/2026_05_01_000037_create_phppos_item_kits_table.php:11)
+- MIGRATION_HANDOFF.md [doc_file], degree 49
 - PhpposSupplier [model_ref], degree 48
 - PhpposItemKit [model_ref], degree 48
-- MIGRATION_HANDOFF.md [doc_file], degree 48
 - PhpposCategory [model_ref], degree 46
 - phppos_receivings [table], degree 43 (database/migrations/2026_05_01_000070_create_phppos_receivings_table.php:11)
 - phppos_employees [table], degree 38 (database/migrations/2026_05_10_224324_add_commission_fields_to_tables.php:39)
@@ -42,9 +42,9 @@ Generated from local static analysis of routes, controllers, models, migrations,
 ## Relationship Types
 
 - has_column: 875
-- defines: 659
+- defines: 661
 - uses_model: 568
-- contains: 201
+- contains: 202
 - links_to_route: 175
 - declares: 161
 - handled_by: 161

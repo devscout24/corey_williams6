@@ -62,6 +62,16 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **jQuery Script:** Inline script toggles Edit/Save/Cancel buttons, converts spans ↔ inputs, collects form data, posts via CSRF-protected AJAX, and refreshes the display on success.
 - **Libraries:** Full jQuery 3.7.1 (not Slim) loaded to support AJAX functionality; Slim version was causing "$.ajax is not a function" errors.
 
+### June 6, 2026 (LAN Locations: IP Resync & Persistence Fixes)
+- **IP Resolution Cross-Platform Fix:** The `resolveLanIp()` method (in both `LanStatusController` and `SetupController`) was broken on Windows — `shell_exec('hostname -I')` is a Linux-only command that produced garbage output on Windows (parsed as the IP). Also, IPv6 loopback `::1` was not filtered (only `127.` was checked). Replaced with:
+  - New `isValidLanIp()` helper that validates via `filter_var(FILTER_FLAG_IPV4)` and rejects loopback, hostname, and empty values.
+  - Windows fallback uses `powershell Get-NetIPAddress` to get the first non-loopback IPv4 address.
+  - Linux fallback still uses `hostname -I` but iterates all candidates with validation.
+  - Final fallback reads `config('app.node_ip')` from `.env`.
+- **Config Cache Persistence Fix:** `AppServiceProvider::boot()` was **blindly overwriting** the self-location with `config('app.node_ip')`/`config('app.node_name')` on every request. Since the config cache was stale, it reverted any changes made by `resyncIp` or `updateSelfName` on the next page load. Fixed by removing the overwrite — boot only **creates** the self-location if one doesn't exist.
+- **Config Cache Clearing:** `resyncIp()` and `updateSelfName()` now call `Artisan::call('config:clear')` after writing to `.env` so subsequent requests pick up the new values immediately.
+- **Stale Cache Cleared:** Ran `php artisan config:clear` to flush the cached config that was out of sync with `.env`.
+
 ### June 4, 2026 (Location Labels: Setup + LAN Locations)
 - **Setup:** Added a required "Store Location Name" field to the setup wizard; it persists to `phppos_locations` (location_id=1) so POS data uses a human label.
 - **LAN Locations:** Self node label is now editable from the LAN Locations module, and "Resync IP" no longer overwrites the configured node name.
