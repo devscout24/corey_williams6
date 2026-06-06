@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\TransferQueue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
@@ -33,7 +34,7 @@ class LanStatusController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $self = Location::where('is_self', true)->first();
+        $self = Location::query()->where('is_self', true)->first();
         if ($self) {
             $self->name = $data['name'];
             $self->save();
@@ -45,6 +46,8 @@ class LanStatusController extends Controller
             $env = $this->setEnvValue($env, 'APP_NODE_NAME', $data['name']);
             file_put_contents($envPath, $env);
         }
+
+        Artisan::call('config:clear');
 
         return redirect()->route('lan.locations')->with('status', 'Self location label updated.');
     }
@@ -142,12 +145,15 @@ class LanStatusController extends Controller
         $host = gethostname();
         $name = $configuredName ?: ($host ?: 'unnamed');
 
-        $self = Location::where('is_self', true)->first();
+
+        $self = Location::query()->where('is_self', true)->first();
+        // dd($ip, $name, $self);
         if ($self) {
             $self->ip = $ip;
             $self->name = $name;
             $self->save();
-        } else {
+        }
+        else {
             Location::create([
                 'ip' => $ip,
                 'name' => $name,
@@ -166,6 +172,8 @@ class LanStatusController extends Controller
             file_put_contents($envPath, $env);
         }
 
+        Artisan::call('config:clear');
+
         $msg = $self ? "Self location IP re-synced to {$ip}." : "Self location created with IP {$ip}.";
 
         return redirect()->route('lan.locations')
@@ -180,20 +188,52 @@ class LanStatusController extends Controller
         }
 
         $ip = gethostbyname($host);
-        if ($ip && $ip !== $host && !str_starts_with($ip, '127.')) {
+        if ($this->isValidLanIp($ip)) {
             return $ip;
         }
 
-        $raw = trim((string) shell_exec('hostname -I'));
-        if ($raw !== '') {
-            $parts = preg_split('/\s+/', $raw);
-            $candidate = $parts[0] ?? null;
-            if ($candidate) {
-                return $candidate;
+        if (PHP_OS_FAMILY === 'Windows') {
+            $raw = trim((string) shell_exec('powershell -NoProfile -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object IPAddress -NotLike \'127.*\' | Select-Object -First 1 -ExpandProperty IPAddress" 2>NUL'));
+            if ($this->isValidLanIp($raw)) {
+                return $raw;
+            }
+        } else {
+            $raw = trim((string) shell_exec('hostname -I 2>/dev/null'));
+            if ($raw !== '') {
+                $parts = preg_split('/\s+/', $raw);
+                foreach ($parts as $candidate) {
+                    if ($this->isValidLanIp($candidate)) {
+                        return $candidate;
+                    }
+                }
             }
         }
 
-        return $ip && $ip !== $host ? $ip : null;
+        // Fall back to the configured node IP if one was previously saved
+        $configured = config('app.node_ip');
+        if ($this->isValidLanIp($configured)) {
+            return $configured;
+        }
+
+        return null;
+    }
+
+    private function isValidLanIp(?string $ip): bool
+    {
+        if ($ip === null || $ip === '' || $ip === gethostname()) {
+            return false;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return false;
+        }
+
+        // Reject loopback (127.x.x.x)
+        if (str_starts_with($ip, '127.')) {
+            return false;
+        }
+
+        return true;
     }
 
     private function setEnvValue(string $contents, string $key, string $value): string

@@ -35,20 +35,14 @@ class AppServiceProvider extends ServiceProvider
         if (Schema::hasTable('locations')) {
             $nodeIp = config('app.node_ip');
             if ($nodeIp) {
-                $nodeName = config('app.node_name');
-
-                $location = Location::query()->firstWhere('is_self', true);
-                if (!$location) {
-                    $location = Location::firstOrCreate(
+                $self = Location::query()->firstWhere('is_self', true);
+                if (!$self) {
+                    $nodeName = config('app.node_name');
+                    Location::firstOrCreate(
                         ['ip' => $nodeIp],
                         ['name' => $nodeName, 'is_self' => true]
                     );
                 }
-
-                $location->name = $nodeName;
-                $location->ip = $nodeIp;
-                $location->is_self = true;
-                $location->save();
             }
         }
 

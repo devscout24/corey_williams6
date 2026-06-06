@@ -117,20 +117,50 @@ class SetupController extends Controller
         }
 
         $ip = gethostbyname($host);
-        if ($ip && $ip !== $host && !str_starts_with($ip, '127.')) {
+        if ($this->isValidLanIp($ip)) {
             return $ip;
         }
 
-        $raw = trim((string) shell_exec('hostname -I'));
-        if ($raw !== '') {
-            $parts = preg_split('/\s+/', $raw);
-            $candidate = $parts[0] ?? null;
-            if ($candidate) {
-                return $candidate;
+        if (PHP_OS_FAMILY === 'Windows') {
+            $raw = trim((string) shell_exec('powershell -NoProfile -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object IPAddress -NotLike \'127.*\' | Select-Object -First 1 -ExpandProperty IPAddress" 2>NUL'));
+            if ($this->isValidLanIp($raw)) {
+                return $raw;
+            }
+        } else {
+            $raw = trim((string) shell_exec('hostname -I 2>/dev/null'));
+            if ($raw !== '') {
+                $parts = preg_split('/\s+/', $raw);
+                foreach ($parts as $candidate) {
+                    if ($this->isValidLanIp($candidate)) {
+                        return $candidate;
+                    }
+                }
             }
         }
 
-        return $ip && $ip !== $host ? $ip : null;
+        $configured = config('app.node_ip');
+        if ($this->isValidLanIp($configured)) {
+            return $configured;
+        }
+
+        return null;
+    }
+
+    private function isValidLanIp(?string $ip): bool
+    {
+        if ($ip === null || $ip === '' || $ip === gethostname()) {
+            return false;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return false;
+        }
+
+        if (str_starts_with($ip, '127.')) {
+            return false;
+        }
+
+        return true;
     }
 
     private function setEnvValue(string $contents, string $key, string $value): string
