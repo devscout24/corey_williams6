@@ -2,17 +2,19 @@
 
 namespace App\Jobs;
 
-use App\Models\TransferQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
 use App\Models\PhpposTransfer;
 use App\Models\PhpposTransferItem;
+use App\Models\TransferQueue;
+use App\Services\LanLocationRegistry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 class SendItem implements ShouldQueue
 {
@@ -21,11 +23,18 @@ class SendItem implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public int $tries = 3;
+
     public function __construct(public TransferQueue $transfer)
     {
     }
 
-    public function handle(): void
+    public function backoff(): array
+    {
+        return [10, 20, 40];
+    }
+
+    public function handle(LanLocationRegistry $registry): void
     {
         $transfer = $this->transfer->fresh();
         if (!$transfer) {
@@ -42,7 +51,16 @@ class SendItem implements ShouldQueue
         }
 
         try {
-            $payload = $this->buildPayload($transfer);
+            if (empty($location->port)) {
+                $transfer->update([
+                    'status' => 'failed',
+                    'error' => 'Destination location port is not configured.',
+                ]);
+                return;
+            }
+
+            $self = $registry->selfOrFail();
+            $payload = $this->buildPayload($transfer, $self->ip);
             if (!$payload) {
                 $transfer->update([
                     'status' => 'failed',
@@ -51,7 +69,9 @@ class SendItem implements ShouldQueue
                 return;
             }
 
-            $response = Http::timeout(10)->post("{$location->url}/api/lan/receive", $payload);
+            $response = Http::timeout(10)
+                ->withHeaders($this->syncHeaders())
+                ->post($registry->urlFor($location).'/api/lan/receive', $payload);
 
             if ($response->successful()) {
                 $transfer->update([
@@ -61,19 +81,23 @@ class SendItem implements ShouldQueue
                 return;
             }
 
-            $transfer->update([
-                'status' => 'failed',
-                'error' => 'HTTP '.$response->status(),
-            ]);
+            throw new RuntimeException('HTTP '.$response->status().': '.mb_strimwidth($response->body(), 0, 500));
         } catch (\Throwable $exception) {
-            $transfer->update([
-                'status' => 'failed',
-                'error' => $exception->getMessage(),
-            ]);
+            if ($this->attempts() >= $this->tries) {
+                $this->markTransferFailed($exception->getMessage());
+                return;
+            }
+
+            throw $exception;
         }
     }
 
-    private function buildPayload(TransferQueue $transfer): ?array
+    public function failed(?\Throwable $exception): void
+    {
+        $this->markTransferFailed($exception?->getMessage() ?: 'Transfer send failed.');
+    }
+
+    private function buildPayload(TransferQueue $transfer, string $selfIp): ?array
     {
         if ($transfer->item_type !== 'transfer_out') {
             return null;
@@ -109,7 +133,7 @@ class SendItem implements ShouldQueue
             'item_type' => 'transfer_out',
             'item_id' => $transferOut->id,
             'payload' => [
-                'source_device_id' => config('app.node_ip') ?: config('app.node_name', 'unknown'),
+                'source_device_id' => $selfIp,
                 'transfer_out_id' => (string) $transferOut->id,
                 'from_location_ulid' => $fromLocation->ulid,
                 'to_location_ulid' => $toLocation->ulid,
@@ -118,7 +142,27 @@ class SendItem implements ShouldQueue
                 'created_at' => $transferOut->created_at?->toISOString(),
                 'lines' => $lines,
             ],
-            'from_ip' => config('app.node_ip'),
+            'from_ip' => $selfIp,
         ];
+    }
+
+    private function syncHeaders(): array
+    {
+        return [
+            'X-Sync-Token' => (string) config('sync.shared_token'),
+        ];
+    }
+
+    private function markTransferFailed(string $error): void
+    {
+        $transfer = $this->transfer->fresh();
+        if (! $transfer) {
+            return;
+        }
+
+        $transfer->update([
+            'status' => 'failed',
+            'error' => $error,
+        ]);
     }
 }

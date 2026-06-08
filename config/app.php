@@ -15,7 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
-    'node_ip' => env('APP_NODE_IP', '127.0.0.1'),
+    'node_ip' => env('APP_NODE_IP'),
+
+    'node_port' => env('APP_NODE_PORT'),
 
     'node_name' => env('APP_NODE_NAME', 'unnamed'),
 

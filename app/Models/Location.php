@@ -15,6 +15,12 @@ class Location extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_self' => 'boolean',
+        'port' => 'integer',
+        'last_seen_at' => 'datetime',
+    ];
+
     public function phpposLocation(): BelongsTo
     {
         return $this->belongsTo(PhpposLocation::class, 'phppos_location_id', 'location_id');

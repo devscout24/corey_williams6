@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Location;
+use App\Services\LanLocationRegistry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,39 +18,30 @@ class AnnouncePresence implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public function handle(): void
+    public function handle(LanLocationRegistry $registry): void
     {
-        $nodeIp = config('app.node_ip');
-        $nodeName = config('app.node_name');
-
-        $self = Location::where('is_self', true)->first();
-        if (!$self && $nodeIp) {
-            $self = Location::firstOrCreate(
-                ['ip' => $nodeIp],
-                ['name' => $nodeName, 'is_self' => true]
-            );
-        }
-
-        if ($self) {
-            $self->last_seen_at = now();
-            $self->name = $nodeName;
-            $self->ip = $nodeIp;
-            $self->save();
-        }
+        $payload = $registry->announcePayload();
 
         $locations = Location::where('is_self', false)
             ->whereNotNull('ip')
+            ->whereNotNull('port')
             ->get();
 
         foreach ($locations as $location) {
             try {
-                Http::timeout(3)->post("{$location->url}/api/lan/announce", [
-                    'ip' => $nodeIp,
-                    'name' => $nodeName,
-                ]);
+                Http::timeout(10)
+                    ->withHeaders($this->syncHeaders())
+                    ->post($registry->urlFor($location).'/api/lan/announce', $payload);
             } catch (\Throwable $exception) {
                 // Ignore LAN failures; user retries manually.
             }
         }
+    }
+
+    private function syncHeaders(): array
+    {
+        return [
+            'X-Sync-Token' => (string) config('sync.shared_token'),
+        ];
     }
 }

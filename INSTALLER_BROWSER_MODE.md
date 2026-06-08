@@ -27,7 +27,11 @@ This guide describes how to ship an EXE installer that sets up the app and serve
 3) Register two Windows services:
    - `LaravelPosWeb`
    - `LaravelPosQueueWorker`
-4) Open the browser to `http://<LAN-IP>:8020/setup` after install.
+4) Before starting the queue worker, register this node with its LAN address:
+   ```
+   php artisan app:register-self --ip=<LAN-IP> --port={PORT}
+   ```
+5) Open the browser to `http://<LAN-IP>:8020/setup` after install.
 
 ## NSSM Service: Web Server
 
@@ -52,11 +56,11 @@ nssm start LaravelPosWeb
 
 **Command**
 
-- Application: `{PHP_PATH}`
+- Application: `cmd.exe`
 - Startup directory: `{APP_PATH}`
 - Arguments:
   ```
-  artisan queue:work --sleep=1 --tries=1 --timeout=60
+  /C ""{PHP_PATH}" artisan app:register-self --ip=<LAN-IP> --port={PORT} && "{PHP_PATH}" artisan queue:work --sleep=1 --tries=3 --timeout=60"
   ```
 
 **Set Auto Start**

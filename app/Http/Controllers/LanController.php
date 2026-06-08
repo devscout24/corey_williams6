@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\TransferQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
+use App\Services\LanLocationRegistry;
 use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Http\JsonResponse;
@@ -16,21 +17,15 @@ use Illuminate\Validation\ValidationException;
 
 class LanController extends Controller
 {
-    public function announce(Request $request): JsonResponse
+    public function announce(Request $request, LanLocationRegistry $registry): JsonResponse
     {
         $data = $request->validate([
             'ip' => ['required', 'string', 'max:45'],
+            'port' => ['required', 'integer', 'min:1', 'max:65535'],
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $location = Location::firstOrCreate(
-            ['ip' => $data['ip']],
-            ['name' => $data['name']]
-        );
-
-        $location->name = $data['name'];
-        $location->last_seen_at = now();
-        $location->save();
+        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name']);
 
         return response()->json(['ok' => true]);
     }

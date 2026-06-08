@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <meta name="sync-token" content="{{ config('sync.shared_token') }}" />
 
     <link rel="shortcut icon" href="{{asset('assets/images/defaults/fv.png')}}" type="image/svg+xml">
 
@@ -150,6 +151,7 @@
             const refreshButton = document.getElementById('lanRefreshButton');
             const htmlEl = document.documentElement;
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const syncToken = document.querySelector('meta[name="sync-token"]')?.getAttribute('content');
             const notificationKey = 'lanLastNotificationId';
             
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -177,7 +179,11 @@
 
             async function fetchNotifications(showToast) {
                 try {
-                    const response = await fetch('/api/lan/notifications');
+                    const response = await fetch('/api/lan/notifications', {
+                        headers: {
+                            ...(syncToken ? { 'X-Sync-Token': syncToken } : {}),
+                        },
+                    });
                     if (!response.ok) {
                         return;
                     }
@@ -222,6 +228,7 @@
                             headers: {
                                 'Content-Type': 'application/json',
                                 ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                                ...(syncToken ? { 'X-Sync-Token': syncToken } : {}),
                             },
                             body: JSON.stringify({}),
                         });

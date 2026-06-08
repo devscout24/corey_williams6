@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Location;
 use App\Models\PhpposLocation;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -37,6 +38,15 @@ class LocationContextService
             if ($employeeLocationId) {
                 return (int) $employeeLocationId;
             }
+        }
+
+        $selfLocationId = Location::query()
+            ->where('is_self', true)
+            ->whereNotNull('phppos_location_id')
+            ->value('phppos_location_id');
+
+        if ($selfLocationId) {
+            return (int) $selfLocationId;
         }
 
         $fallback = DB::table('phppos_locations')

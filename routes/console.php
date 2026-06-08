@@ -2,23 +2,21 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use App\Services\LanLocationRegistry;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
 Artisan::command('app:bind-identity', function () {
-    $host = gethostname();
-    $ip = gethostbyname($host);
-
-    if ($ip === $host || str_starts_with($ip, '127.')) {
-        $raw = trim((string) shell_exec('hostname -I'));
-        if ($raw !== '') {
-            $parts = preg_split('/\s+/', $raw);
-            $ip = $parts[0] ?? $ip;
-        }
+    $registry = app(LanLocationRegistry::class);
+    $ip = $registry->resolveLanIp();
+    if (! $ip) {
+        $this->error('Could not resolve a non-loopback LAN IP address.');
+        return;
     }
 
+    $host = gethostname();
     $name = $host ?: 'unnamed';
 
     $envPath = base_path('.env');
