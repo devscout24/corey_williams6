@@ -1319,11 +1319,34 @@ input, select, textarea { font-family: var(--font); }
     margin-left: 0 !important;
     padding: 0 !important;
   }
+  .page-content {
+    padding: 0 !important;
+  }
+  .report-meta {
+    background: none !important;
+    border: none !important;
+    padding: 0 0 16px !important;
+  }
   .report-meta .actions,
   .page-content .actions {
     display: none !important;
   }
+  .chart-container,
+  .table-container,
+  .summary-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
   body {
     background: #fff !important;
+    color: #000 !important;
+  }
+  [data-theme='dark'] .report-meta,
+  [data-theme='dark'] .chart-container,
+  [data-theme='dark'] .table-container,
+  [data-theme='dark'] .summary-card {
+    background: #fff !important;
+    color: #000 !important;
   }
 }

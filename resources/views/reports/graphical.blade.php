@@ -12,6 +12,11 @@
     .summary-card { background: var(--gray-50); padding: 16px; border-radius: 12px; border: 1px solid var(--gray-100); }
     .summary-card .label { font-size: 0.8rem; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px; }
     .summary-card .value { font-size: 1.2rem; font-weight: 600; color: var(--gray-900); }
+
+    @media print {
+        .page-header { display: none !important; }
+        .chart-container { border: none !important; }
+    }
 </style>
 @endpush
 

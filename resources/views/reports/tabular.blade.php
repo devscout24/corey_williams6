@@ -11,6 +11,11 @@
     .table thead th { background: var(--gray-50); border-top: none; color: var(--gray-500); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 16px; }
     .table tbody td { padding: 16px; vertical-align: middle; color: var(--gray-700); border-bottom: 1px solid var(--gray-100); }
     .table tbody tr:last-child td { border-bottom: none; }
+
+    @media print {
+        .page-header { display: none !important; }
+        .table-container { border: none !important; }
+    }
 </style>
 @endpush
 

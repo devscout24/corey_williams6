@@ -22,6 +22,12 @@
     .innertable table td { padding: 8px 12px; font-size: 0.85rem; }
     .pagination-info { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--gray-50); border-top: 1px solid var(--gray-200); }
     .pagination-info nav { margin: 0; }
+
+    @media print {
+        .page-header { display: none !important; }
+        .page-content .actions { display: none !important; }
+        .table-container { border: none !important; }
+    }
 </style>
 @endpush
 
