@@ -1268,23 +1268,155 @@ class ReportController extends Controller
                 break;
 
             case 'detailed_inventory':
+                $showManualOnly = $request->input('show_manual_adjustments_only', '0') === '1';
+
+                $salePrefix = config('app.sale_prefix', 'POS');
+
                 $query = DB::table('phppos_inventory')
                     ->join('phppos_items', 'phppos_inventory.trans_items', '=', 'phppos_items.item_id')
                     ->leftJoin('phppos_employees', 'phppos_inventory.trans_user', '=', 'phppos_employees.person_id')
                     ->leftJoin('phppos_people as employee_person', 'phppos_employees.person_id', '=', 'employee_person.person_id')
+                    ->leftJoin('phppos_sales', function ($join) use ($salePrefix) {
+                        $join->whereRaw('phppos_inventory.trans_comment LIKE ?', [$salePrefix . '%'])
+                            ->whereRaw('CAST(REPLACE(phppos_inventory.trans_comment, ?, ?) AS UNSIGNED) = phppos_sales.sale_id', [$salePrefix . ' ', ' ']);
+                    })
+                    ->leftJoin('phppos_people as customer_person', 'phppos_sales.customer_id', '=', 'customer_person.person_id')
+                    ->leftJoin('phppos_categories', 'phppos_items.category_id', '=', 'phppos_categories.id')
                     ->leftJoin('phppos_locations', 'phppos_inventory.location_id', '=', 'phppos_locations.location_id')
-                    ->selectRaw('phppos_inventory.trans_date, phppos_items.name as item_name, phppos_inventory.trans_inventory as change_amount, phppos_inventory.trans_current_quantity as result_quantity, CONCAT(employee_person.first_name, " ", employee_person.last_name) as employee_name, phppos_locations.name as location_name, phppos_inventory.trans_comment as comment')
-                    ->whereBetween('phppos_inventory.trans_date', [$startDateTime, $endDateTime]);
-                
+                    ->selectRaw("
+                        phppos_inventory.trans_date,
+                        phppos_items.item_id,
+                        phppos_items.name,
+                        phppos_items.item_number,
+                        phppos_items.product_id,
+                        phppos_items.size,
+                        phppos_categories.name as category,
+                        phppos_categories.id as category_id,
+                        phppos_inventory.trans_inventory,
+                        phppos_inventory.trans_current_quantity,
+                        phppos_inventory.item_variation_id,
+                        phppos_inventory.trans_comment,
+                        CONCAT(employee_person.first_name, ' ', employee_person.last_name) as employee,
+                        CONCAT(customer_person.first_name, ' ', customer_person.last_name) as customer,
+                        phppos_locations.name as location_name")
+                    ->whereBetween('phppos_inventory.trans_date', [$startDateTime, $endDateTime])
+                    ->where('phppos_items.deleted', 0)
+                    ->where('phppos_inventory.trans_inventory', '!=', 0);
+
                 if ($locationId !== 'all') {
                     $query->where('phppos_inventory.location_id', $locationId);
                 }
 
-                $data = $query->orderBy('phppos_inventory.trans_date', 'desc')->get();
+                if ($showManualOnly) {
+                    $query->where('phppos_inventory.trans_comment', 'not like', $salePrefix . '%')
+                        ->where('phppos_inventory.trans_comment', 'not like', 'RECV%');
+                }
 
-                $headers = ['Date', 'Item', 'In/Out', 'Resulting Qty', 'Employee', 'Location', 'Comment'];
+                if ($request->filled('item_id')) {
+                    $itemId = $request->input('item_id');
+                    if (is_numeric($itemId)) {
+                        $query->where('phppos_inventory.trans_items', $itemId);
+                    } else {
+                        $query->where('phppos_items.name', 'like', '%' . $itemId . '%');
+                    }
+                }
+
+                $data = $query->orderBy('phppos_inventory.trans_date', 'asc')->get();
+
+                // Resolve variation names
+                $variationIds = $data->pluck('item_variation_id')->filter()->unique()->toArray();
+                $variationNames = [];
+                if (!empty($variationIds)) {
+                    $variationRows = DB::table('phppos_item_variations')
+                        ->leftJoin('phppos_item_variation_attribute_values', 'phppos_item_variations.id', '=', 'phppos_item_variation_attribute_values.item_variation_id')
+                        ->leftJoin('phppos_attribute_values', 'phppos_item_variation_attribute_values.attribute_value_id', '=', 'phppos_attribute_values.id')
+                        ->leftJoin('phppos_attributes', 'phppos_attribute_values.attribute_id', '=', 'phppos_attributes.id')
+                        ->selectRaw("phppos_item_variations.id, GROUP_CONCAT(DISTINCT CONCAT(phppos_attributes.name, ': ', phppos_attribute_values.name) ORDER BY phppos_attributes.name SEPARATOR ', ') as attr_label")
+                        ->whereIn('phppos_item_variations.id', $variationIds)
+                        ->where('phppos_item_variations.deleted', 0)
+                        ->groupBy('phppos_item_variations.id')
+                        ->get();
+                    foreach ($variationRows as $vr) {
+                        $variationNames[$vr->id] = $vr->attr_label;
+                    }
+                }
+
+                // Append variation name to item name
+                foreach ($data as $row) {
+                    if ($row->item_variation_id && isset($variationNames[$row->item_variation_id])) {
+                        $row->name = $row->name . ': ' . $variationNames[$row->item_variation_id];
+                    }
+                }
+
+                // Summary data: average quantity sold per day
+                $totalQty = DB::table('phppos_sales')
+                    ->join('phppos_sales_items', 'phppos_sales_items.sale_id', '=', 'phppos_sales.sale_id')
+                    ->whereBetween('phppos_sales.created_at', [$startDateTime, $endDateTime])
+                    ->where('phppos_sales.deleted', 0)
+                    ->where('phppos_sales.location_id', $locationId)
+                    ->when($request->filled('item_id') && is_numeric($request->input('item_id')), function ($q) use ($request) {
+                        $q->where('phppos_sales_items.item_id', $request->input('item_id'));
+                    })
+                    ->sum('phppos_sales_items.quantity_purchased');
+
+                $daysDiff = max(1, (new \DateTime($endDate))->diff(new \DateTime($startDate))->days + 1);
+                $avgQty = round($totalQty / $daysDiff, 2);
+
+                $overallSummary = [
+                    'total_entries' => $data->count(),
+                    'total_inventory_movement' => $data->sum('trans_inventory'),
+                    'average_quantity' => $avgQty,
+                ];
+                $summaryLabels = [
+                    'total_entries' => 'Total Entries',
+                    'total_inventory_movement' => 'Total Inventory Movement',
+                    'average_quantity' => 'Avg Qty Sold/Day',
+                ];
+
+                $headers = [
+                    'Item ID' => 'item_id',
+                    'Date' => 'trans_date',
+                    'Item Name' => 'name',
+                    'Customer' => 'customer',
+                    'Employee' => 'employee',
+                    'Category' => 'category',
+                    'Item Number' => 'item_number',
+                    'Product ID' => 'product_id',
+                    'Size' => 'size',
+                    'In/Out Qty' => 'trans_inventory',
+                    'Comment' => 'trans_comment',
+                ];
                 $title = "Detailed Inventory Report";
-                break;
+
+                $export = $request->input('export');
+                if ($export === 'csv') {
+                    $headerLabels = array_keys($headers);
+                    $headerKeys = array_values($headers);
+                    $callback = function () use ($data, $headerLabels, $headerKeys) {
+                        $file = fopen('php://output', 'w');
+                        fputcsv($file, $headerLabels);
+                        foreach ($data as $row) {
+                            $line = [];
+                            foreach ($headerKeys as $key) {
+                                $val = $row->$key ?? '';
+                                $line[] = is_numeric($val) ? $val : strip_tags((string)$val);
+                            }
+                            fputcsv($file, $line);
+                        }
+                        fclose($file);
+                    };
+                    return response()->stream($callback, 200, [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => 'attachment; filename="detailed_inventory.csv"',
+                    ]);
+                }
+
+                if ($export === 'pdf') {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.detailed_inventory_pdf', compact('data', 'headers', 'title', 'startDate', 'endDate', 'overallSummary', 'summaryLabels'));
+                    return $pdf->download('detailed_inventory.pdf');
+                }
+
+                return view('reports.detailed_inventory', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report', 'overallSummary', 'summaryLabels'));
 
             case 'detailed_receivings':
                 $query = DB::table('phppos_receivings')
@@ -1292,7 +1424,7 @@ class ReportController extends Controller
                     ->leftJoin('phppos_employees', 'phppos_receivings.employee_id', '=', 'phppos_employees.person_id')
                     ->leftJoin('phppos_people as employee_person', 'phppos_employees.person_id', '=', 'employee_person.person_id')
                     ->leftJoin('phppos_locations', 'phppos_receivings.location_id', '=', 'phppos_locations.location_id')
-                    ->selectRaw('phppos_receivings.receiving_id, phppos_receivings.receiving_time, phppos_suppliers.company_name as supplier, CONCAT(employee_person.first_name, " ", employee_person.last_name) as employee, phppos_receivings.total, phppos_receivings.payment_type, phppos_locations.name as location')
+                    ->selectRaw("phppos_receivings.receiving_id, phppos_receivings.receiving_time, phppos_suppliers.company_name as supplier, CONCAT(employee_person.first_name, ' ', employee_person.last_name) as employee, phppos_receivings.total, phppos_receivings.payment_type, phppos_locations.name as location")
                     ->whereBetween('phppos_receivings.receiving_time', [$startDateTime, $endDateTime])
                     ->where('phppos_receivings.deleted', 0);
 
@@ -1332,22 +1464,107 @@ class ReportController extends Controller
 
             case 'summary_count_report':
                 $query = DB::table('phppos_inventory_counts')
-                    ->leftJoin('phppos_employees', 'phppos_inventory_counts.employee_id', '=', 'phppos_employees.person_id')
-                    ->leftJoin('phppos_people as employee_person', 'phppos_employees.person_id', '=', 'employee_person.person_id')
-                    ->leftJoin('phppos_locations', 'phppos_inventory_counts.location_id', '=', 'phppos_locations.location_id')
+                    ->join('phppos_employees', 'phppos_inventory_counts.employee_id', '=', 'phppos_employees.person_id')
+                    ->join('phppos_people as employee_person', 'phppos_employees.person_id', '=', 'employee_person.person_id')
+                    ->join('phppos_locations', 'phppos_inventory_counts.location_id', '=', 'phppos_locations.location_id')
                     ->leftJoin('phppos_inventory_counts_items', 'phppos_inventory_counts.id', '=', 'phppos_inventory_counts_items.inventory_counts_id')
-                    ->selectRaw('phppos_inventory_counts.id, phppos_inventory_counts.count_date, CONCAT(employee_person.first_name, " ", employee_person.last_name) as employee, phppos_locations.name as location, phppos_inventory_counts.status, COUNT(phppos_inventory_counts_items.id) as items_counted, SUM(phppos_inventory_counts_items.count - phppos_inventory_counts_items.actual_quantity) as difference')
+                    ->leftJoin('phppos_items', 'phppos_inventory_counts_items.item_id', '=', 'phppos_items.item_id')
+                    ->selectRaw("
+                        phppos_inventory_counts.id,
+                        phppos_inventory_counts.count_date,
+                        CONCAT(employee_person.first_name, ' ', employee_person.last_name) as employee,
+                        phppos_locations.name as location,
+                        phppos_inventory_counts.status,
+                        phppos_inventory_counts.comment,
+                        COUNT(phppos_inventory_counts_items.id) as items_counted,
+                        SUM(phppos_inventory_counts_items.count - phppos_inventory_counts_items.actual_quantity) as difference,
+                        SUM(phppos_items.cost_price * phppos_inventory_counts_items.count - phppos_items.cost_price * phppos_inventory_counts_items.actual_quantity) as cost_price_difference")
                     ->whereBetween('phppos_inventory_counts.count_date', [$startDateTime, $endDateTime]);
 
                 if ($locationId !== 'all') {
                     $query->where('phppos_inventory_counts.location_id', $locationId);
                 }
 
-                $data = $query->groupBy('phppos_inventory_counts.id', 'phppos_inventory_counts.count_date', 'employee_person.first_name', 'employee_person.last_name', 'phppos_locations.name', 'phppos_inventory_counts.status')->get();
+                $rawData = $query->groupBy(
+                    'phppos_inventory_counts.id',
+                    'phppos_inventory_counts.count_date',
+                    'employee_person.first_name',
+                    'employee_person.last_name',
+                    'phppos_locations.name',
+                    'phppos_inventory_counts.status',
+                    'phppos_inventory_counts.comment'
+                )->orderBy('phppos_inventory_counts.count_date', 'asc')->get();
 
-                $headers = ['ID', 'Date', 'Employee', 'Location', 'Status', 'Items Counted', 'Difference'];
+                $data = collect();
+                foreach ($rawData as $row) {
+                    $status = match ($row->status) {
+                        'open' => 'Open',
+                        'closed' => 'Closed',
+                        default => ucfirst($row->status),
+                    };
+                    $data->push((object)[
+                        'id' => $row->id,
+                        'count_date' => $row->count_date,
+                        'employee' => $row->employee,
+                        'location' => $row->location,
+                        'status' => $status,
+                        'comment' => $row->comment ?? '',
+                        'items_counted' => $row->items_counted,
+                        'difference' => $row->difference ?? 0,
+                        'cost_price_difference' => $row->cost_price_difference ?? 0,
+                    ]);
+                }
+
+                $overallSummary = [
+                    'number_items_counted' => $data->sum('items_counted'),
+                    'total_difference' => $data->sum('cost_price_difference'),
+                ];
+                $summaryLabels = [
+                    'number_items_counted' => 'Total Items Counted',
+                    'total_difference' => 'Total Difference (Cost)',
+                ];
+
+                $headers = [
+                    'Count ID' => 'id',
+                    'Date' => 'count_date',
+                    'Status' => 'status',
+                    'Employee' => 'employee',
+                    'Items Counted' => 'items_counted',
+                    'Difference (Qty)' => 'difference',
+                    'Difference (Cost)' => 'cost_price_difference',
+                    'Comments' => 'comment',
+                ];
                 $title = "Summary Count Report";
-                break;
+
+                $export = $request->input('export');
+                if ($export === 'csv') {
+                    $headerLabels = array_keys($headers);
+                    $headerKeys = array_values($headers);
+                    $callback = function () use ($data, $headerLabels, $headerKeys) {
+                        $file = fopen('php://output', 'w');
+                        fputcsv($file, $headerLabels);
+                        foreach ($data as $row) {
+                            $line = [];
+                            foreach ($headerKeys as $key) {
+                                $val = $row->$key ?? '';
+                                $line[] = is_numeric($val) ? $val : strip_tags((string)$val);
+                            }
+                            fputcsv($file, $line);
+                        }
+                        fclose($file);
+                    };
+                    return response()->stream($callback, 200, [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => 'attachment; filename="summary_count_report.csv"',
+                    ]);
+                }
+
+                if ($export === 'pdf') {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.summary_count_report_pdf', compact('data', 'headers', 'title', 'startDate', 'endDate', 'overallSummary', 'summaryLabels'));
+                    return $pdf->download('summary_count_report.pdf');
+                }
+
+                return view('reports.summary_count_report', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report', 'overallSummary', 'summaryLabels'));
 
             case 'detailed_count_report':
                 $query = DB::table('phppos_inventory_counts_items')

@@ -28,7 +28,7 @@
                         </div>
                     </div>
 
-                    @if(!in_array($report, ['closeout', 'closeout_condensed']))
+                    @if(!in_array($report, ['closeout', 'closeout_condensed', 'detailed_inventory', 'summary_count_report']))
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Sale Type</label>
                         <select name="sale_type" class="form-select">
@@ -37,15 +37,18 @@
                             <option value="returns">Returns</option>
                         </select>
                     </div>
+                    @endif
 
+                    @if($report == 'detailed_inventory')
                     <div class="mb-4">
-                        <label class="form-label font-weight-bold">Payment Type</label>
-                        <select name="payment_type" class="form-select">
-                            <option value="all">All</option>
-                            @foreach($paymentTypes as $type)
-                                <option value="{{ $type }}">{{ $type }}</option>
-                            @endforeach
-                        </select>
+                        <label class="form-label font-weight-bold">Item</label>
+                        <input type="text" name="item_id" class="form-control" placeholder="Search by Item ID or Name">
+                    </div>
+                    <div class="form-check mt-2 mb-4">
+                        <input class="form-check-input" type="checkbox" name="show_manual_adjustments_only" id="showManualAdjustmentsOnly" value="1">
+                        <label class="form-check-label" for="showManualAdjustmentsOnly">
+                            Show Manual Adjustments Only
+                        </label>
                     </div>
                     @endif
 
@@ -123,7 +126,7 @@
                     @endif
                     @endif
 
-                    @if($report != 'detailed_sales')
+                    @if(!in_array($report, ['detailed_sales', 'detailed_inventory', 'summary_count_report']))
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Group By</label>
                         <select name="group_by" class="form-select">
@@ -135,6 +138,7 @@
                     </div>
                     @endif
 
+                    @if(!in_array($report, ['detailed_inventory', 'summary_count_report']))
                     @if(isset($employees))
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Employee</label>
@@ -166,6 +170,7 @@
                             <option value="employee_id">Logged In Employee</option>
                         </select>
                     </div>
+                    @endif
 
                     @if($report == 'giftcard_audit' || $report == 'detailed_giftcards')
                     <div class="mb-4">
