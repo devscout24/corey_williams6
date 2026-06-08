@@ -80,9 +80,7 @@ class TransferController extends Controller
     public function create(): View
     {
         $cart = $this->getCart();
-        $locations = PhpposLocation::where('deleted', 0)
-            ->where('location_id', $cart['from_location_id'])
-            ->get();
+        $locations = PhpposLocation::where('deleted', 0)->get();
         $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
         $categories = PhpposCategory::where('deleted', 0)
             ->where('hide_from_grid', 0)

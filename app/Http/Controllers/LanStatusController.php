@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
+use App\Models\PhpposLocation;
 use App\Models\TransferQueue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,10 @@ class LanStatusController extends Controller
         if ($self) {
             $self->name = $data['name'];
             $self->save();
+
+            if ($self->phpposLocation) {
+                $self->phpposLocation->update(['name' => $data['name']]);
+            }
         }
 
         $envPath = base_path('.env');
@@ -60,11 +65,16 @@ class LanStatusController extends Controller
             'port' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ]);
 
+        $phpposLocation = PhpposLocation::create([
+            'name' => $data['name'],
+        ]);
+
         Location::create([
             'name' => $data['name'],
             'ip' => $data['ip'],
             'port' => $data['port'] ?: null,
             'is_self' => false,
+            'phppos_location_id' => $phpposLocation->location_id,
         ]);
 
         return redirect()->route('lan.locations')
@@ -85,6 +95,10 @@ class LanStatusController extends Controller
             'port' => $data['port'] ?: null,
         ]);
 
+        if ($location->phpposLocation) {
+            $location->phpposLocation->update(['name' => $data['name']]);
+        }
+
         return redirect()->route('lan.locations')
             ->with('status', "Location {$data['name']} updated.");
     }
@@ -97,6 +111,11 @@ class LanStatusController extends Controller
         }
 
         $name = $location->name;
+
+        if ($location->phpposLocation) {
+            $location->phpposLocation->update(['deleted' => 1]);
+        }
+
         $location->delete();
 
         return redirect()->route('lan.locations')
