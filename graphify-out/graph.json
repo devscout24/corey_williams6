@@ -824,7 +824,7 @@
       "label": "LanStatusController",
       "type": "controller",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 13,
+      "line": 14,
       "namespace": "App\\Http\\Controllers"
     },
     {
@@ -832,7 +832,7 @@
       "label": "index",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 15
+      "line": 16
     },
     {
       "id": "view:lan.locations",
@@ -845,63 +845,63 @@
       "label": "updateSelfName",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 31
+      "line": 32
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:store",
       "label": "store",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 55
+      "line": 60
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:update",
       "label": "update",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 74
+      "line": 84
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:destroy",
       "label": "destroy",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 92
+      "line": 106
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:poke",
       "label": "poke",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 106
+      "line": 125
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:resyncIp",
       "label": "resyncIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 135
+      "line": 154
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:resolveLanIp",
       "label": "resolveLanIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 183
+      "line": 202
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:isValidLanIp",
       "label": "isValidLanIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 221
+      "line": 240
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:setEnvValue",
       "label": "setEnvValue",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 239
+      "line": 258
     },
     {
       "id": "file:app/Http/Controllers/MessageController.php",
@@ -1460,7 +1460,7 @@
       "label": "snapshot",
       "type": "controller",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 2048,
+      "line": 2543,
       "namespace": "App\\Http\\Controllers"
     },
     {
@@ -1477,12 +1477,6 @@
       "file": "resources/views/reports/listing.blade.php"
     },
     {
-      "id": "view:reports.generate",
-      "label": "reports.generate",
-      "type": "view",
-      "file": "resources/views/reports/generate.blade.php"
-    },
-    {
       "id": "method:app/Http/Controllers/ReportController.php:index",
       "label": "index",
       "type": "method",
@@ -1497,39 +1491,52 @@
       "line": 22
     },
     {
+      "id": "view:reports.generate",
+      "label": "reports.generate",
+      "type": "view",
+      "file": "resources/views/reports/generate.blade.php"
+    },
+    {
       "id": "method:app/Http/Controllers/ReportController.php:store",
       "label": "store",
       "type": "method",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 54
+      "line": 69
     },
     {
       "id": "method:app/Http/Controllers/ReportController.php:getReportDetails",
       "label": "getReportDetails",
       "type": "method",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 2156
+      "line": 2651
     },
     {
       "id": "method:app/Http/Controllers/ReportController.php:vatIndex",
       "label": "vatIndex",
       "type": "method",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 2254
+      "line": 2749
     },
     {
       "id": "method:app/Http/Controllers/ReportController.php:resolveSimpleDateRange",
       "label": "resolveSimpleDateRange",
       "type": "method",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 2315
+      "line": 2810
     },
     {
       "id": "method:app/Http/Controllers/ReportController.php:exportDetailedSales",
       "label": "exportDetailedSales",
       "type": "method",
       "file": "app/Http/Controllers/ReportController.php",
-      "line": 2353
+      "line": 2848
+    },
+    {
+      "id": "method:app/Http/Controllers/ReportController.php:buildCloseoutSections",
+      "label": "buildCloseoutSections",
+      "type": "method",
+      "file": "app/Http/Controllers/ReportController.php",
+      "line": 2934
     },
     {
       "id": "file:app/Http/Controllers/SalesController.php",
@@ -2156,98 +2163,98 @@
       "label": "addItem",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 102
+      "line": 100
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:addKitItemsToCart",
       "label": "addKitItemsToCart",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 130
+      "line": 128
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:addKitAsLineItem",
       "label": "addKitAsLineItem",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 146
+      "line": 144
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:addSingleItemToCart",
       "label": "addSingleItemToCart",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 168
+      "line": 166
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:editItem",
       "label": "editItem",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 190
+      "line": 188
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:removeItem",
       "label": "removeItem",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 200
+      "line": 198
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:setSupplier",
       "label": "setSupplier",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 211
+      "line": 209
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:categories",
       "label": "categories",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 219
+      "line": 217
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:search",
       "label": "search",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 378
+      "line": 376
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:setLocation",
       "label": "setLocation",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 422
+      "line": 420
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:edit",
       "label": "edit",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 441
+      "line": 439
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:save",
       "label": "save",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 472
+      "line": 470
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:complete",
       "label": "complete",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 513
+      "line": 511
     },
     {
       "id": "method:app/Http/Controllers/TransferController.php:cancel",
       "label": "cancel",
       "type": "method",
       "file": "app/Http/Controllers/TransferController.php",
-      "line": 606
+      "line": 604
     },
     {
       "id": "file:app/Http/Controllers/ZktecoController.php",
@@ -2523,22 +2530,29 @@
       "label": "Location",
       "type": "model",
       "file": "app/Models/Location.php",
-      "line": 9,
+      "line": 10,
       "namespace": "App\\Models"
+    },
+    {
+      "id": "method:app/Models/Location.php:phpposLocation",
+      "label": "phpposLocation",
+      "type": "method",
+      "file": "app/Models/Location.php",
+      "line": 18
     },
     {
       "id": "method:app/Models/Location.php:outgoingTransfers",
       "label": "outgoingTransfers",
       "type": "method",
       "file": "app/Models/Location.php",
-      "line": 17
+      "line": 23
     },
     {
       "id": "method:app/Models/Location.php:getUrlAttribute",
       "label": "getUrlAttribute",
       "type": "method",
       "file": "app/Models/Location.php",
-      "line": 22
+      "line": 28
     },
     {
       "id": "file:app/Models/PhpposApiKey.php",
@@ -12759,7 +12773,7 @@
       "id": "table:locations",
       "label": "locations",
       "type": "table",
-      "file": "database/migrations/2026_06_01_212315_add_port_to_locations_table.php",
+      "file": "database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
       "line": 18
     },
     {
@@ -13049,6 +13063,32 @@
       "column_type": "foreign"
     },
     {
+      "id": "file:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "label": "database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "type": "migration_file",
+      "file": "database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php"
+    },
+    {
+      "id": "method:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php:up",
+      "label": "up",
+      "type": "method",
+      "file": "database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "line": 9
+    },
+    {
+      "id": "method:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php:down",
+      "label": "down",
+      "type": "method",
+      "file": "database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "line": 16
+    },
+    {
+      "id": "column:locations.phppos_location_id",
+      "label": "phppos_location_id",
+      "type": "column",
+      "column_type": "dropColumn"
+    },
+    {
       "id": "file:database/seeders/DatabaseSeeder.php",
       "label": "database/seeders/DatabaseSeeder.php",
       "type": "seeder_file",
@@ -13278,11 +13318,35 @@
       "level": 2
     },
     {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Closeout Reports Implementation)",
+      "label": "June 8, 2026 (Closeout Reports Implementation)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 57,
+      "level": 3
+    },
+    {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Inventory Summary Report — Filters, Cogwheel, Export)",
+      "label": "June 8, 2026 (Inventory Summary Report — Filters, Cogwheel, Export)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 67,
+      "level": 3
+    },
+    {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)",
+      "label": "June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 78,
+      "level": 3
+    },
+    {
       "id": "doc-section:MIGRATION_HANDOFF.md:June 4, 2026 (Editable Profile Page)",
       "label": "June 4, 2026 (Editable Profile Page)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 57,
+      "line": 85,
       "level": 3
     },
     {
@@ -13290,7 +13354,7 @@
       "label": "June 6, 2026 (LAN Locations: IP Resync & Persistence Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 65,
+      "line": 93,
       "level": 3
     },
     {
@@ -13298,7 +13362,7 @@
       "label": "June 4, 2026 (Location Labels: Setup + LAN Locations)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 75,
+      "line": 103,
       "level": 3
     },
     {
@@ -13306,7 +13370,7 @@
       "label": "June 2, 2026 (ZKTeco U560 Device Monitor)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 79,
+      "line": 107,
       "level": 3
     },
     {
@@ -13314,7 +13378,7 @@
       "label": "June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 89,
+      "line": 117,
       "level": 3
     },
     {
@@ -13322,7 +13386,7 @@
       "label": "June 2, 2026 (LAN Locations CRUD + App URL + Port)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 97,
+      "line": 125,
       "level": 3
     },
     {
@@ -13330,7 +13394,7 @@
       "label": "June 2, 2026 (Item Search with SKU Support)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 103,
+      "line": 131,
       "level": 3
     },
     {
@@ -13338,7 +13402,7 @@
       "label": "June 1-2, 2026 (Register Open/Close Flow)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 108,
+      "line": 136,
       "level": 3
     },
     {
@@ -13346,7 +13410,7 @@
       "label": "June 1-2, 2026 (Item Variations Management)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 113,
+      "line": 141,
       "level": 3
     },
     {
@@ -13354,7 +13418,7 @@
       "label": "May 31, 2026 (Output Tax Report)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 120,
+      "line": 148,
       "level": 3
     },
     {
@@ -13362,7 +13426,7 @@
       "label": "May 31, 2026 (Sales & Purchases VAT Formula Update)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 128,
+      "line": 156,
       "level": 3
     },
     {
@@ -13370,7 +13434,7 @@
       "label": "May 31, 2026 (Sales VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 133,
+      "line": 161,
       "level": 3
     },
     {
@@ -13378,7 +13442,7 @@
       "label": "May 31, 2026 (Purchases VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 140,
+      "line": 168,
       "level": 3
     },
     {
@@ -13386,7 +13450,7 @@
       "label": "May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 148,
+      "line": 176,
       "level": 3
     },
     {
@@ -13394,7 +13458,7 @@
       "label": "May 31, 2026 (Tax Classes Unification)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 153,
+      "line": 181,
       "level": 3
     },
     {
@@ -13402,7 +13466,7 @@
       "label": "May 25, 2026 (Purchases Closing Date + VAT Rates)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 158,
+      "line": 186,
       "level": 3
     },
     {
@@ -13410,7 +13474,7 @@
       "label": "May 20, 2026 (LAN Sync System)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 162,
+      "line": 190,
       "level": 3
     },
     {
@@ -13418,7 +13482,7 @@
       "label": "May 20, 2026 (Transfer Sync → LAN)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 168,
+      "line": 196,
       "level": 3
     },
     {
@@ -13426,7 +13490,7 @@
       "label": "May 21, 2026 (Installer Wizard)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 174,
+      "line": 202,
       "level": 3
     },
     {
@@ -13434,7 +13498,7 @@
       "label": "May 21, 2026 (LAN UI + Manual Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 178,
+      "line": 206,
       "level": 3
     },
     {
@@ -13442,7 +13506,7 @@
       "label": "May 21, 2026 (Items: Markup Auto-Calc)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 182,
+      "line": 210,
       "level": 3
     },
     {
@@ -13450,7 +13514,7 @@
       "label": "May 18, 2026 (Config: Taxes + Tax Classes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 186,
+      "line": 214,
       "level": 3
     },
     {
@@ -13458,7 +13522,7 @@
       "label": "May 18, 2026 (Labels: Sheet Mode UI & Print Layout)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 191,
+      "line": 219,
       "level": 3
     },
     {
@@ -13466,7 +13530,7 @@
       "label": "May 17, 2026 (Sales Register: Tags + Favorites Grid)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 196,
+      "line": 224,
       "level": 3
     },
     {
@@ -13474,7 +13538,7 @@
       "label": "May 15, 2026 (Customers Form Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 201,
+      "line": 229,
       "level": 3
     },
     {
@@ -13482,7 +13546,7 @@
       "label": "May 14, 2026 (Customers Module Modernization)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 204,
+      "line": 232,
       "level": 3
     },
     {
@@ -13490,7 +13554,7 @@
       "label": "May 14, 2026 (Reports: Location Context TypeError Fix)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 210,
+      "line": 238,
       "level": 3
     },
     {
@@ -13498,7 +13562,7 @@
       "label": "May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 215,
+      "line": 243,
       "level": 3
     },
     {
@@ -13506,7 +13570,7 @@
       "label": "May 13, 2026 (Sales Currency + Flow Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 221,
+      "line": 249,
       "level": 3
     },
     {
@@ -13514,7 +13578,7 @@
       "label": "May 10, 2026 (Orders & Receivings Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 229,
+      "line": 257,
       "level": 3
     },
     {
@@ -13522,7 +13586,7 @@
       "label": "May 10, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 245,
+      "line": 273,
       "level": 3
     },
     {
@@ -13530,7 +13594,7 @@
       "label": "May 6, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 250,
+      "line": 278,
       "level": 3
     },
     {
@@ -13538,7 +13602,7 @@
       "label": "May 7, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 254,
+      "line": 282,
       "level": 3
     },
     {
@@ -13546,7 +13610,7 @@
       "label": "May 1, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 265,
+      "line": 293,
       "level": 3
     },
     {
@@ -13554,7 +13618,7 @@
       "label": "1. Auth & Security",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 345,
+      "line": 373,
       "level": 3
     },
     {
@@ -13562,7 +13626,7 @@
       "label": "2. Dashboard & Modules",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 351,
+      "line": 379,
       "level": 3
     },
     {
@@ -13570,7 +13634,7 @@
       "label": "3. Inventory & Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 354,
+      "line": 382,
       "level": 3
     },
     {
@@ -13578,7 +13642,7 @@
       "label": "4. Inventory Flow",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 369,
+      "line": 397,
       "level": 3
     },
     {
@@ -13586,7 +13650,7 @@
       "label": "5. Sales & Receipts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 375,
+      "line": 403,
       "level": 3
     },
     {
@@ -13594,7 +13658,7 @@
       "label": "6. Contacts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 382,
+      "line": 410,
       "level": 3
     },
     {
@@ -13602,7 +13666,7 @@
       "label": "7. Messages",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 386,
+      "line": 414,
       "level": 3
     },
     {
@@ -13610,7 +13674,7 @@
       "label": "8. Store Config & Employees",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 389,
+      "line": 417,
       "level": 3
     },
     {
@@ -13618,7 +13682,7 @@
       "label": "9. Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 332,
+      "line": 360,
       "level": 3
     },
     {
@@ -13626,7 +13690,7 @@
       "label": "🚀 Upcoming (Pending Tasks)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 343,
+      "line": 371,
       "level": 2
     },
     {
@@ -14431,10 +14495,51 @@
       "file": "resources/views/receivings/show.blade.php"
     },
     {
+      "id": "file:resources/views/reports/closeout.blade.php",
+      "label": "resources/views/reports/closeout.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/closeout.blade.php"
+    },
+    {
+      "id": "view:reports.closeout",
+      "label": "reports.closeout",
+      "type": "view",
+      "file": "resources/views/reports/closeout.blade.php"
+    },
+    {
+      "id": "route-name:reports.generate",
+      "label": "reports.generate",
+      "type": "route_name"
+    },
+    {
       "id": "file:resources/views/reports/corey_williams6.code-workspace",
       "label": "resources/views/reports/corey_williams6.code-workspace",
       "type": "view_file",
       "file": "resources/views/reports/corey_williams6.code-workspace"
+    },
+    {
+      "id": "file:resources/views/reports/detailed_inventory.blade.php",
+      "label": "resources/views/reports/detailed_inventory.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/detailed_inventory.blade.php"
+    },
+    {
+      "id": "view:reports.detailed_inventory",
+      "label": "reports.detailed_inventory",
+      "type": "view",
+      "file": "resources/views/reports/detailed_inventory.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/detailed_inventory_pdf.blade.php",
+      "label": "resources/views/reports/detailed_inventory_pdf.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/detailed_inventory_pdf.blade.php"
+    },
+    {
+      "id": "view:reports.detailed_inventory_pdf",
+      "label": "reports.detailed_inventory_pdf",
+      "type": "view",
+      "file": "resources/views/reports/detailed_inventory_pdf.blade.php"
     },
     {
       "id": "file:resources/views/reports/generate.blade.php",
@@ -14460,9 +14565,52 @@
       "file": "resources/views/reports/graphical.blade.php"
     },
     {
-      "id": "route-name:reports.generate",
-      "label": "reports.generate",
-      "type": "route_name"
+      "id": "file:resources/views/reports/inventory_low.blade.php",
+      "label": "resources/views/reports/inventory_low.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/inventory_low.blade.php"
+    },
+    {
+      "id": "view:reports.inventory_low",
+      "label": "reports.inventory_low",
+      "type": "view",
+      "file": "resources/views/reports/inventory_low.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/inventory_low_pdf.blade.php",
+      "label": "resources/views/reports/inventory_low_pdf.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/inventory_low_pdf.blade.php"
+    },
+    {
+      "id": "view:reports.inventory_low_pdf",
+      "label": "reports.inventory_low_pdf",
+      "type": "view",
+      "file": "resources/views/reports/inventory_low_pdf.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/inventory_summary.blade.php",
+      "label": "resources/views/reports/inventory_summary.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/inventory_summary.blade.php"
+    },
+    {
+      "id": "view:reports.inventory_summary",
+      "label": "reports.inventory_summary",
+      "type": "view",
+      "file": "resources/views/reports/inventory_summary.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/inventory_summary_pdf.blade.php",
+      "label": "resources/views/reports/inventory_summary_pdf.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/inventory_summary_pdf.blade.php"
+    },
+    {
+      "id": "view:reports.inventory_summary_pdf",
+      "label": "reports.inventory_summary_pdf",
+      "type": "view",
+      "file": "resources/views/reports/inventory_summary_pdf.blade.php"
     },
     {
       "id": "file:resources/views/reports/listing.blade.php",
@@ -14475,7 +14623,7 @@
       "label": "on",
       "type": "class",
       "file": "resources/views/reports/listing.blade.php",
-      "line": 1229
+      "line": 1215
     },
     {
       "id": "file:resources/views/reports/output_tax.blade.php",
@@ -14502,6 +14650,30 @@
       "label": "reports.output_tax",
       "type": "view",
       "file": "resources/views/reports/output_tax.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/summary_count_report.blade.php",
+      "label": "resources/views/reports/summary_count_report.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/summary_count_report.blade.php"
+    },
+    {
+      "id": "view:reports.summary_count_report",
+      "label": "reports.summary_count_report",
+      "type": "view",
+      "file": "resources/views/reports/summary_count_report.blade.php"
+    },
+    {
+      "id": "file:resources/views/reports/summary_count_report_pdf.blade.php",
+      "label": "resources/views/reports/summary_count_report_pdf.blade.php",
+      "type": "view_file",
+      "file": "resources/views/reports/summary_count_report_pdf.blade.php"
+    },
+    {
+      "id": "view:reports.summary_count_report_pdf",
+      "label": "reports.summary_count_report_pdf",
+      "type": "view",
+      "file": "resources/views/reports/summary_count_report_pdf.blade.php"
     },
     {
       "id": "file:resources/views/reports/tabular.blade.php",
@@ -18594,7 +18766,7 @@
       "target": "view:lan.locations",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/LanStatusController.php:28"
+      "evidence": "app/Http/Controllers/LanStatusController.php:29"
     },
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:index",
@@ -18605,6 +18777,12 @@
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:index",
       "target": "class-ref:TransferQueue",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:index",
+      "target": "class-ref:PhpposLocation",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -18621,9 +18799,21 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "method:app/Http/Controllers/LanStatusController.php:updateSelfName",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "class:App\\Http\\Controllers\\LanStatusController",
       "target": "method:app/Http/Controllers/LanStatusController.php:store",
       "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:store",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
@@ -19806,13 +19996,6 @@
       "evidence": "app/Http/Controllers/ReportController.php:19"
     },
     {
-      "source": "method:app/Http/Controllers/ReportController.php:__construct",
-      "target": "view:reports.generate",
-      "type": "renders",
-      "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/ReportController.php:51"
-    },
-    {
       "source": "class:App\\Http\\Controllers\\ReportController",
       "target": "method:app/Http/Controllers/ReportController.php:index",
       "type": "defines",
@@ -19826,13 +20009,6 @@
       "evidence": "app/Http/Controllers/ReportController.php:19"
     },
     {
-      "source": "method:app/Http/Controllers/ReportController.php:index",
-      "target": "view:reports.generate",
-      "type": "renders",
-      "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/ReportController.php:51"
-    },
-    {
       "source": "class:App\\Http\\Controllers\\ReportController",
       "target": "method:app/Http/Controllers/ReportController.php:generate",
       "type": "defines",
@@ -19843,7 +20019,7 @@
       "target": "view:reports.generate",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/ReportController.php:51"
+      "evidence": "app/Http/Controllers/ReportController.php:66"
     },
     {
       "source": "class:App\\Http\\Controllers\\ReportController",
@@ -19872,6 +20048,12 @@
     {
       "source": "class:App\\Http\\Controllers\\ReportController",
       "target": "method:app/Http/Controllers/ReportController.php:exportDetailedSales",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\ReportController",
+      "target": "method:app/Http/Controllers/ReportController.php:buildCloseoutSections",
       "type": "defines",
       "confidence": "EXTRACTED"
     },
@@ -21093,7 +21275,7 @@
       "target": "view:transfers.create",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/TransferController.php:99"
+      "evidence": "app/Http/Controllers/TransferController.php:97"
     },
     {
       "source": "method:app/Http/Controllers/TransferController.php:outIndex",
@@ -21137,7 +21319,7 @@
       "target": "view:transfers.create",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/TransferController.php:99"
+      "evidence": "app/Http/Controllers/TransferController.php:97"
     },
     {
       "source": "method:app/Http/Controllers/TransferController.php:inIndex",
@@ -21180,7 +21362,7 @@
       "target": "view:transfers.create",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/TransferController.php:99"
+      "evidence": "app/Http/Controllers/TransferController.php:97"
     },
     {
       "source": "method:app/Http/Controllers/TransferController.php:create",
@@ -21818,6 +22000,30 @@
       "source": "class:App\\Models\\Location",
       "target": "class-ref:Model",
       "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Models\\Location",
+      "target": "method:app/Models/Location.php:phpposLocation",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Models/Location.php:phpposLocation",
+      "target": "class-ref:PhpposLocation",
+      "type": "belongsTo",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Models/Location.php:phpposLocation",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Models/Location.php:phpposLocation",
+      "target": "class-ref:TransferQueue",
+      "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
@@ -32535,6 +32741,30 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "file:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "target": "method:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php:up",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "target": "method:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php:down",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:database/migrations/2026_06_08_114449_add_phppos_location_id_to_locations_table.php",
+      "target": "table:locations",
+      "type": "alters",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "table:locations",
+      "target": "column:locations.phppos_location_id",
+      "type": "has_column",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "file:database/seeders/DatabaseSeeder.php",
       "target": "class:Database\\Seeders\\DatabaseSeeder",
       "type": "contains",
@@ -32699,6 +32929,24 @@
     {
       "source": "file:MIGRATION_HANDOFF.md",
       "target": "doc-section:MIGRATION_HANDOFF.md:📜 History (Completed Work)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Closeout Reports Implementation)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Inventory Summary Report — Filters, Cogwheel, Export)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)",
       "type": "contains",
       "confidence": "EXTRACTED"
     },
@@ -34053,6 +34301,54 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "file:resources/views/reports/closeout.blade.php",
+      "target": "view:reports.closeout",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.closeout",
+      "target": "route-name:reports.index",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.closeout",
+      "target": "route-name:reports.generate",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.closeout",
+      "target": "view:layouts.app",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/detailed_inventory.blade.php",
+      "target": "view:reports.detailed_inventory",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.detailed_inventory",
+      "target": "route-name:reports.index",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.detailed_inventory",
+      "target": "view:layouts.app",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/detailed_inventory_pdf.blade.php",
+      "target": "view:reports.detailed_inventory_pdf",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "file:resources/views/reports/generate.blade.php",
       "target": "view:reports.generate",
       "type": "defines",
@@ -34098,6 +34394,60 @@
       "source": "view:reports.graphical",
       "target": "view:layouts.app",
       "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/inventory_low.blade.php",
+      "target": "view:reports.inventory_low",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.inventory_low",
+      "target": "route-name:reports.index",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.inventory_low",
+      "target": "route-name:reports.generate",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.inventory_low",
+      "target": "view:layouts.app",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/inventory_low_pdf.blade.php",
+      "target": "view:reports.inventory_low_pdf",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/inventory_summary.blade.php",
+      "target": "view:reports.inventory_summary",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.inventory_summary",
+      "target": "route-name:reports.index",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.inventory_summary",
+      "target": "view:layouts.app",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/inventory_summary_pdf.blade.php",
+      "target": "view:reports.inventory_summary_pdf",
+      "type": "defines",
       "confidence": "EXTRACTED"
     },
     {
@@ -34158,6 +34508,30 @@
       "source": "view:reports.output_tax",
       "target": "view:layouts.app",
       "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/summary_count_report.blade.php",
+      "target": "view:reports.summary_count_report",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.summary_count_report",
+      "target": "route-name:reports.index",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:reports.summary_count_report",
+      "target": "view:layouts.app",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:resources/views/reports/summary_count_report_pdf.blade.php",
+      "target": "view:reports.summary_count_report_pdf",
+      "type": "defines",
       "confidence": "EXTRACTED"
     },
     {
