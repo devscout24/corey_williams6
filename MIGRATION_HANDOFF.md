@@ -64,6 +64,17 @@ These rules are non-negotiable for this repo’s cleaned schema.
 - **Filters:** Date range + single-location enforced; ignores sale_type/payment_type from the form (always shows all). Payment allocation for quantity-filtered sections uses approximate attribution (mixed positive/negative sales may have minor inaccuracies).
 - **Data Sources:** `phppos_sales`, `phppos_sales_items`, `phppos_sales_item_kits`, `phppos_sales_payments`, `phppos_sales_items_taxes`, `phppos_items`, `phppos_categories`, `phppos_registers`, `phppos_receivings`, `phppos_receivings_items`, `phppos_receivings_payments`, `phppos_register_log`, `phppos_register_log_payments`.
 
+### June 8, 2026 (Inventory Summary Report — Filters, Cogwheel, Export)
+- **Inventory Summary Enhanced:** Replaced the basic `inventory_summary` stub in `ReportController::store()` with full data queries.
+- **Filters:** Added Supplier (`supplier_id`), Category (`category_id`), Inventory Status (`inventory_status`: all/in_stock/out_of_stock), and Item Name (`item_name`) search to the parameter form in `generate.blade.php`.
+- **Column Picker (Cogwheel):** Added a gear icon (`bi-gear`) dropdown column picker that lets users toggle visibility of all columns (Item ID, Name, Category, Supplier, Item Number, Product ID, Description, Size, Cost Price, Selling Price, Count, Inventory Values, Pending Inventory, Reorder/Replenish Level, Order Amount). State persisted in `localStorage` with a Reset button.
+- **CSV Export:** Added `?export=csv` query param that streams a CSV file with all columns including computed `order_amount` (`replenish_level - quantity`).
+- **PDF Export:** Added `?export=pdf` query param that generates a DomPDF download (`inventory_summary.pdf`) with summary cards and full data table.
+- **Print:** Clean `@media print` CSS hides page header, actions bar, and non-essential chrome.
+- **Summary Cards:** Three cards at the top: Total Items in Inventory, Inventory Total (cost), Inventory Sale Total (selling price).
+- **New Views:** `resources/views/reports/inventory_summary_pdf.blade.php` — DomPDF layout with summary table and data table.
+- **Data Sources:** `phppos_items` × `phppos_location_items` × `phppos_categories` × `phppos_suppliers` with a subquery for pending inventory from suspended receivings.
+
 ### June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)
 - **Global Print CSS Enhanced:** Strengthened `@media print` block in `public/assets/css/style.css` — resets `.page-content` padding, removes `.report-meta` background/border, strips `box-shadow` from `.chart-container`/`.table-container`/`.summary-card` and replaces with a light border, adds `break-inside: avoid` to prevent charts/tables splitting across pages, and forces white backgrounds/black text in dark mode during print.
 - **Graphical Reports (`graphical.blade.php`):** Added `@media print` section that hides `.page-header` (duplicate layout title) and removes `.chart-container` border.

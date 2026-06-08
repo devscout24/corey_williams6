@@ -47,8 +47,23 @@ class ReportController extends Controller
             ->leftJoin('phppos_locations', 'phppos_registers.location_id', '=', 'phppos_locations.location_id')
             ->select('phppos_registers.register_id', 'phppos_registers.name', 'phppos_locations.name as location_name')
             ->get();
+
+        $suppliers = collect();
+        $categories = collect();
+        if (in_array($report, ['inventory_low', 'inventory_summary'])) {
+            $suppliers = DB::table('phppos_suppliers')
+                ->join('phppos_people', 'phppos_suppliers.person_id', '=', 'phppos_people.person_id')
+                ->where('phppos_suppliers.deleted', 0)
+                ->select('phppos_suppliers.person_id', 'phppos_suppliers.company_name', 'phppos_people.first_name', 'phppos_people.last_name')
+                ->orderBy('phppos_suppliers.company_name')
+                ->get();
+            $categories = DB::table('phppos_categories')
+                ->where('deleted', 0)
+                ->orderBy('name')
+                ->get();
+        }
         
-        return view('reports.generate', compact('report', 'title', 'locations', 'paymentTypes', 'customers', 'employees', 'registers'));
+        return view('reports.generate', compact('report', 'title', 'locations', 'paymentTypes', 'customers', 'employees', 'registers', 'suppliers', 'categories'));
     }
 
     public function store(Request $request, string $report)
@@ -918,44 +933,312 @@ class ReportController extends Controller
                 break;
 
             case 'inventory_summary':
+                $supplierId = $request->input('supplier_id', 'all');
+                $categoryId = $request->input('category_id', 'all');
+                $inventoryFilter = $request->input('inventory_status', 'all');
+                $itemName = $request->input('item_name', '');
+
+                $pendingSub = DB::table('phppos_receivings_items')
+                    ->join('phppos_receivings', 'phppos_receivings_items.receiving_id', '=', 'phppos_receivings.receiving_id')
+                    ->select('phppos_receivings_items.item_id', DB::raw('SUM(phppos_receivings_items.quantity_purchased - phppos_receivings_items.quantity_received) as pending'))
+                    ->where('phppos_receivings.suspended', 1)
+                    ->where('phppos_receivings.deleted', 0)
+                    ->groupBy('phppos_receivings_items.item_id');
+
                 $query = DB::table('phppos_items')
                     ->leftJoin('phppos_location_items', function($join) use ($locationId) {
                         $join->on('phppos_items.item_id', '=', 'phppos_location_items.item_id');
-                        if ($locationId !== 'all') {
-                            $join->where('phppos_location_items.location_id', '=', $locationId);
-                        }
+                        $join->where('phppos_location_items.location_id', '=', $locationId);
                     })
                     ->leftJoin('phppos_categories', 'phppos_items.category_id', '=', 'phppos_categories.id')
-                    ->selectRaw('phppos_items.item_id, phppos_items.name, phppos_categories.name as category, COALESCE(SUM(phppos_location_items.quantity), 0) as quantity, phppos_items.cost_price, phppos_items.unit_price')
+                    ->leftJoin('phppos_suppliers', 'phppos_items.supplier_id', '=', 'phppos_suppliers.person_id')
+                    ->leftJoinSub($pendingSub, 'pending_inv', 'phppos_items.item_id', '=', 'pending_inv.item_id')
+                    ->selectRaw('
+                        phppos_items.item_id,
+                        phppos_items.name,
+                        phppos_categories.name as category,
+                        phppos_suppliers.company_name as supplier,
+                        phppos_items.item_number,
+                        phppos_items.product_id,
+                        phppos_items.description,
+                        phppos_items.size,
+                        phppos_items.cost_price,
+                        phppos_items.unit_price,
+                        COALESCE(SUM(phppos_location_items.quantity), 0) as quantity,
+                        COALESCE(SUM(phppos_location_items.quantity), 0) * phppos_items.cost_price as total_inventory_value,
+                        COALESCE(SUM(phppos_location_items.quantity), 0) * phppos_items.unit_price as total_inventory_value_by_unit_price,
+                        COALESCE(pending_inv.pending, 0) as pending_inventory,
+                        COALESCE(phppos_location_items.reorder_level, phppos_items.reorder_level) as reorder_level,
+                        COALESCE(phppos_location_items.replenish_level, phppos_items.replenish_level) as replenish_level')
                     ->where('phppos_items.deleted', 0);
-                
-                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name', 'phppos_categories.name', 'phppos_items.cost_price', 'phppos_items.unit_price')
+
+                if ($supplierId !== 'all' && $supplierId !== '0') {
+                    $query->where('phppos_items.supplier_id', $supplierId);
+                }
+                if ($categoryId !== 'all' && $categoryId !== '0') {
+                    $query->where('phppos_items.category_id', $categoryId);
+                }
+                if ($inventoryFilter === 'in_stock') {
+                    $query->having('quantity', '>', 0);
+                } elseif ($inventoryFilter === 'out_of_stock') {
+                    $query->having('quantity', '=', 0);
+                }
+                if ($itemName !== '') {
+                    $query->where('phppos_items.name', 'like', '%' . $itemName . '%');
+                }
+
+                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name', 'phppos_categories.name', 'phppos_suppliers.company_name', 'phppos_items.item_number', 'phppos_items.product_id', 'phppos_items.description', 'phppos_items.size', 'phppos_items.cost_price', 'phppos_items.unit_price', 'phppos_location_items.reorder_level', 'phppos_items.reorder_level', 'phppos_location_items.replenish_level', 'phppos_items.replenish_level', 'pending_inv.pending')
                     ->get();
 
-                $headers = ['Item ID', 'Item Name', 'Category', 'Quantity', 'Cost Price', 'Selling Price'];
+                $headers = [
+                    'Item ID' => 'item_id',
+                    'Item Name' => 'name',
+                    'Category' => 'category',
+                    'Supplier' => 'supplier',
+                    'Item Number' => 'item_number',
+                    'Product ID' => 'product_id',
+                    'Description' => 'description',
+                    'Size' => 'size',
+                    'Cost Price' => 'cost_price',
+                    'Selling Price' => 'unit_price',
+                    'Count' => 'quantity',
+                    'Total Inventory Value' => 'total_inventory_value',
+                    'Total Inventory Value By Unit Price' => 'total_inventory_value_by_unit_price',
+                    'Pending Inventory (Suspended)' => 'pending_inventory',
+                    'Reorder Level' => 'reorder_level',
+                    'Replenish Level' => 'replenish_level',
+                    'Order Amount' => 'order_amount',
+                ];
+
+                $overallSummary = [
+                    'total_items_in_inventory' => $data->sum('quantity'),
+                    'inventory_total' => $data->sum('total_inventory_value'),
+                    'inventory_sale_total' => $data->sum('total_inventory_value_by_unit_price'),
+                ];
+                $summaryLabels = [
+                    'total_items_in_inventory' => 'Total Items',
+                    'inventory_total' => 'Inventory Total',
+                    'inventory_sale_total' => 'Inventory Sale Total',
+                ];
                 $title = "Inventory Summary Report";
-                break;
+
+                $export = $request->input('export');
+                if ($export === 'csv') {
+                    $callback = function() use ($data, $headers) {
+                        $file = fopen('php://output', 'w');
+                        fputcsv($file, array_keys($headers));
+                        foreach ($data as $row) {
+                            $line = [];
+                            foreach ($headers as $key) {
+                                $val = $row->$key ?? 0;
+                                if ($key === 'order_amount') {
+                                    $val = max(0, ($row->replenish_level ?? 0) - ($row->quantity ?? 0));
+                                }
+                                $line[] = is_numeric($val) ? $val : strip_tags($val);
+                            }
+                            fputcsv($file, $line);
+                        }
+                        fclose($file);
+                    };
+                    return response()->stream($callback, 200, [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => 'attachment; filename="inventory_summary.csv"',
+                    ]);
+                }
+
+                if ($export === 'pdf') {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.inventory_summary_pdf', compact('data', 'headers', 'title', 'startDate', 'endDate', 'overallSummary', 'summaryLabels'));
+                    return $pdf->download('inventory_summary.pdf');
+                }
+
+                return view('reports.inventory_summary', compact('data', 'headers', 'title', 'startDate', 'endDate', 'report', 'overallSummary', 'summaryLabels'));
 
             case 'inventory_low':
+                $supplierId = $request->input('supplier_id', 'all');
+                $categoryId = $request->input('category_id', 'all');
+                $inventoryStatus = $request->input('inventory_status', 'below_reorder_level');
+                $reorderOnly = $request->input('reorder_only', '0') === '1';
+
+                $pendingSub = DB::table('phppos_receivings_items')
+                    ->join('phppos_receivings', 'phppos_receivings_items.receiving_id', '=', 'phppos_receivings.receiving_id')
+                    ->select('phppos_receivings_items.item_id', DB::raw('SUM(phppos_receivings_items.quantity_purchased - phppos_receivings_items.quantity_received) as pending'))
+                    ->where('phppos_receivings.suspended', 1)
+                    ->where('phppos_receivings.deleted', 0)
+                    ->groupBy('phppos_receivings_items.item_id');
+
                 $query = DB::table('phppos_items')
                     ->leftJoin('phppos_location_items', function($join) use ($locationId) {
                         $join->on('phppos_items.item_id', '=', 'phppos_location_items.item_id');
-                        if ($locationId !== 'all') {
-                            $join->where('phppos_location_items.location_id', '=', $locationId);
-                        }
+                        $join->where('phppos_location_items.location_id', '=', $locationId);
                     })
                     ->leftJoin('phppos_categories', 'phppos_items.category_id', '=', 'phppos_categories.id')
-                    ->selectRaw('phppos_items.item_id, phppos_items.name, phppos_categories.name as category, COALESCE(SUM(phppos_location_items.quantity), 0) as quantity, COALESCE(phppos_location_items.reorder_level, phppos_items.reorder_level) as effective_reorder_level')
+                    ->leftJoin('phppos_suppliers', 'phppos_items.supplier_id', '=', 'phppos_suppliers.person_id')
+                    ->leftJoinSub($pendingSub, 'pending_inv', 'phppos_items.item_id', '=', 'pending_inv.item_id')
+                    ->selectRaw('
+                        phppos_items.item_id,
+                        phppos_items.name,
+                        phppos_categories.name as category,
+                        phppos_suppliers.company_name as supplier,
+                        phppos_items.item_number,
+                        phppos_items.product_id,
+                        phppos_items.description,
+                        phppos_items.size,
+                        phppos_items.cost_price,
+                        phppos_items.unit_price,
+                        COALESCE(SUM(phppos_location_items.quantity), 0) as quantity,
+                        COALESCE(pending_inv.pending, 0) as pending_inventory,
+                        COALESCE(phppos_location_items.reorder_level, phppos_items.reorder_level) as effective_reorder_level,
+                        COALESCE(phppos_location_items.replenish_level, phppos_items.replenish_level) as effective_replenish_level')
                     ->where('phppos_items.deleted', 0)
                     ->where('phppos_items.is_service', 0);
-                
-                $data = $query->groupBy('phppos_items.item_id', 'phppos_items.name', 'phppos_categories.name', 'phppos_location_items.reorder_level', 'phppos_items.reorder_level')
-                    ->havingRaw('quantity <= effective_reorder_level')
-                    ->get();
 
-                $headers = ['Item ID', 'Item Name', 'Category', 'Quantity', 'Reorder Level'];
+                if ($supplierId !== 'all') {
+                    $query->where('phppos_items.supplier_id', $supplierId);
+                }
+                if ($categoryId !== 'all') {
+                    $query->where('phppos_items.category_id', $categoryId);
+                }
+
+                $items = $query->groupBy(
+                        'phppos_items.item_id',
+                        'phppos_items.name',
+                        'phppos_categories.name',
+                        'phppos_suppliers.company_name',
+                        'phppos_items.item_number',
+                        'phppos_items.product_id',
+                        'phppos_items.description',
+                        'phppos_items.size',
+                        'phppos_items.cost_price',
+                        'phppos_items.unit_price',
+                        'phppos_location_items.reorder_level',
+                        'phppos_items.reorder_level',
+                        'phppos_location_items.replenish_level',
+                        'phppos_items.replenish_level',
+                        'pending_inv.pending'
+                    );
+
+                if ($inventoryStatus === 'all') {
+                    $items->where('phppos_items.item_id', '>', 0);
+                } elseif ($inventoryStatus === 'in_stock') {
+                    $items->havingRaw('quantity > 0');
+                    $items->havingRaw('quantity <= effective_reorder_level');
+                } elseif ($inventoryStatus === 'out_of_stock') {
+                    $items->havingRaw('quantity = 0');
+                    $items->havingRaw('quantity <= effective_reorder_level');
+                } elseif ($inventoryStatus === 'below_reorder_level_and_out_of_stock') {
+                    $items->havingRaw('quantity = 0');
+                    $items->havingRaw('quantity <= effective_reorder_level');
+                } else {
+                    if ($reorderOnly) {
+                        $items->havingRaw('quantity < effective_reorder_level');
+                    } else {
+                        $items->havingRaw('quantity <= effective_reorder_level');
+                    }
+                }
+
+                $items = $items->get();
+                $itemIds = $items->pluck('item_id');
+
+                // Fetch variations for these items
+                $variations = collect();
+                if ($itemIds->isNotEmpty()) {
+                    $variations = DB::table('phppos_item_variations')
+                        ->leftJoin('phppos_location_item_variations', function($join) use ($locationId) {
+                            $join->on('phppos_item_variations.id', '=', 'phppos_location_item_variations.item_variation_id');
+                            $join->where('phppos_location_item_variations.location_id', '=', $locationId);
+                        })
+                        ->leftJoinSub($pendingSub, 'var_pending', function($join) {
+                            $join->on('phppos_item_variations.item_id', '=', 'var_pending.item_id');
+                        })
+                        ->leftJoin('phppos_item_variation_attribute_values', 'phppos_item_variations.id', '=', 'phppos_item_variation_attribute_values.item_variation_id')
+                        ->leftJoin('phppos_attribute_values', 'phppos_item_variation_attribute_values.attribute_value_id', '=', 'phppos_attribute_values.id')
+                        ->leftJoin('phppos_attributes', 'phppos_attribute_values.attribute_id', '=', 'phppos_attributes.id')
+                        ->selectRaw('
+                            phppos_item_variations.id as variation_id,
+                            phppos_item_variations.item_id,
+                            phppos_item_variations.name as variation_name,
+                            phppos_item_variations.item_number as variation_item_number,
+                            phppos_item_variations.cost_price as variation_cost_price,
+                            phppos_item_variations.unit_price as variation_unit_price,
+                            phppos_item_variations.reorder_level as variation_reorder_level,
+                            phppos_item_variations.replenish_level as variation_replenish_level,
+                            COALESCE(SUM(phppos_location_item_variations.quantity), 0) as variation_quantity,
+                            COALESCE(var_pending.pending, 0) as variation_pending_inventory,
+                            GROUP_CONCAT(DISTINCT CONCAT(phppos_attributes.name, ": ", phppos_attribute_values.name) ORDER BY phppos_attributes.name SEPARATOR ", ") as attribute_names')
+                        ->whereIn('phppos_item_variations.item_id', $itemIds)
+                        ->where('phppos_item_variations.deleted', 0)
+                        ->groupBy(
+                            'phppos_item_variations.id',
+                            'phppos_item_variations.item_id',
+                            'phppos_item_variations.name',
+                            'phppos_item_variations.item_number',
+                            'phppos_item_variations.cost_price',
+                            'phppos_item_variations.unit_price',
+                            'phppos_item_variations.reorder_level',
+                            'phppos_item_variations.replenish_level',
+                            'var_pending.pending'
+                        )
+                        ->get()
+                        ->groupBy('item_id');
+                }
+
+                $headers = [
+                    'Item ID',
+                    'Item Name',
+                    'Category',
+                    'Supplier',
+                    'Item Number',
+                    'Product ID',
+                    'Description',
+                    'Size',
+                    'Cost Price',
+                    'Unit Price',
+                    'Quantity',
+                    'Pending Inventory',
+                    'Reorder Level',
+                    'Replenish Level',
+                    'Order Amount',
+                ];
                 $title = "Low Inventory Report";
-                break;
+
+                $export = $request->input('export');
+                if ($export === 'csv') {
+                    $callback = function() use ($items, $headers) {
+                        $file = fopen('php://output', 'w');
+                        fputcsv($file, $headers);
+                        foreach ($items as $row) {
+                            fputcsv($file, [
+                                $row->item_id,
+                                $row->name,
+                                $row->category ?? '',
+                                $row->supplier ?? '',
+                                $row->item_number ?? '',
+                                $row->product_id ?? '',
+                                $row->description ?? '',
+                                $row->size ?? '',
+                                number_format($row->cost_price ?? 0, 2),
+                                number_format($row->unit_price ?? 0, 2),
+                                number_format($row->quantity ?? 0, 2),
+                                number_format($row->pending_inventory ?? 0, 2),
+                                $row->effective_reorder_level !== null ? number_format($row->effective_reorder_level, 2) : '',
+                                $row->effective_replenish_level !== null ? number_format($row->effective_replenish_level, 2) : '',
+                                number_format(max(0, ($row->effective_replenish_level ?? 0) - ($row->quantity ?? 0)), 2),
+                            ]);
+                        }
+                        fclose($file);
+                    };
+                    return response()->stream($callback, 200, [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => 'attachment; filename="inventory_low.csv"',
+                    ]);
+                }
+
+                if ($export === 'pdf') {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.inventory_low_pdf', compact('items', 'headers', 'title', 'startDate', 'endDate'));
+                    return $pdf->download('inventory_low.pdf');
+                }
+
+                return view('reports.inventory_low', compact('items', 'variations', 'headers', 'title', 'startDate', 'endDate', 'report'));
 
             case 'inventory_at_past_date':
                 $pastDate = $request->input('date', date('Y-m-d'));

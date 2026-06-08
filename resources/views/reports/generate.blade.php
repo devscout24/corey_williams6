@@ -71,6 +71,58 @@
                     </div>
                     @endif
 
+                    @if(in_array($report, ['inventory_low', 'inventory_summary']))
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Supplier</label>
+                        <select name="supplier_id" class="form-select">
+                            <option value="all">All Suppliers</option>
+                            @foreach($suppliers as $sup)
+                                <option value="{{ $sup->person_id }}">{{ $sup->company_name }}@if($sup->first_name) ({{ $sup->first_name }} {{ $sup->last_name }})@endif</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Category</label>
+                        <select name="category_id" class="form-select">
+                            <option value="all">All Categories</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @if($report == 'inventory_low')
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Inventory Status</label>
+                        <select name="inventory_status" class="form-select">
+                            <option value="below_reorder_level">Below Reorder Level</option>
+                            <option value="all">All Items</option>
+                            <option value="in_stock">In Stock</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                            <option value="below_reorder_level_and_out_of_stock">Below Reorder Level & Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="form-check mt-2 mb-4">
+                        <input class="form-check-input" type="checkbox" name="reorder_only" id="reorderOnly" value="1">
+                        <label class="form-check-label" for="reorderOnly">
+                            Reorder Only (strictly below reorder level)
+                        </label>
+                    </div>
+                    @elseif($report == 'inventory_summary')
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Inventory Status</label>
+                        <select name="inventory_status" class="form-select">
+                            <option value="all">All Items</option>
+                            <option value="in_stock">In Stock</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold">Item Name</label>
+                        <input type="text" name="item_name" class="form-control" placeholder="Search by item name">
+                    </div>
+                    @endif
+                    @endif
+
                     @if($report != 'detailed_sales')
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Group By</label>
