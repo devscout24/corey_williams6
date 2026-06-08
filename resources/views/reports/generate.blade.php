@@ -28,6 +28,7 @@
                         </div>
                     </div>
 
+                    @if(!in_array($report, ['closeout', 'closeout_condensed']))
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Sale Type</label>
                         <select name="sale_type" class="form-select">
@@ -46,6 +47,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
 
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Location</label>

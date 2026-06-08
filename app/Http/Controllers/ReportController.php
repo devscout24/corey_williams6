@@ -1797,16 +1797,11 @@ class ReportController extends Controller
                 break;
 
             case 'closeout':
-                $data = collect([]);
-                $headers = ['Notice'];
-                $title = 'Closeout Report (Under Construction)';
-                break;
-
             case 'closeout_condensed':
-                $data = collect([]);
-                $headers = ['Notice'];
-                $title = 'Closeout Condensed Report (Under Construction)';
-                break;
+                $condensed = $report === 'closeout_condensed';
+                $sections = $this->buildCloseoutSections($startDateTime, $endDateTime, $locationId, $condensed);
+                $title = $condensed ? 'Closeout Condensed Report' : 'Closeout Report';
+                return view('reports.closeout', compact('sections', 'title', 'startDate', 'endDate', 'report'));
 
             case 'detailed_profit_and_loss':
                 $data = collect([]);
@@ -2434,5 +2429,392 @@ class ReportController extends Controller
             'Content-Type' => 'application/vnd.ms-excel',
             'Content-Disposition' => 'attachment; filename="' . $safeTitle . '.xls"',
         ]);
+    }
+
+    private function buildCloseoutSections(string $startDateTime, string $endDateTime, $locationId, bool $condensed): array
+    {
+        $fmt = fn($v) => '$' . number_format($v ?? 0, 2);
+        $fmtInt = fn($v) => number_format($v ?? 0);
+
+        $baseSaleWhere = fn($q) => $q
+            ->where('s.deleted', 0)
+            ->whereNotIn('s.suspended', [2])
+            ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+            ->where('s.location_id', $locationId);
+
+        $sections = [];
+
+        // ── Helper: Sales summary with optional quantity sign filter ──
+        $getSaleSummary = function (?string $qtyOp = null) use ($baseSaleWhere, $fmt, $fmtInt) {
+            $q = DB::table('phppos_sales as s')
+                ->join('phppos_sales_items as si', 's.sale_id', '=', 'si.sale_id')
+                ->selectRaw('
+                    COUNT(DISTINCT s.sale_id) as transaction_count,
+                    SUM(si.line_total) as total_with_tax,
+                    SUM(si.subtotal) as total_without_tax,
+                    SUM(si.tax) as tax,
+                    SUM(si.profit) as profit,
+                    SUM(si.quantity_purchased) as items_sold
+                ');
+            $baseSaleWhere($q);
+            if ($qtyOp !== null) {
+                $q->where('si.quantity_purchased', $qtyOp, 0);
+            }
+            return $q->first();
+        };
+
+        // ── Helper: Category breakdown ──
+        $getCategorySales = function (?string $qtyOp = null) use ($baseSaleWhere) {
+            $itemsQ = DB::table('phppos_sales_items as si')
+                ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+                ->join('phppos_items as i', 'si.item_id', '=', 'i.item_id')
+                ->selectRaw('i.category_id, SUM(si.subtotal) as subtotal, SUM(si.line_total) as total');
+            $baseSaleWhere($itemsQ);
+            if ($qtyOp !== null) {
+                $itemsQ->where('si.quantity_purchased', $qtyOp, 0);
+            }
+            $itemsQ->groupBy('i.category_id');
+
+            $kitsQ = DB::table('phppos_sales_item_kits as sik')
+                ->join('phppos_sales as s', 'sik.sale_id', '=', 's.sale_id')
+                ->join('phppos_item_kits as ik', 'sik.item_kit_id', '=', 'ik.id')
+                ->selectRaw('ik.category_id, SUM(sik.subtotal) as subtotal, SUM(sik.line_total) as total');
+            $baseSaleWhere($kitsQ);
+            if ($qtyOp !== null) {
+                $kitsQ->where('sik.quantity_purchased', $qtyOp, 0);
+            }
+            $kitsQ->groupBy('ik.category_id');
+
+            $items = $itemsQ->get()->keyBy('category_id');
+            $kits = $kitsQ->get()->keyBy('category_id');
+
+            $merged = [];
+            foreach ($items as $catId => $row) {
+                $merged[$catId] = (object)[
+                    'category_id' => $catId,
+                    'subtotal' => $row->subtotal + ($kits[$catId]->subtotal ?? 0),
+                    'total' => $row->total + ($kits[$catId]->total ?? 0),
+                ];
+            }
+            foreach ($kits as $catId => $row) {
+                if (!isset($merged[$catId])) {
+                    $merged[$catId] = (object)[
+                        'category_id' => $catId,
+                        'subtotal' => $row->subtotal,
+                        'total' => $row->total,
+                    ];
+                }
+            }
+
+            usort($merged, fn($a, $b) => $b->total <=> $a->total);
+            return collect($merged);
+        };
+
+        // ── Helper: Payment types ──
+        $getPayments = function () use ($baseSaleWhere) {
+            $q = DB::table('phppos_sales_payments as sp')
+                ->join('phppos_sales as s', 'sp.sale_id', '=', 's.sale_id')
+                ->selectRaw('sp.payment_type, SUM(sp.payment_amount) as amount');
+            $baseSaleWhere($q);
+            return $q->groupBy('sp.payment_type')
+                ->orderByDesc('amount')
+                ->get();
+        };
+
+        // ── Helper: Tax breakdown ──
+        $getTaxBreakdown = function (?string $qtyOp = null) use ($baseSaleWhere) {
+            $q = DB::table('phppos_sales_items_taxes as sit')
+                ->join('phppos_sales_items as si', 'sit.sale_item_id', '=', 'si.id')
+                ->join('phppos_sales as s', 'sit.sale_id', '=', 's.sale_id')
+                ->selectRaw('sit.name, sit.percent, SUM(si.subtotal * sit.percent / 100) as tax_amount');
+            $baseSaleWhere($q);
+            if ($qtyOp !== null) {
+                $q->where('si.quantity_purchased', $qtyOp, 0);
+            }
+            return $q->groupBy('sit.name', 'sit.percent')
+                ->orderByDesc('tax_amount')
+                ->get();
+        };
+
+        // ═══════════════════════════════════════════════
+        //  ALL TRANSACTIONS
+        // ═══════════════════════════════════════════════
+        $allData = $getSaleSummary();
+        if (!$allData || !$allData->transaction_count) {
+            return $sections;
+        }
+
+        $rows = [];
+        $rows[] = ['label' => 'Total Sales (with tax)', 'value' => $fmt($allData->total_with_tax), 'subtotal' => true];
+        $rows[] = ['label' => 'Total Sales (without tax)', 'value' => $fmt($allData->total_without_tax)];
+        $rows[] = ['label' => 'Total Tax', 'value' => $fmt($allData->tax)];
+        $rows[] = ['label' => 'Total Profit', 'value' => $fmt($allData->profit)];
+        $rows[] = ['label' => 'Number of Transactions', 'value' => $fmtInt($allData->transaction_count)];
+        $rows[] = ['label' => 'Average Ticket Size', 'value' => $allData->transaction_count > 0 ? $fmt($allData->total_with_tax / $allData->transaction_count) : '$0.00'];
+        $rows[] = ['label' => 'Items Sold', 'value' => $fmtInt(abs($allData->items_sold))];
+        $sections[] = ['title' => 'Summary - All Transactions', 'rows' => $rows];
+
+        // ── Register breakdown ──
+        $registerData = DB::table('phppos_sales as s')
+            ->leftJoin('phppos_registers as r', 's.register_id', '=', 'r.register_id')
+            ->selectRaw('COALESCE(r.name, \'N/A\') as register_name, SUM(s.total) as total')
+            ->where('s.deleted', 0)
+            ->whereNotIn('s.suspended', [2])
+            ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+            ->where('s.location_id', $locationId)
+            ->groupBy('r.register_id', 'r.name')
+            ->orderByDesc('total')
+            ->get();
+
+        if ($registerData->isNotEmpty()) {
+            $rows = [];
+            foreach ($registerData as $r) {
+                $rows[] = ['label' => $r->register_name, 'value' => $fmt($r->total)];
+            }
+            $sections[] = ['title' => 'Sales by Register', 'rows' => $rows];
+        }
+
+        // ── Category breakdown ──
+        $categoryData = $getCategorySales();
+        if ($categoryData->isNotEmpty()) {
+            $rows = [];
+            $categories = DB::table('phppos_categories')->get()->keyBy('id');
+            foreach ($categoryData as $c) {
+                $name = $categories[$c->category_id]->name ?? 'Unknown';
+                $rows[] = ['label' => $name, 'value' => $fmt($c->total)];
+            }
+            $sections[] = ['title' => 'Sales by Category', 'rows' => $rows];
+        }
+
+        // ── Payment types ──
+        $paymentData = $getPayments();
+        if ($paymentData->isNotEmpty()) {
+            $rows = [];
+            foreach ($paymentData as $p) {
+                $rows[] = ['label' => $p->payment_type, 'value' => $fmt($p->amount)];
+            }
+            $sections[] = ['title' => 'Payments by Type', 'rows' => $rows];
+        }
+
+        // ── Tax breakdown ──
+        $taxData = $getTaxBreakdown();
+        if ($taxData->isNotEmpty()) {
+            $rows = [];
+            foreach ($taxData as $t) {
+                $rows[] = ['label' => $t->name . ' (' . rtrim(rtrim(sprintf('%.2f', $t->percent), '0'), '.') . '%)', 'value' => $fmt($t->tax_amount)];
+            }
+            $sections[] = ['title' => 'Tax Breakdown', 'rows' => $rows];
+        }
+
+        // ── Discounts ──
+        $discountData = DB::table('phppos_sales_items as si')
+            ->join('phppos_sales as s', 'si.sale_id', '=', 's.sale_id')
+            ->selectRaw('si.discount_percent, COUNT(*) as item_count, SUM(si.discount_percent * si.item_unit_price * si.quantity_purchased / 100) as discount_amount')
+            ->where('s.deleted', 0)
+            ->whereNotIn('s.suspended', [2])
+            ->where('si.discount_percent', '>', 0)
+            ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+            ->where('s.location_id', $locationId)
+            ->groupBy('si.discount_percent')
+            ->orderBy('si.discount_percent')
+            ->get();
+
+        if ($discountData->isNotEmpty()) {
+            $rows = [];
+            $totalDiscount = 0;
+            foreach ($discountData as $d) {
+                $rows[] = ['label' => $d->discount_percent . '% Discount (' . $fmtInt($d->item_count) . ' items)', 'value' => $fmt($d->discount_amount)];
+                $totalDiscount += $d->discount_amount;
+            }
+            $rows[] = ['label' => 'Total Discounts', 'value' => $fmt($totalDiscount), 'subtotal' => true];
+            $sections[] = ['title' => 'Discounts', 'rows' => $rows];
+        }
+
+        if ($condensed) {
+            return $sections;
+        }
+
+        // ═══════════════════════════════════════════════
+        //  SALES (positive quantity)
+        // ═══════════════════════════════════════════════
+        $salesData = $getSaleSummary('>');
+        if ($salesData && $salesData->transaction_count) {
+            $rows = [];
+            $rows[] = ['label' => 'Total Sales (with tax)', 'value' => $fmt($salesData->total_with_tax), 'subtotal' => true];
+            $rows[] = ['label' => 'Total Sales (without tax)', 'value' => $fmt($salesData->total_without_tax)];
+            $rows[] = ['label' => 'Total Tax', 'value' => $fmt($salesData->tax)];
+            $rows[] = ['label' => 'Total Profit', 'value' => $fmt($salesData->profit)];
+            $rows[] = ['label' => 'Number of Transactions', 'value' => $fmtInt($salesData->transaction_count)];
+            $rows[] = ['label' => 'Items Sold', 'value' => $fmtInt(abs($salesData->items_sold))];
+
+            $saleCatData = $getCategorySales('>');
+            if ($saleCatData->isNotEmpty()) {
+                $categories = DB::table('phppos_categories')->get()->keyBy('id');
+                foreach ($saleCatData as $c) {
+                    $name = $categories[$c->category_id]->name ?? 'Unknown';
+                    $rows[] = ['label' => '  ' . $name, 'value' => $fmt($c->total)];
+                }
+            }
+
+            $sections[] = ['title' => 'Sales (Positive Quantity)', 'rows' => $rows];
+        }
+
+        // ═══════════════════════════════════════════════
+        //  RETURNS (negative quantity)
+        // ═══════════════════════════════════════════════
+        $returnData = $getSaleSummary('<');
+        if ($returnData && $returnData->transaction_count) {
+            $rows = [];
+            $rows[] = ['label' => 'Total Returns (with tax)', 'value' => $fmt(abs($returnData->total_with_tax)), 'subtotal' => true];
+            $rows[] = ['label' => 'Total Returns (without tax)', 'value' => $fmt(abs($returnData->total_without_tax))];
+            $rows[] = ['label' => 'Total Tax', 'value' => $fmt(abs($returnData->tax))];
+            $rows[] = ['label' => 'Number of Return Transactions', 'value' => $fmtInt($returnData->transaction_count)];
+            $rows[] = ['label' => 'Items Returned', 'value' => $fmtInt(abs($returnData->items_sold))];
+
+            $retCatData = $getCategorySales('<');
+            if ($retCatData->isNotEmpty()) {
+                $categories = DB::table('phppos_categories')->get()->keyBy('id');
+                foreach ($retCatData as $c) {
+                    $name = $categories[$c->category_id]->name ?? 'Unknown';
+                    $rows[] = ['label' => '  ' . $name, 'value' => $fmt(abs($c->total))];
+                }
+            }
+
+            $sections[] = ['title' => 'Returns (Negative Quantity)', 'rows' => $rows];
+        }
+
+        // ═══════════════════════════════════════════════
+        //  EXCHANGES (zero quantity)
+        // ═══════════════════════════════════════════════
+        $exchData = $getSaleSummary('=');
+        if ($exchData && $exchData->transaction_count) {
+            $rows = [];
+            $rows[] = ['label' => 'Total Exchanges (with tax)', 'value' => $fmt($exchData->total_with_tax), 'subtotal' => true];
+            $rows[] = ['label' => 'Number of Exchange Transactions', 'value' => $fmtInt($exchData->transaction_count)];
+            $sections[] = ['title' => 'Exchanges (Zero Quantity)', 'rows' => $rows];
+        }
+
+        // ═══════════════════════════════════════════════
+        //  SUSPENDED SALES
+        // ═══════════════════════════════════════════════
+        $susData = DB::table('phppos_sales as s')
+            ->join('phppos_sales_items as si', 's.sale_id', '=', 'si.sale_id')
+            ->selectRaw('COUNT(DISTINCT s.sale_id) as transaction_count, SUM(si.line_total) as total_with_tax')
+            ->where('s.deleted', 0)
+            ->where('s.suspended', 1)
+            ->whereBetween('s.created_at', [$startDateTime, $endDateTime])
+            ->where('s.location_id', $locationId)
+            ->first();
+
+        if ($susData && $susData->transaction_count) {
+            $rows = [];
+            $rows[] = ['label' => 'Total Suspended Sales', 'value' => $fmt($susData->total_with_tax), 'subtotal' => true];
+            $rows[] = ['label' => 'Number of Suspended Transactions', 'value' => $fmtInt($susData->transaction_count)];
+            $sections[] = ['title' => 'Suspended Sales', 'rows' => $rows];
+        }
+
+        // ═══════════════════════════════════════════════
+        //  RECEIVINGS (Purchases)
+        // ═══════════════════════════════════════════════
+        $recvData = DB::table('phppos_receivings as r')
+            ->selectRaw('COUNT(DISTINCT r.receiving_id) as count, SUM(r.total) as total, SUM(r.tax) as tax')
+            ->where('r.deleted', 0)
+            ->whereBetween('r.receiving_time', [$startDateTime, $endDateTime])
+            ->where('r.location_id', $locationId)
+            ->first();
+
+        if ($recvData && $recvData->count) {
+            $rows = [];
+            $rows[] = ['label' => 'Total Receivings', 'value' => $fmt($recvData->total), 'subtotal' => true];
+            $rows[] = ['label' => 'Total Tax', 'value' => $fmt($recvData->tax)];
+            $rows[] = ['label' => 'Number of Receivings', 'value' => $fmtInt($recvData->count)];
+
+            // Receivings by category
+            $recvCatData = DB::table('phppos_receivings_items as ri')
+                ->join('phppos_receivings as r', 'ri.receiving_id', '=', 'r.receiving_id')
+                ->join('phppos_items as i', 'ri.item_id', '=', 'i.item_id')
+                ->selectRaw('i.category_id, SUM(ri.subtotal) as subtotal, SUM(ri.total) as total')
+                ->where('r.deleted', 0)
+                ->whereBetween('r.receiving_time', [$startDateTime, $endDateTime])
+                ->where('r.location_id', $locationId)
+                ->groupBy('i.category_id')
+                ->orderByDesc('total')
+                ->get();
+
+            if ($recvCatData->isNotEmpty()) {
+                $categories = DB::table('phppos_categories')->get()->keyBy('id');
+                foreach ($recvCatData as $c) {
+                    $name = $categories[$c->category_id]->name ?? 'Unknown';
+                    $rows[] = ['label' => '  ' . $name, 'value' => $fmt($c->total)];
+                }
+            }
+
+            // Receivings payments
+            $recvPayData = DB::table('phppos_receivings_payments as rp')
+                ->join('phppos_receivings as r', 'rp.receiving_id', '=', 'r.receiving_id')
+                ->selectRaw('rp.payment_type, SUM(rp.payment_amount) as amount')
+                ->where('r.deleted', 0)
+                ->whereBetween('r.receiving_time', [$startDateTime, $endDateTime])
+                ->where('r.location_id', $locationId)
+                ->groupBy('rp.payment_type')
+                ->orderByDesc('amount')
+                ->get();
+
+            if ($recvPayData->isNotEmpty()) {
+                foreach ($recvPayData as $p) {
+                    $rows[] = ['label' => '  Payment: ' . $p->payment_type, 'value' => $fmt($p->amount)];
+                }
+            }
+
+            $sections[] = ['title' => 'Receivings (Purchases)', 'rows' => $rows];
+        }
+
+        // ═══════════════════════════════════════════════
+        //  REGISTER CASH TRACKING
+        // ═══════════════════════════════════════════════
+        $registerTracking = DB::table('phppos_register_log as rl')
+            ->join('phppos_register_log_payments as rlp', 'rl.register_log_id', '=', 'rlp.register_log_id')
+            ->leftJoin('phppos_registers as reg', 'rl.register_id', '=', 'reg.register_id')
+            ->leftJoin('phppos_people as p', 'rl.employee_id_open', '=', 'p.person_id')
+            ->selectRaw('
+                COALESCE(reg.name, CONCAT(\'Register #\', rl.register_id)) as register_name,
+                CONCAT(p.first_name, \' \', p.last_name) as employee_name,
+                rlp.payment_type,
+                rlp.open_amount,
+                rlp.payment_sales_amount,
+                rlp.total_payment_additions,
+                rlp.total_payment_subtractions,
+                rlp.close_amount
+            ')
+            ->where('rl.deleted', 0)
+            ->whereBetween('rl.shift_start', [$startDateTime, $endDateTime])
+            ->orderBy('rl.register_id')
+            ->orderBy('rlp.payment_type')
+            ->get();
+
+        if ($registerTracking->isNotEmpty()) {
+            $rows = [];
+            $byRegister = $registerTracking->groupBy('register_name');
+            foreach ($byRegister as $regName => $entries) {
+                $employeeName = $entries->first()->employee_name;
+                $rows[] = ['label' => $regName . ($employeeName ? ' (' . $employeeName . ')' : ''), 'value' => '', 'subtotal' => true];
+                foreach ($entries as $e) {
+                    $expectedClose = $e->open_amount + $e->payment_sales_amount + $e->total_payment_additions - $e->total_payment_subtractions;
+                    $rows[] = ['label' => '  ' . $e->payment_type . ' - Opening', 'value' => $fmt($e->open_amount)];
+                    $rows[] = ['label' => '  ' . $e->payment_type . ' - Sales', 'value' => $fmt($e->payment_sales_amount)];
+                    if ($e->total_payment_additions != 0) {
+                        $rows[] = ['label' => '  ' . $e->payment_type . ' - Additions', 'value' => $fmt($e->total_payment_additions)];
+                    }
+                    if ($e->total_payment_subtractions != 0) {
+                        $rows[] = ['label' => '  ' . $e->payment_type . ' - Subtractions', 'value' => $fmt($e->total_payment_subtractions)];
+                    }
+                    $rows[] = ['label' => '  ' . $e->payment_type . ' - Expected Close', 'value' => $fmt($expectedClose)];
+                    $rows[] = ['label' => '  ' . $e->payment_type . ' - Actual Close', 'value' => $e->close_amount !== null ? $fmt($e->close_amount) : 'N/A'];
+                }
+            }
+            $sections[] = ['title' => 'Register Cash Tracking', 'rows' => $rows];
+        }
+
+        return $sections;
     }
 }

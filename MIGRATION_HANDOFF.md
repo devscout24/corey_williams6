@@ -54,6 +54,23 @@ These rules are non-negotiable for this repo’s cleaned schema.
 
 ## 📜 History (Completed Work)
 
+### June 8, 2026 (Closeout Reports Implementation)
+- **Closeout Reports Implemented:** Replaced the `closeout` and `closeout_condensed` stubs in `ReportController::store()` with full data queries.
+- **Architecture:** New `buildCloseoutSections()` private method in `ReportController.php` (lines ~2460-2810) builds a structured array of sections with rows, each containing a label and pre-formatted value string.
+- **Sections (`closeout_condensed`):** Summary – All Transactions (totals, tax, profit, count, avg ticket, items sold), Sales by Register, Sales by Category, Payments by Type, Tax Breakdown, Discounts.
+- **Sections (`closeout` only):** Everything above PLUS Sales (positive qty), Returns (negative qty), Exchanges (zero qty), Suspended Sales, Receivings (Purchases with category/payment breakdown), Register Cash Tracking (per-register open/close amounts with expected vs actual close).
+- **New View:** `resources/views/reports/closeout.blade.php` — two-column description/value table with section headers, proper print CSS, and dark mode support.
+- **Generate Form:** Hidden irrelevant fields (Sale Type, Payment Type) for closeout reports.
+- **Filters:** Date range + single-location enforced; ignores sale_type/payment_type from the form (always shows all). Payment allocation for quantity-filtered sections uses approximate attribution (mixed positive/negative sales may have minor inaccuracies).
+- **Data Sources:** `phppos_sales`, `phppos_sales_items`, `phppos_sales_item_kits`, `phppos_sales_payments`, `phppos_sales_items_taxes`, `phppos_items`, `phppos_categories`, `phppos_registers`, `phppos_receivings`, `phppos_receivings_items`, `phppos_receivings_payments`, `phppos_register_log`, `phppos_register_log_payments`.
+
+### June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)
+- **Global Print CSS Enhanced:** Strengthened `@media print` block in `public/assets/css/style.css` — resets `.page-content` padding, removes `.report-meta` background/border, strips `box-shadow` from `.chart-container`/`.table-container`/`.summary-card` and replaces with a light border, adds `break-inside: avoid` to prevent charts/tables splitting across pages, and forces white backgrounds/black text in dark mode during print.
+- **Graphical Reports (`graphical.blade.php`):** Added `@media print` section that hides `.page-header` (duplicate layout title) and removes `.chart-container` border.
+- **Tabular Reports (`tabular.blade.php`):** Added print rules to hide `.page-header` and remove `.table-container` border.
+- **Detailed Lazy-Load Reports (`tabular_details_lazy_load.blade.php`):** Added print rules to hide `.page-header`, hide action/pagination buttons (`.page-content .actions`), and remove `.table-container` border.
+- All report views now produce a clean, chrome-free print output with no topbar, sidebar, or interface chrome.
+
 ### June 4, 2026 (Editable Profile Page)
 - **Profile Edit/Save:** Enhanced `/profile` page to support inline editing via jQuery. Fields (first_name, last_name, email, phone_number, title, employee_number, username) convert from spans to text inputs when Edit button is clicked.
 - **Dynamic Header Updates:** On successful save, the avatar initials and full name header automatically update based on the edited first_name and last_name values.
