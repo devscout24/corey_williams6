@@ -171,7 +171,9 @@
                                 <th>Item Type</th>
                                 <th>Item ID</th>
                                 <th>Status</th>
+                                <th>Error</th>
                                 <th>Created</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -195,11 +197,30 @@
                                             <span class="badge bg-warning text-dark">Pending</span>
                                         @endif
                                     </td>
+                                    <td class="text-break" style="max-width: 200px;">
+                                        @if($transfer->status === 'failed' && $transfer->error)
+                                            <code class="small text-danger">{{ $transfer->error }}</code>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $transfer->created_at ? \Carbon\Carbon::parse($transfer->created_at)->format('m/d/Y H:i') : '' }}</td>
+                                    <td>
+                                        @if($transfer->status === 'failed')
+                                            <form action="{{ route('lan.locations.retry', $transfer->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Retry sending this transfer">
+                                                    <i class="bi bi-arrow-repeat me-1"></i>Retry
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">No transfers queued yet.</td>
+                                    <td colspan="8" class="text-center text-muted">No transfers queued yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>

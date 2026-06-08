@@ -50,9 +50,22 @@ These rules are non-negotiable for this repo’s cleaned schema.
   - Inventory, sales, and movements must always resolve to the current location (no multi-location logic).
   - Each install is a node in the POS network. Requests can arrive from other nodes; always resolve the current location from the node context (ULID header/cookie) and ignore user-selected locations.
 
+### ✅ Transfer Syncing: Location Resolution
+1. **Transfer destinations resolve through two tables.**
+  - `phppos_locations` is the POS store registry (name, ulid, location_id).
+  - `locations` is the LAN peer registry (name, ip, port, is_self, last_seen_at).
+  - When a transfer is completed, `syncTransferEvent()` in `InventoryFlowService` looks up the destination `phppos_locations.name`, then matches it against the LAN `locations.name` on a non-self peer.
+  - The LAN `Location.ip` + `Location.port` form the URL (`http://{ip}:{port}`) used to POST the transfer payload to `/api/lan/receive`.
+  - If no LAN peer matches the destination location name, the transfer is completed locally but no sync is enqueued — the `TransferQueue` row is never created.
+
 ---
 
 ## 📜 History (Completed Work)
+
+### June 8, 2026 (Transfer Queue Retry Button + Error Display)
+- **Retry Failed Transfers:** Added `LanStatusController@retry()` method and `POST /lan/locations/retry/{id}` web route that resets a failed `TransferQueue` row to `pending`, clears the error, and re-dispatches `SendItem`.
+- **Error Column:** The LAN Locations transfer queue table now shows the error message from `TransferQueue.error` for failed entries.
+- **Retry Button:** A Retry button (POST form) appears in the Actions column for each failed transfer.
 
 ### June 8, 2026 (Closeout Reports Implementation)
 - **Closeout Reports Implemented:** Replaced the `closeout` and `closeout_condensed` stubs in `ReportController::store()` with full data queries.

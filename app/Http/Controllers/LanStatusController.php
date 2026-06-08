@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\PhpposLocation;
 use App\Models\TransferQueue;
+use App\Jobs\SendItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -149,6 +150,21 @@ class LanStatusController extends Controller
             return redirect()->route('lan.locations')
                 ->with('error', "Could not reach {$location->name} at {$location->url}: {$e->getMessage()}");
         }
+    }
+
+    public function retry(int $id): RedirectResponse
+    {
+        $transfer = TransferQueue::where('status', 'failed')->findOrFail($id);
+
+        $transfer->update([
+            'status' => 'pending',
+            'error' => null,
+        ]);
+
+        SendItem::dispatch($transfer);
+
+        return redirect()->route('lan.locations')
+            ->with('status', "Transfer #{$id} queued for retry.");
     }
 
     public function resyncIp(Request $request): RedirectResponse

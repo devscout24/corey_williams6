@@ -60,6 +60,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/lan/locations/{location}', [LanStatusController::class, 'update'])->name('lan.locations.update');
     Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');
     Route::post('/lan/locations/{location}/poke', [LanStatusController::class, 'poke'])->name('lan.locations.poke');
+    Route::post('/lan/locations/retry/{id}', [LanStatusController::class, 'retry'])->name('lan.locations.retry');
 
     Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
     Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');
