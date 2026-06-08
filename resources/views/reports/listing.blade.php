@@ -128,23 +128,14 @@
             <button class="menu-item" data-target="sales_generator">
                 <i class="bi bi-search"></i> Sales Generator
             </button>
-            <button class="menu-item" data-target="appointments">
-                <i class="bi bi-calendar-event"></i> Appointments
-            </button>
             <button class="menu-item" data-target="categories">
                 <i class="bi bi-grid"></i> Categories
             </button>
             <button class="menu-item" data-target="closeout">
                 <i class="bi bi-x-circle"></i> Closeout
             </button>
-            <button class="menu-item" data-target="commissions">
-                <i class="bi bi-percent"></i> Commissions
-            </button>
             <button class="menu-item" data-target="customers">
                 <i class="bi bi-people"></i> Customers
-            </button>
-            <button class="menu-item" data-target="deliveries">
-                <i class="bi bi-truck-flatbed"></i> Deliveries
             </button>
             <button class="menu-item" data-target="discounts">
                 <i class="bi bi-tag"></i> Discounts
@@ -152,12 +143,10 @@
             <button class="menu-item" data-target="employees">
                 <i class="bi bi-person-badge"></i> Employees
             </button>
-            <button class="menu-item" data-target="expenses">
+            {{-- <button class="menu-item" data-target="expenses">
                 <i class="bi bi-wallet2"></i> Expenses
-            </button>
-            <button class="menu-item" data-target="giftcards">
-                <i class="bi bi-card-checklist"></i> Giftcards
-            </button>
+            </button> --}}
+
             <button class="menu-item" data-target="inventory">
                 <i class="bi bi-bar-chart"></i> Inventory
             </button>
@@ -169,9 +158,6 @@
             </button>
             <button class="menu-item" data-target="item_kits">
                 <i class="bi bi-boxes"></i> Item Kits
-            </button>
-            <button class="menu-item" data-target="manufacturers">
-                <i class="bi bi-factory"></i> Manufacturers
             </button>
             <button class="menu-item" data-target="payments">
                 <i class="bi bi-cash-stack"></i> Payments
@@ -197,21 +183,21 @@
             <button class="menu-item" data-target="suppliers">
                 <i class="bi bi-truck"></i> Suppliers
             </button>
-            <button class="menu-item" data-target="suspended_sales">
+            {{-- <button class="menu-item" data-target="suspended_sales">
                 <i class="bi bi-pause-circle"></i> Suspended Sales
-            </button>
+            </button> --}}
             <button class="menu-item" data-target="tags">
                 <i class="bi bi-tags"></i> Tags
             </button>
             <button class="menu-item" data-target="taxes">
                 <i class="bi bi-calculator"></i> Taxes
             </button>
-            <button class="menu-item" data-target="tiers">
+            {{-- <button class="menu-item" data-target="tiers">
                 <i class="bi bi-layers"></i> Tiers
-            </button>
-            <button class="menu-item" data-target="timeclock">
+            </button> --}}
+            {{-- <button class="menu-item" data-target="timeclock">
                 <i class="bi bi-clock"></i> Timeclock
-            </button>
+            </button> --}}
         </aside>
 
         <main class="report-selection" id="reportSelection">
