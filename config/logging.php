@@ -123,6 +123,12 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        'lan_sync' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/lan-sync.log'),
+            'level' => 'debug',
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

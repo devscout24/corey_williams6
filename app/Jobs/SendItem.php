@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class SendItem implements ShouldQueue
@@ -38,11 +39,15 @@ class SendItem implements ShouldQueue
     {
         $transfer = $this->transfer->fresh();
         if (!$transfer) {
+            $this->log('Transfer #'.$this->transfer->id.' vanished after fresh()');
             return;
         }
 
+        $this->log('Handling SendItem #'.$transfer->id.' status='.$transfer->status);
+
         $location = $transfer->destination;
         if (!$location || empty($location->ip)) {
+            $this->log('Destination not found for Transfer #'.$transfer->id);
             $transfer->update([
                 'status' => 'failed',
                 'error' => 'Destination location not found.',
@@ -50,8 +55,11 @@ class SendItem implements ShouldQueue
             return;
         }
 
+        $this->log('Destination: '.$location->name.' ('.$location->ip.':'.$location->port.')');
+
         try {
             if (empty($location->port)) {
+                $this->log('Destination port missing for '.$location->name);
                 $transfer->update([
                     'status' => 'failed',
                     'error' => 'Destination location port is not configured.',
@@ -60,8 +68,11 @@ class SendItem implements ShouldQueue
             }
 
             $self = $registry->selfOrFail();
+            $this->log('Self: '.$self->name.' @ '.$self->ip.':'.$self->port);
+
             $payload = $this->buildPayload($transfer, $self->ip);
             if (!$payload) {
+                $this->log('buildPayload returned null for Transfer #'.$transfer->id);
                 $transfer->update([
                     'status' => 'failed',
                     'error' => 'Unsupported item_type or missing data.',
@@ -69,26 +80,41 @@ class SendItem implements ShouldQueue
                 return;
             }
 
+            $url = $registry->urlFor($location).'/api/lan/receive';
+            $this->log('POST '.$url.' payload='.json_encode($payload));
+
             $response = Http::timeout(10)
+                ->asJson()
                 ->withHeaders($this->syncHeaders())
-                ->post($registry->urlFor($location).'/api/lan/receive', $payload);
+                ->post($url, $payload);
+
+            $this->log('Response: HTTP '.$response->status().' body='.mb_strimwidth($response->body(), 0, 500));
 
             if ($response->successful()) {
                 $transfer->update([
                     'status' => 'delivered',
                     'error' => null,
                 ]);
+                $this->log('Transfer #'.$transfer->id.' delivered successfully');
                 return;
             }
 
             throw new RuntimeException('HTTP '.$response->status().': '.mb_strimwidth($response->body(), 0, 500));
         } catch (\Throwable $exception) {
+            $this->log('Exception: '.$exception->getMessage());
             if ($this->attempts() >= $this->tries) {
                 $this->markTransferFailed($exception->getMessage());
                 return;
             }
 
             throw $exception;
+        }
+    }
+
+    private function log(string $message): void
+    {
+        if (config('app.debug') || env('LAN_SYNC_DEBUG') === 'true') {
+            Log::channel('lan_sync')->debug('[SendItem] '.$message);
         }
     }
 

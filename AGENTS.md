@@ -1,41 +1,50 @@
 # AGENTS.md — Laravel POS
 
-## Quick start
+## Quick start (SQLite, no MySQL needed)
 
 ```powershell
 composer install
 npm install
-copy .env.example .env         # then edit DB_* for MySQL
+copy .env.example .env
 php artisan key:generate
 php artisan migrate:fresh --seed
 npm run build
 ```
 
+Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
+
 ## Dev server
 
 | Command | What it runs |
 |---|---|
-| `composer run dev` | `php artisan serve` + `queue:listen` + `pail` + Vite, concurrently |
-| `npm run dev` | Vite only |
+| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen` + `pail` + Vite, concurrently |
+| `npm run dev` | Vite only (Tailwind v4 + laravel-vite-plugin) |
 | `composer run test` | `config:clear` then `php artisan test` |
 | `composer run setup` | Full fresh install (composer, .env, key, migrate, npm) |
-| `composer run native:dev` | NativePHP desktop dev: `native:serve` + Vite |
+| `composer run native:dev` | NativePHP desktop dev via `native:serve` + Vite |
 
 ## Testing
 
-- PHPUnit with SQLite `:memory:` in tests (`phpunit.xml`).
+- **PHPUnit** with SQLite `:memory:` (see `phpunit.xml` for exact env overrides).
 - Suites: `tests/Unit`, `tests/Feature`.
 - Queue forced to `sync` in tests (no worker needed).
+- Run a single test: `php artisan test --filter TestName`
+
+## Auth
+
+- Uses a **custom `employee` guard** (`auth:employee` middleware) backed by `PhpposEmployee` model.
+- Default credentials: **admin** / **12345678** (legacy MD5 stored in seeder; auto-upgrades to bcrypt on first login).
+- Login route: `GET/POST /login`, logout: `POST /logout`.
 
 ## Database & migrations
 
-- **MySQL** in production, **SQLite** in tests.
+- **SQLite** by default in `.env.example` (MySQL optional, just uncomment).
 - **One create-only migration per `phppos_*` table** — never add `Schema::table()` alters. To change schema, update the single create migration and run `migrate:fresh`.
 - Use `foreignId()->constrained()` for FKs. Prefer `cascadeOnDelete`/`nullOnDelete` explicitly.
-- Seed all baseline data in `database/seeders/` (e.g. `PosCoreSeeder`), never in migrations.
-- Validate schema: `php artisan migrate:fresh --seed`
-- Legacy migrations live in `database/migrations/legacy/` (reference only; never move back).
-- Laravel default migrations (`users`, `cache`, `jobs`, etc.) kept as-is.
+- Seed all baseline data in `database/seeders/`, never in migrations.
+- Validate: `php artisan migrate:fresh --seed`
+- Legacy migrations in `database/migrations/legacy/` (reference only).
+- Laravel default migrations (`users`, `cache`, `jobs`) kept as-is.
 
 ## Queue
 
@@ -46,27 +55,31 @@ npm run build
 ## Architecture
 
 - Routes split across `routes/web.php`, `routes/api.php` (LAN sync), `routes/rony/*` (feature bundles), `routes/console.php`.
-- 65+ Eloquent models (all `phppos_*` prefixed) in `app/Models/`.
-- Custom middleware aliases: `sync.auth`, `installed`, `check_register_open` (registered in `bootstrap/app.php`).
-- Storage path overridable via `LARAVEL_STORAGE_PATH` env (`bootstrap/app.php:25`).
-- Key services: `InventoryFlowService`, `SalesService`, `AppConfigService`, `ZktecoService`, `LocationContextService`, `EmployeeService`.
+- 65+ Eloquent models in `app/Models/` — most prefixed `phppos_*`, except `Location`, `TransferQueue`, `PriceRule`, `PriceRulePriceBreak`, `PriceTier`, `Attribute`, `AttributeValue`, `ItemVariation`, `User`.
+- Two location tables: `phppos_locations` (POS stores) and `locations` (LAN peer registry with `ip`, `port`, `is_self`, `last_seen_at`).
+- Custom middleware: `sync.auth`, `installed`, `check_register_open` (registered in `bootstrap/app.php`).
+- Storage path overridable via `LARAVEL_STORAGE_PATH` env (`bootstrap/app.php:28`).
+- Frontend: **Blade + jQuery** (not Vue/React). Tailwind CSS v4. Custom assets in `public/assets/`.
+- Single-location enforcement: location resolved from node context (ULID header/cookie), never user-selected.
 
 ## Code style
 
-- Laravel Pint (`laravel/pint`) — run `./vendor/bin/pint` before committing.
-- EditorConfig: 4-space indent, LF line endings, UTF-8.
+- Laravel Pint (`./vendor/bin/pint`) — run before committing.
+- EditorConfig: 4-space indent, LF endings, UTF-8.
 - Node 26 (`.nvmrc`).
 
 ## Install modes
 
-- **Browser mode**: NSSM runs PHP built-in server (`php -S 0.0.0.0:8020 -t public server.php`) + queue worker.
+- **Browser mode**: PHP built-in server (`php -S 0.0.0.0:8020 -t public server.php`) + queue worker, managed via NSSM.
 - **NativePHP desktop**: `php artisan native:build win` — uses SQLite, Electron shell.
 
 ## LAN sync
 
-- Each node binds identity: `php artisan app:bind-identity` (writes `APP_NODE_IP`/`APP_NODE_NAME` to `.env`).
-- Discovery + transfers flow through DB queue + `/api/lan/*` endpoints. No background polling — manual Sync button.
-- `config/sync.php` holds `shared_token` for peer auth. `config/nativephp.php` has desktop app config.
+- `php artisan app:bind-identity` writes `APP_NODE_IP`/`APP_NODE_NAME` to `.env`.
+- `php artisan app:register-self --port=8000` registers this node in the `locations` table (runs automatically in `composer run dev`).
+- Discovery + transfers use DB queue + `/api/lan/*` endpoints (shared token auth in `config/sync.php`).
+- No polling — manual Sync button in top bar.
+- After editing `.env` (IP/name changes), run `php artisan config:clear` to flush stale cache.
 
 ## Knowledge base
 
@@ -76,15 +89,15 @@ Regenerate after changing routes, controllers, models, migrations, views, or doc
 python tools\build_knowledge_base.py
 ```
 
-Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `graphify-out/GRAPH_REPORT.md` before making structural changes.
+Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `graphify-out/GRAPH_REPORT.md` before structural changes.
 
 ## Other docs
 
 - `MIGRATION_HANDOFF.md` — migration rules + completed/pending work log.
-- `INSTALLER_BROWSER_MODE.md` — NSSM service setup details.
+- `INSTALLER_BROWSER_MODE.md` — NSSM setup details.
 - `nativePhp.md` — NativePHP desktop build guide.
 
 ## CI
 
 - Only branch `night` deploys via FTP (`.github/workflows/night.yml`).
-- No CI test runner configured.
+- No CI test runner.

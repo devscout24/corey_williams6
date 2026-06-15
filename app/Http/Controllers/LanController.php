@@ -13,6 +13,7 @@ use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class LanController extends Controller
@@ -25,6 +26,8 @@ class LanController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        $this->log('Announce from '.$data['name'].' ('.$data['ip'].':'.$data['port'].')');
+
         $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name']);
 
         return response()->json(['ok' => true]);
@@ -32,6 +35,7 @@ class LanController extends Controller
 
     public function sync(): JsonResponse
     {
+        $this->log('Manual sync triggered');
         AnnouncePresence::dispatch();
 
         return response()->json(['ok' => true]);
@@ -39,12 +43,16 @@ class LanController extends Controller
 
     public function receive(Request $request, InventoryFlowService $inventoryFlowService, LocationContextService $locationContextService): JsonResponse
     {
+        $this->log('Incoming receive from '.$request->input('from_ip', '?'));
+
         $data = $request->validate([
             'item_type' => ['required', 'string', 'max:255'],
             'item_id' => ['required', 'integer'],
             'payload' => ['required', 'array'],
             'from_ip' => ['required', 'string', 'max:45'],
         ]);
+
+        $this->log('Validated: item_type='.$data['item_type'].' item_id='.$data['item_id']);
 
         if ($data['item_type'] === 'transfer_out') {
             $transferPayload = $request->validate([
@@ -62,6 +70,7 @@ class LanController extends Controller
             ]);
 
             $payload = $transferPayload['payload'];
+            $this->log('transfer_out_id='.$payload['transfer_out_id'].' from_ulid='.$payload['from_location_ulid'].' to_ulid='.$payload['to_location_ulid'].' lines='.count($payload['lines']));
 
             $fromLocation = PhpposLocation::where('ulid', $payload['from_location_ulid'])->first();
             $toLocation = PhpposLocation::where('ulid', $payload['to_location_ulid'])->first();
@@ -70,12 +79,16 @@ class LanController extends Controller
             $currentLocation = PhpposLocation::where('location_id', $currentLocationId)->first();
 
             if (!$fromLocation || !$toLocation || !$currentLocation) {
+                $this->log('FAIL: Location ULID not found — from='.($fromLocation?'ok':'MISSING').' to='.($toLocation?'ok':'MISSING').' current='.($currentLocation?'ok':'MISSING'));
                 throw ValidationException::withMessages([
                     'location' => 'Location ULID not found on this device.',
                 ]);
             }
 
+            $this->log('from_location_id='.$fromLocation->location_id.' to_location_id='.$toLocation->location_id.' current_id='.$currentLocationId);
+
             if ((int) $toLocation->location_id !== (int) $currentLocationId) {
+                $this->log('FAIL: to_location_id '.$toLocation->location_id.' != current '.$currentLocationId);
                 throw ValidationException::withMessages([
                     'location' => 'Transfer destination does not match the current node location.',
                 ]);
@@ -84,6 +97,7 @@ class LanController extends Controller
             $lines = [];
             foreach ($payload['lines'] as $index => $line) {
                 if (empty($line['item_id']) && empty($line['item_number'])) {
+                    $this->log('FAIL: line '.$index.' has no item_id or item_number');
                     throw ValidationException::withMessages([
                         "payload.lines.$index.item_id" => 'Item identifier is required.',
                     ]);
@@ -98,6 +112,7 @@ class LanController extends Controller
                 }
 
                 if (!$item) {
+                    $this->log('FAIL: line '.$index.' item not found — item_id='.($line['item_id'] ?? 'null').' item_number='.($line['item_number'] ?? 'null'));
                     throw ValidationException::withMessages([
                         "payload.lines.$index.item_id" => 'Item not found for this transfer line.',
                     ]);
@@ -108,6 +123,8 @@ class LanController extends Controller
                     'quantity' => (float) $line['quantity'],
                 ];
             }
+
+            $this->log('Calling importTransferIn from='.$fromLocation->location_id.' to='.$currentLocation->location_id.' external_transfer_id='.$payload['transfer_out_id']);
 
             $inventoryFlowService->importTransferIn(
                 $fromLocation->location_id,
@@ -121,18 +138,27 @@ class LanController extends Controller
                 $payload['status'] ?? 'closed'
             );
 
+            $this->log('SUCCESS: Transfer received for transfer_out_id='.$payload['transfer_out_id']);
+
             return response()->json([
                 'ok' => true,
                 'message' => 'Transfer received',
             ]);
         }
 
-        // TODO: Implement item-specific persistence/handling based on item_type.
+        $this->log('Unhandled item_type: '.$data['item_type']);
 
         return response()->json([
             'ok' => true,
             'message' => 'Received',
         ]);
+    }
+
+    private function log(string $message): void
+    {
+        if (config('app.debug') || env('LAN_SYNC_DEBUG') === 'true') {
+            Log::channel('lan_sync')->debug('[Receive] '.$message);
+        }
     }
 
     public function notifications(): JsonResponse
