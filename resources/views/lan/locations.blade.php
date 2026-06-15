@@ -63,12 +63,9 @@
                                     </td>
                                     <td>
                                         @if($location->is_self)
-                                            <form action="{{ route('lan.locations.resync-ip') }}" method="POST" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Re-resolve LAN IP for this node">
-                                                    <i class="bi bi-arrow-repeat me-1"></i>Resync IP
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="resyncIpBtn" title="Re-resolve LAN IP for this node">
+                                                <i class="bi bi-arrow-repeat me-1"></i>Resync IP
+                                            </button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editSelfNameModal" title="Edit self label">
                                                 <i class="bi bi-pencil me-1"></i>Edit Label
                                             </button>
@@ -97,12 +94,9 @@
                                 <tr>
                                     <td colspan="5" class="text-center py-5">
                                         <div class="text-muted mb-3">No LAN nodes discovered yet.</div>
-                                        <form action="{{ route('lan.locations.resync-ip') }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-primary me-2">
-                                                <i class="bi bi-plus-circle me-1"></i> Set Self Location
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-primary me-2" id="resyncIpBtnEmpty">
+                                            <i class="bi bi-plus-circle me-1"></i> Set Self Location
+                                        </button>
                                         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
                                             <i class="bi bi-plus-lg me-1"></i> Add Remote Location
                                         </button>
@@ -256,6 +250,42 @@
     </div>
 </div>
 
+{{-- Resync IP confirmation modal --}}
+<div class="modal fade" id="resyncIpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('lan.locations.resync-ip') }}" method="POST" id="resyncIpForm">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrow-repeat me-2"></i>Confirm IP Resync</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-start" id="resyncIpModalBody">
+                    <p class="text-muted small mb-3">Review the detected values below. You can edit any field before saving.</p>
+                    <div class="mb-3">
+                        <label for="resync-name" class="form-label fw-semibold">Node Name</label>
+                        <input type="text" name="name" id="resync-name" class="form-control" required>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <label for="resync-ip" class="form-label fw-semibold">IP Address</label>
+                            <input type="text" name="ip" id="resync-ip" class="form-control" required>
+                        </div>
+                        <div class="col-4">
+                            <label for="resync-port" class="form-label fw-semibold">Port</label>
+                            <input type="number" name="port" id="resync-port" class="form-control" min="1" max="65535" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="addLocationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -288,3 +318,60 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const previewUrl = "{{ route('lan.locations.resync-ip.preview') }}";
+
+    function triggerResync() {
+        const btn = document.getElementById('resyncIpBtn') || document.getElementById('resyncIpBtnEmpty');
+        const modal = new bootstrap.Modal(document.getElementById('resyncIpModal'));
+        const body  = document.getElementById('resyncIpModalBody');
+
+        // Show spinner state
+        const originalBtnHtml = this.innerHTML;
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Detecting…';
+
+        const clickedBtn = this;
+
+        fetch(previewUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) {
+            return res.json().then(function (data) {
+                return { ok: res.ok, data };
+            });
+        })
+        .then(function ({ ok, data }) {
+            clickedBtn.disabled = false;
+            clickedBtn.innerHTML = originalBtnHtml;
+
+            if (!ok) {
+                alert('Error: ' + (data.error || 'Could not resolve IP'));
+                return;
+            }
+
+            document.getElementById('resync-ip').value   = data.ip;
+            document.getElementById('resync-port').value = data.port;
+            document.getElementById('resync-name').value = data.name;
+
+            modal.show();
+        })
+        .catch(function (err) {
+            clickedBtn.disabled = false;
+            clickedBtn.innerHTML = originalBtnHtml;
+            alert('Network error: ' + err.message);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        ['resyncIpBtn', 'resyncIpBtnEmpty'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', triggerResync);
+        });
+    });
+})();
+</script>
+@endpush

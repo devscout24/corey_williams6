@@ -22,73 +22,73 @@ Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
 Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
 
 Route::middleware('installed')->group(function (): void {
-Route::middleware('auth:employee')->group(function (): void {
-    Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
+    Route::middleware('auth:employee')->group(function (): void {
+        Route::get('/', [ModuleController::class, 'index'])->name('modules.index');
 
-    Route::get('/modules', [ModuleController::class, 'index'])->name('modules.list');
+        Route::get('/modules', [ModuleController::class, 'index'])->name('modules.list');
 
-    Route::get('/config', [ConfigController::class, 'index'])->name('config.index');
-    Route::post('/config', [ConfigController::class, 'update'])->name('config.update');
+        Route::get('/config', [ConfigController::class, 'index'])->name('config.index');
+        Route::post('/config', [ConfigController::class, 'update'])->name('config.update');
 
-    Route::prefix('reports')->group(function () {
-        Route::get('/', [ReportController::class,'index'])->name('reports.index');
-        Route::get('/vat', [ReportController::class,'vatIndex'])->name('reports.vat');
-        Route::get('/generate/{report}', [ReportController::class,'generate'])->name('reports.generate');
-        Route::post('/generate/{report}', [ReportController::class,'store'])->name('reports.store');
-        Route::post('/details/{report}', [ReportController::class,'getReportDetails'])->name('reports.details');
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('/vat', [ReportController::class, 'vatIndex'])->name('reports.vat');
+            Route::get('/generate/{report}', [ReportController::class, 'generate'])->name('reports.generate');
+            Route::post('/generate/{report}', [ReportController::class, 'store'])->name('reports.store');
+            Route::post('/details/{report}', [ReportController::class, 'getReportDetails'])->name('reports.details');
+        });
+
+        Route::get('/transfers/out', [TransferController::class, 'outIndex'])->name('transfers.out');
+        Route::get('/transfers/in', [TransferController::class, 'inIndex'])->name('transfers.in');
+        Route::get('/transfers/new', [TransferController::class, 'create'])->name('transfers.create');
+        Route::post('/transfers/item', [TransferController::class, 'addItem'])->name('transfers.item.add');
+        Route::post('/transfers/item/{index}', [TransferController::class, 'editItem'])->name('transfers.item.edit');
+        Route::delete('/transfers/item/{index}', [TransferController::class, 'removeItem'])->name('transfers.item.remove');
+        Route::post('/transfers/location', [TransferController::class, 'setLocation'])->name('transfers.location.set');
+        Route::post('/transfers/supplier', [TransferController::class, 'setSupplier'])->name('transfers.supplier.set');
+        Route::get('/transfers/categories', [TransferController::class, 'categories'])->name('transfers.categories');
+        Route::get('/transfers/search', [TransferController::class, 'search'])->name('transfers.search');
+        Route::post('/transfers/complete', [TransferController::class, 'complete'])->name('transfers.complete');
+        Route::post('/transfers/save', [TransferController::class, 'save'])->name('transfers.save');
+        Route::get('/transfers/edit/{id}', [TransferController::class, 'edit'])->name('transfers.edit');
+        Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
+
+        Route::get('/lan/locations', [LanStatusController::class, 'index'])->name('lan.locations');
+        Route::post('/lan/locations', [LanStatusController::class, 'store'])->name('lan.locations.store');
+        Route::post('/lan/locations/self-name', [LanStatusController::class, 'updateSelfName'])->name('lan.locations.self-name');
+        Route::get('/lan/locations/resync-ip/preview', [LanStatusController::class, 'resyncIpPreview'])->name('lan.locations.resync-ip.preview');
+        Route::post('/lan/locations/resync-ip', [LanStatusController::class, 'resyncIp'])->name('lan.locations.resync-ip');
+        Route::post('/lan/locations/{location}', [LanStatusController::class, 'update'])->name('lan.locations.update');
+        Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');
+        Route::post('/lan/locations/{location}/poke', [LanStatusController::class, 'poke'])->name('lan.locations.poke');
+        Route::post('/lan/locations/retry/{id}', [LanStatusController::class, 'retry'])->name('lan.locations.retry');
+
+        Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
+        Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');
+        Route::get('/zkteco/attendance', [ZktecoController::class, 'attendance'])->name('zkteco.attendance');
+        Route::post('/zkteco/config', [ZktecoController::class, 'saveConfig'])->name('zkteco.save-config');
+
+        Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
+
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+        Route::get('/orders/pull-list', [OrderController::class, 'pullList'])->name('orders.pull-list');
+        Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
+        Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
+        Route::put('/orders/{receivingId}', [OrderController::class, 'update'])->name('orders.update');
+        Route::post('/orders/{receivingId}/close', [OrderController::class, 'close'])->name('orders.close');
+        Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
+        Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
+
+        Route::get('/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
+        Route::post('/profile', [EmployeeController::class, 'updateProfile'])->name('employee.profile.update');
+
+        Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
     });
 
-    Route::get('/transfers/out', [TransferController::class, 'outIndex'])->name('transfers.out');
-    Route::get('/transfers/in', [TransferController::class, 'inIndex'])->name('transfers.in');
-    Route::get('/transfers/new', [TransferController::class, 'create'])->name('transfers.create');
-    Route::post('/transfers/item', [TransferController::class, 'addItem'])->name('transfers.item.add');
-    Route::post('/transfers/item/{index}', [TransferController::class, 'editItem'])->name('transfers.item.edit');
-    Route::delete('/transfers/item/{index}', [TransferController::class, 'removeItem'])->name('transfers.item.remove');
-    Route::post('/transfers/location', [TransferController::class, 'setLocation'])->name('transfers.location.set');
-    Route::post('/transfers/supplier', [TransferController::class, 'setSupplier'])->name('transfers.supplier.set');
-    Route::get('/transfers/categories', [TransferController::class, 'categories'])->name('transfers.categories');
-    Route::get('/transfers/search', [TransferController::class, 'search'])->name('transfers.search');
-    Route::post('/transfers/complete', [TransferController::class, 'complete'])->name('transfers.complete');
-    Route::post('/transfers/save', [TransferController::class, 'save'])->name('transfers.save');
-    Route::get('/transfers/edit/{id}', [TransferController::class, 'edit'])->name('transfers.edit');
-    Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
-
-    Route::get('/lan/locations', [LanStatusController::class, 'index'])->name('lan.locations');
-    Route::post('/lan/locations', [LanStatusController::class, 'store'])->name('lan.locations.store');
-    Route::post('/lan/locations/self-name', [LanStatusController::class, 'updateSelfName'])->name('lan.locations.self-name');
-    Route::post('/lan/locations/resync-ip', [LanStatusController::class, 'resyncIp'])->name('lan.locations.resync-ip');
-    Route::post('/lan/locations/{location}', [LanStatusController::class, 'update'])->name('lan.locations.update');
-    Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');
-    Route::post('/lan/locations/{location}/poke', [LanStatusController::class, 'poke'])->name('lan.locations.poke');
-    Route::post('/lan/locations/retry/{id}', [LanStatusController::class, 'retry'])->name('lan.locations.retry');
-
-    Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
-    Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');
-    Route::get('/zkteco/attendance', [ZktecoController::class, 'attendance'])->name('zkteco.attendance');
-    Route::post('/zkteco/config', [ZktecoController::class, 'saveConfig'])->name('zkteco.save-config');
-
-
-    Route::get('/app_files/view/{fileId}', [AppFileController::class, 'view'])->name('app_files.view');
-
-    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
-    Route::get('/orders/pull-list', [OrderController::class, 'pullList'])->name('orders.pull-list');
-    Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
-    Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
-    Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
-    Route::put('/orders/{receivingId}', [OrderController::class, 'update'])->name('orders.update');
-    Route::post('/orders/{receivingId}/close', [OrderController::class, 'close'])->name('orders.close');
-    Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
-    Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
-
-    Route::get('/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
-    Route::post('/profile', [EmployeeController::class, 'updateProfile'])->name('employee.profile.update');
-
-    Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('employee.logout');
-});
-
-Route::middleware('guest:employee')->group(function (): void {
-    Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [EmployeeAuthController::class, 'login'])->name('login.attempt');
-});
+    Route::middleware('guest:employee')->group(function (): void {
+        Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [EmployeeAuthController::class, 'login'])->name('login.attempt');
+    });
 });

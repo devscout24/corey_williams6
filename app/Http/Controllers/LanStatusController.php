@@ -161,37 +161,53 @@ class LanStatusController extends Controller
             ->with('status', "Transfer #{$id} queued for retry.");
     }
 
-    public function resyncIp(Request $request, LanLocationRegistry $registry): RedirectResponse
+    public function resyncIpPreview(LanLocationRegistry $registry): \Illuminate\Http\JsonResponse
     {
         $ip = $registry->resolveLanIp();
         if (!$ip) {
-            return redirect()->route('lan.locations')
-                ->with('error', 'Could not resolve a LAN IP address. Check network connectivity.');
+            return response()->json(['error' => 'Could not resolve a LAN IP address. Check network connectivity.'], 422);
         }
 
-        // Never overwrite the configured node name during IP resync.
         $configuredName = config('app.node_name');
         $host = gethostname();
         $name = $configuredName ?: ($host ?: 'unnamed');
 
-
         $existingSelf = Location::query()->where('is_self', true)->first();
         $port = (int) ($existingSelf?->port ?: config('app.node_port') ?: parse_url((string) config('app.url'), PHP_URL_PORT) ?: 8000);
+
+        return response()->json([
+            'ip'   => $ip,
+            'port' => $port,
+            'name' => $name,
+        ]);
+    }
+
+    public function resyncIp(Request $request, LanLocationRegistry $registry): RedirectResponse
+    {
+        $data = $request->validate([
+            'ip'   => ['required', 'string', 'max:45'],
+            'port' => ['required', 'integer', 'min:1', 'max:65535'],
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $ip   = $data['ip'];
+        $port = (int) $data['port'];
+        $name = $data['name'];
+
+        $existingSelf = Location::query()->where('is_self', true)->first();
         $self = $registry->registerSelf($ip, $port, $name, $existingSelf?->phppos_location_id);
 
         $envPath = base_path('.env');
         if (file_exists($envPath)) {
             $env = file_get_contents($envPath);
             $env = $this->setEnvValue($env, 'APP_NODE_IP', $ip);
-            if (!$configuredName) {
-                $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
-            }
+            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
             file_put_contents($envPath, $env);
         }
 
         Artisan::call('config:clear');
 
-        $msg = $existingSelf ? "Self location IP re-synced to {$ip}:{$self->port}." : "Self location created with IP {$ip}:{$self->port}.";
+        $msg = $existingSelf ? "Self location IP re-synced to {$ip}:{$port}." : "Self location created with IP {$ip}:{$port}.";
 
         return redirect()->route('lan.locations')
             ->with('status', $msg);
