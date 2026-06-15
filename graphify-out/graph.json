@@ -7,6 +7,32 @@
   },
   "nodes": [
     {
+      "id": "file:app/Console/Commands/RegisterSelf.php",
+      "label": "app/Console/Commands/RegisterSelf.php",
+      "type": "file",
+      "file": "app/Console/Commands/RegisterSelf.php"
+    },
+    {
+      "id": "class:App\\Console\\Commands\\RegisterSelf",
+      "label": "RegisterSelf",
+      "type": "class",
+      "file": "app/Console/Commands/RegisterSelf.php",
+      "line": 9,
+      "namespace": "App\\Console\\Commands"
+    },
+    {
+      "id": "class-ref:Command",
+      "label": "Command",
+      "type": "class_ref"
+    },
+    {
+      "id": "method:app/Console/Commands/RegisterSelf.php:handle",
+      "label": "handle",
+      "type": "method",
+      "file": "app/Console/Commands/RegisterSelf.php",
+      "line": 19
+    },
+    {
       "id": "file:app/Http/Controllers/AppFileController.php",
       "label": "app/Http/Controllers/AppFileController.php",
       "type": "controller_file",
@@ -746,7 +772,7 @@
       "label": "LanController",
       "type": "controller",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 17,
+      "line": 21,
       "namespace": "App\\Http\\Controllers"
     },
     {
@@ -754,12 +780,14 @@
       "label": "announce",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 19
+      "line": 23
     },
     {
-      "id": "class-ref:Location",
-      "label": "Location",
-      "type": "model_ref"
+      "id": "method:app/Http/Controllers/LanController.php:sync",
+      "label": "sync",
+      "type": "method",
+      "file": "app/Http/Controllers/LanController.php",
+      "line": 39
     },
     {
       "id": "class-ref:PhpposLocation",
@@ -767,25 +795,18 @@
       "type": "model_ref"
     },
     {
-      "id": "method:app/Http/Controllers/LanController.php:sync",
-      "label": "sync",
-      "type": "method",
-      "file": "app/Http/Controllers/LanController.php",
-      "line": 38
-    },
-    {
       "id": "method:app/Http/Controllers/LanController.php:receive",
       "label": "receive",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 45
+      "line": 47
     },
     {
-      "id": "method:app/Http/Controllers/LanController.php:notifications",
-      "label": "notifications",
+      "id": "method:app/Http/Controllers/LanController.php:log",
+      "label": "log",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 143
+      "line": 203
     },
     {
       "id": "class-ref:TransferQueue",
@@ -793,25 +814,37 @@
       "type": "model_ref"
     },
     {
+      "id": "class-ref:Location",
+      "label": "Location",
+      "type": "model_ref"
+    },
+    {
+      "id": "method:app/Http/Controllers/LanController.php:notifications",
+      "label": "notifications",
+      "type": "method",
+      "file": "app/Http/Controllers/LanController.php",
+      "line": 210
+    },
+    {
       "id": "method:app/Http/Controllers/LanController.php:locations",
       "label": "locations",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 167
+      "line": 234
     },
     {
       "id": "method:app/Http/Controllers/LanController.php:send",
       "label": "send",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 176
+      "line": 243
     },
     {
       "id": "method:app/Http/Controllers/LanController.php:retry",
       "label": "retry",
       "type": "method",
       "file": "app/Http/Controllers/LanController.php",
-      "line": 196
+      "line": 263
     },
     {
       "id": "file:app/Http/Controllers/LanStatusController.php",
@@ -824,7 +857,7 @@
       "label": "LanStatusController",
       "type": "controller",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 14,
+      "line": 15,
       "namespace": "App\\Http\\Controllers"
     },
     {
@@ -832,7 +865,7 @@
       "label": "index",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 16
+      "line": 17
     },
     {
       "id": "view:lan.locations",
@@ -845,63 +878,70 @@
       "label": "updateSelfName",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 32
+      "line": 33
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:store",
       "label": "store",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 60
+      "line": 65
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:update",
       "label": "update",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 84
+      "line": 79
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:destroy",
       "label": "destroy",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 106
+      "line": 105
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:poke",
       "label": "poke",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 125
+      "line": 124
+    },
+    {
+      "id": "method:app/Http/Controllers/LanStatusController.php:retry",
+      "label": "retry",
+      "type": "method",
+      "file": "app/Http/Controllers/LanStatusController.php",
+      "line": 150
+    },
+    {
+      "id": "method:app/Http/Controllers/LanStatusController.php:resyncIpPreview",
+      "label": "resyncIpPreview",
+      "type": "method",
+      "file": "app/Http/Controllers/LanStatusController.php",
+      "line": 165
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:resyncIp",
       "label": "resyncIp",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 154
-    },
-    {
-      "id": "method:app/Http/Controllers/LanStatusController.php:resolveLanIp",
-      "label": "resolveLanIp",
-      "type": "method",
-      "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 202
-    },
-    {
-      "id": "method:app/Http/Controllers/LanStatusController.php:isValidLanIp",
-      "label": "isValidLanIp",
-      "type": "method",
-      "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 240
+      "line": 186
     },
     {
       "id": "method:app/Http/Controllers/LanStatusController.php:setEnvValue",
       "label": "setEnvValue",
       "type": "method",
       "file": "app/Http/Controllers/LanStatusController.php",
-      "line": 258
+      "line": 217
+    },
+    {
+      "id": "method:app/Http/Controllers/LanStatusController.php:syncHeaders",
+      "label": "syncHeaders",
+      "type": "method",
+      "file": "app/Http/Controllers/LanStatusController.php",
+      "line": 229
     },
     {
       "id": "file:app/Http/Controllers/MessageController.php",
@@ -1440,6 +1480,13 @@
       "type": "method",
       "file": "app/Http/Controllers/ReceivingController.php",
       "line": 862
+    },
+    {
+      "id": "method:app/Http/Controllers/ReceivingController.php:closeTransferReceiving",
+      "label": "closeTransferReceiving",
+      "type": "method",
+      "file": "app/Http/Controllers/ReceivingController.php",
+      "line": 868
     },
     {
       "id": "file:app/Http/Controllers/ReportController.php",
@@ -2399,7 +2446,7 @@
       "label": "AnnouncePresence",
       "type": "job",
       "file": "app/Jobs/AnnouncePresence.php",
-      "line": 13,
+      "line": 15,
       "namespace": "App\\Jobs"
     },
     {
@@ -2407,7 +2454,21 @@
       "label": "handle",
       "type": "method",
       "file": "app/Jobs/AnnouncePresence.php",
-      "line": 20
+      "line": 22
+    },
+    {
+      "id": "method:app/Jobs/AnnouncePresence.php:log",
+      "label": "log",
+      "type": "method",
+      "file": "app/Jobs/AnnouncePresence.php",
+      "line": 50
+    },
+    {
+      "id": "method:app/Jobs/AnnouncePresence.php:syncHeaders",
+      "label": "syncHeaders",
+      "type": "method",
+      "file": "app/Jobs/AnnouncePresence.php",
+      "line": 57
     },
     {
       "id": "file:app/Jobs/SendItem.php",
@@ -2420,7 +2481,7 @@
       "label": "SendItem",
       "type": "job",
       "file": "app/Jobs/SendItem.php",
-      "line": 17,
+      "line": 20,
       "namespace": "App\\Jobs"
     },
     {
@@ -2428,21 +2489,56 @@
       "label": "__construct",
       "type": "method",
       "file": "app/Jobs/SendItem.php",
-      "line": 24
+      "line": 29
+    },
+    {
+      "id": "method:app/Jobs/SendItem.php:backoff",
+      "label": "backoff",
+      "type": "method",
+      "file": "app/Jobs/SendItem.php",
+      "line": 33
     },
     {
       "id": "method:app/Jobs/SendItem.php:handle",
       "label": "handle",
       "type": "method",
       "file": "app/Jobs/SendItem.php",
-      "line": 28
+      "line": 38
+    },
+    {
+      "id": "method:app/Jobs/SendItem.php:log",
+      "label": "log",
+      "type": "method",
+      "file": "app/Jobs/SendItem.php",
+      "line": 114
+    },
+    {
+      "id": "method:app/Jobs/SendItem.php:failed",
+      "label": "failed",
+      "type": "method",
+      "file": "app/Jobs/SendItem.php",
+      "line": 121
     },
     {
       "id": "method:app/Jobs/SendItem.php:buildPayload",
       "label": "buildPayload",
       "type": "method",
       "file": "app/Jobs/SendItem.php",
-      "line": 76
+      "line": 126
+    },
+    {
+      "id": "method:app/Jobs/SendItem.php:syncHeaders",
+      "label": "syncHeaders",
+      "type": "method",
+      "file": "app/Jobs/SendItem.php",
+      "line": 175
+    },
+    {
+      "id": "method:app/Jobs/SendItem.php:markTransferFailed",
+      "label": "markTransferFailed",
+      "type": "method",
+      "file": "app/Jobs/SendItem.php",
+      "line": 182
     },
     {
       "id": "file:app/Models/Attribute.php",
@@ -2538,21 +2634,21 @@
       "label": "phpposLocation",
       "type": "method",
       "file": "app/Models/Location.php",
-      "line": 18
+      "line": 24
     },
     {
       "id": "method:app/Models/Location.php:outgoingTransfers",
       "label": "outgoingTransfers",
       "type": "method",
       "file": "app/Models/Location.php",
-      "line": 23
+      "line": 29
     },
     {
       "id": "method:app/Models/Location.php:getUrlAttribute",
       "label": "getUrlAttribute",
       "type": "method",
       "file": "app/Models/Location.php",
-      "line": 28
+      "line": 34
     },
     {
       "id": "file:app/Models/PhpposApiKey.php",
@@ -4358,6 +4454,97 @@
       "line": 538
     },
     {
+      "id": "file:app/Services/LanLocationRegistry.php",
+      "label": "app/Services/LanLocationRegistry.php",
+      "type": "service_file",
+      "file": "app/Services/LanLocationRegistry.php"
+    },
+    {
+      "id": "class:App\\Services\\LanLocationRegistry",
+      "label": "LanLocationRegistry",
+      "type": "service",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 12,
+      "namespace": "App\\Services"
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:registerSelf",
+      "label": "registerSelf",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 14
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:upsertPeer",
+      "label": "upsertPeer",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 54
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:selfOrFail",
+      "label": "selfOrFail",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 83
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:announcePayload",
+      "label": "announcePayload",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 97
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:urlFor",
+      "label": "urlFor",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 109
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:resolveLanIp",
+      "label": "resolveLanIp",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 122
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:isUsableLanIp",
+      "label": "isUsableLanIp",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 152
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:normalizeIp",
+      "label": "normalizeIp",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 167
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:validatePort",
+      "label": "validatePort",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 178
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:resolvePhpposLocation",
+      "label": "resolvePhpposLocation",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 185
+    },
+    {
+      "id": "method:app/Services/LanLocationRegistry.php:syncPhpposLocation",
+      "label": "syncPhpposLocation",
+      "type": "method",
+      "file": "app/Services/LanLocationRegistry.php",
+      "line": 203
+    },
+    {
       "id": "file:app/Services/LocationContextService.php",
       "label": "app/Services/LocationContextService.php",
       "type": "service_file",
@@ -4368,7 +4555,7 @@
       "label": "LocationContextService",
       "type": "service",
       "file": "app/Services/LocationContextService.php",
-      "line": 9,
+      "line": 10,
       "namespace": "App\\Services"
     },
     {
@@ -4376,14 +4563,14 @@
       "label": "resolveLocationId",
       "type": "method",
       "file": "app/Services/LocationContextService.php",
-      "line": 11
+      "line": 12
     },
     {
       "id": "method:app/Services/LocationContextService.php:normalizeRequestedLocationId",
       "label": "normalizeRequestedLocationId",
       "type": "method",
       "file": "app/Services/LocationContextService.php",
-      "line": 53
+      "line": 63
     },
     {
       "id": "file:app/Services/SalesService.php",
@@ -13228,7 +13415,7 @@
       "label": "NSSM Service: Web Server",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 32,
+      "line": 36,
       "level": 2
     },
     {
@@ -13236,7 +13423,7 @@
       "label": "NSSM Service: Queue Worker",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 51,
+      "line": 55,
       "level": 2
     },
     {
@@ -13244,7 +13431,7 @@
       "label": "Firewall",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 70,
+      "line": 74,
       "level": 2
     },
     {
@@ -13252,7 +13439,7 @@
       "label": "First-Time Setup",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 74,
+      "line": 78,
       "level": 2
     },
     {
@@ -13260,7 +13447,7 @@
       "label": "How Users Access It",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 79,
+      "line": 83,
       "level": 2
     },
     {
@@ -13268,7 +13455,7 @@
       "label": "Uninstall Steps",
       "type": "doc_section",
       "file": "INSTALLER_BROWSER_MODE.md",
-      "line": 84,
+      "line": 88,
       "level": 2
     },
     {
@@ -13310,19 +13497,35 @@
       "level": 3
     },
     {
+      "id": "doc-section:MIGRATION_HANDOFF.md:✅ Transfer Syncing: Location Resolution",
+      "label": "✅ Transfer Syncing: Location Resolution",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 53,
+      "level": 3
+    },
+    {
       "id": "doc-section:MIGRATION_HANDOFF.md:📜 History (Completed Work)",
       "label": "📜 History (Completed Work)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 55,
+      "line": 63,
       "level": 2
+    },
+    {
+      "id": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Transfer Queue Retry Button + Error Display)",
+      "label": "June 8, 2026 (Transfer Queue Retry Button + Error Display)",
+      "type": "doc_section",
+      "file": "MIGRATION_HANDOFF.md",
+      "line": 65,
+      "level": 3
     },
     {
       "id": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Closeout Reports Implementation)",
       "label": "June 8, 2026 (Closeout Reports Implementation)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 57,
+      "line": 70,
       "level": 3
     },
     {
@@ -13330,7 +13533,7 @@
       "label": "June 8, 2026 (Inventory Summary Report — Filters, Cogwheel, Export)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 67,
+      "line": 80,
       "level": 3
     },
     {
@@ -13338,7 +13541,7 @@
       "label": "June 8, 2026 (Print-Friendly Reports — Topbar/Chrome Removal)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 78,
+      "line": 91,
       "level": 3
     },
     {
@@ -13346,7 +13549,7 @@
       "label": "June 4, 2026 (Editable Profile Page)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 85,
+      "line": 98,
       "level": 3
     },
     {
@@ -13354,7 +13557,7 @@
       "label": "June 6, 2026 (LAN Locations: IP Resync & Persistence Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 93,
+      "line": 106,
       "level": 3
     },
     {
@@ -13362,7 +13565,7 @@
       "label": "June 4, 2026 (Location Labels: Setup + LAN Locations)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 103,
+      "line": 116,
       "level": 3
     },
     {
@@ -13370,7 +13573,7 @@
       "label": "June 2, 2026 (ZKTeco U560 Device Monitor)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 107,
+      "line": 120,
       "level": 3
     },
     {
@@ -13378,7 +13581,7 @@
       "label": "June 2, 2026 (VAT Index Page + Output Tax UI Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 117,
+      "line": 130,
       "level": 3
     },
     {
@@ -13386,7 +13589,7 @@
       "label": "June 2, 2026 (LAN Locations CRUD + App URL + Port)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 125,
+      "line": 138,
       "level": 3
     },
     {
@@ -13394,7 +13597,7 @@
       "label": "June 2, 2026 (Item Search with SKU Support)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 131,
+      "line": 144,
       "level": 3
     },
     {
@@ -13402,7 +13605,7 @@
       "label": "June 1-2, 2026 (Register Open/Close Flow)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 136,
+      "line": 149,
       "level": 3
     },
     {
@@ -13410,7 +13613,7 @@
       "label": "June 1-2, 2026 (Item Variations Management)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 141,
+      "line": 154,
       "level": 3
     },
     {
@@ -13418,7 +13621,7 @@
       "label": "May 31, 2026 (Output Tax Report)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 148,
+      "line": 161,
       "level": 3
     },
     {
@@ -13426,7 +13629,7 @@
       "label": "May 31, 2026 (Sales & Purchases VAT Formula Update)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 156,
+      "line": 169,
       "level": 3
     },
     {
@@ -13434,7 +13637,7 @@
       "label": "May 31, 2026 (Sales VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 161,
+      "line": 174,
       "level": 3
     },
     {
@@ -13442,7 +13645,7 @@
       "label": "May 31, 2026 (Purchases VAT Field)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 168,
+      "line": 181,
       "level": 3
     },
     {
@@ -13450,7 +13653,7 @@
       "label": "May 31, 2026 (Sales/Purchases Close Dates + Tax Snapshots)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 176,
+      "line": 189,
       "level": 3
     },
     {
@@ -13458,7 +13661,7 @@
       "label": "May 31, 2026 (Tax Classes Unification)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 181,
+      "line": 194,
       "level": 3
     },
     {
@@ -13466,7 +13669,7 @@
       "label": "May 25, 2026 (Purchases Closing Date + VAT Rates)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 186,
+      "line": 199,
       "level": 3
     },
     {
@@ -13474,7 +13677,7 @@
       "label": "May 20, 2026 (LAN Sync System)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 190,
+      "line": 203,
       "level": 3
     },
     {
@@ -13482,7 +13685,7 @@
       "label": "May 20, 2026 (Transfer Sync → LAN)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 196,
+      "line": 209,
       "level": 3
     },
     {
@@ -13490,7 +13693,7 @@
       "label": "May 21, 2026 (Installer Wizard)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 202,
+      "line": 215,
       "level": 3
     },
     {
@@ -13498,7 +13701,7 @@
       "label": "May 21, 2026 (LAN UI + Manual Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 206,
+      "line": 219,
       "level": 3
     },
     {
@@ -13506,7 +13709,7 @@
       "label": "May 21, 2026 (Items: Markup Auto-Calc)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 210,
+      "line": 223,
       "level": 3
     },
     {
@@ -13514,7 +13717,7 @@
       "label": "May 18, 2026 (Config: Taxes + Tax Classes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 214,
+      "line": 227,
       "level": 3
     },
     {
@@ -13522,7 +13725,7 @@
       "label": "May 18, 2026 (Labels: Sheet Mode UI & Print Layout)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 219,
+      "line": 232,
       "level": 3
     },
     {
@@ -13530,7 +13733,7 @@
       "label": "May 17, 2026 (Sales Register: Tags + Favorites Grid)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 224,
+      "line": 237,
       "level": 3
     },
     {
@@ -13538,7 +13741,7 @@
       "label": "May 15, 2026 (Customers Form Cleanup)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 229,
+      "line": 242,
       "level": 3
     },
     {
@@ -13546,7 +13749,7 @@
       "label": "May 14, 2026 (Customers Module Modernization)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 232,
+      "line": 245,
       "level": 3
     },
     {
@@ -13554,7 +13757,7 @@
       "label": "May 14, 2026 (Reports: Location Context TypeError Fix)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 238,
+      "line": 251,
       "level": 3
     },
     {
@@ -13562,7 +13765,7 @@
       "label": "May 13, 2026 (Items & Item Kits Form Fixes + Enhancements)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 243,
+      "line": 256,
       "level": 3
     },
     {
@@ -13570,7 +13773,7 @@
       "label": "May 13, 2026 (Sales Currency + Flow Fixes)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 249,
+      "line": 262,
       "level": 3
     },
     {
@@ -13578,7 +13781,7 @@
       "label": "May 10, 2026 (Orders & Receivings Sync)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 257,
+      "line": 270,
       "level": 3
     },
     {
@@ -13586,7 +13789,7 @@
       "label": "May 10, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 273,
+      "line": 286,
       "level": 3
     },
     {
@@ -13594,7 +13797,7 @@
       "label": "May 6, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 278,
+      "line": 291,
       "level": 3
     },
     {
@@ -13602,7 +13805,7 @@
       "label": "May 7, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 282,
+      "line": 295,
       "level": 3
     },
     {
@@ -13610,7 +13813,7 @@
       "label": "May 1, 2026",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 293,
+      "line": 306,
       "level": 3
     },
     {
@@ -13618,7 +13821,7 @@
       "label": "1. Auth & Security",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 373,
+      "line": 386,
       "level": 3
     },
     {
@@ -13626,7 +13829,7 @@
       "label": "2. Dashboard & Modules",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 379,
+      "line": 392,
       "level": 3
     },
     {
@@ -13634,7 +13837,7 @@
       "label": "3. Inventory & Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 382,
+      "line": 395,
       "level": 3
     },
     {
@@ -13642,7 +13845,7 @@
       "label": "4. Inventory Flow",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 397,
+      "line": 410,
       "level": 3
     },
     {
@@ -13650,7 +13853,7 @@
       "label": "5. Sales & Receipts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 403,
+      "line": 416,
       "level": 3
     },
     {
@@ -13658,7 +13861,7 @@
       "label": "6. Contacts",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 410,
+      "line": 423,
       "level": 3
     },
     {
@@ -13666,7 +13869,7 @@
       "label": "7. Messages",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 414,
+      "line": 427,
       "level": 3
     },
     {
@@ -13674,7 +13877,7 @@
       "label": "8. Store Config & Employees",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 417,
+      "line": 430,
       "level": 3
     },
     {
@@ -13682,7 +13885,7 @@
       "label": "9. Items",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 360,
+      "line": 373,
       "level": 3
     },
     {
@@ -13690,133 +13893,7 @@
       "label": "🚀 Upcoming (Pending Tasks)",
       "type": "doc_section",
       "file": "MIGRATION_HANDOFF.md",
-      "line": 371,
-      "level": 2
-    },
-    {
-      "id": "file:nativePhp.md",
-      "label": "nativePhp.md",
-      "type": "doc_file",
-      "file": "nativePhp.md"
-    },
-    {
-      "id": "doc-section:nativePhp.md:Migrating Laravel POS to a NativePHP Desktop App",
-      "label": "Migrating Laravel POS to a NativePHP Desktop App",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 1,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 1: Update Your Environment Variables",
-      "label": "Step 1: Update Your Environment Variables",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 7,
-      "level": 2
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_CONNECTION=mysql",
-      "label": "DB_CONNECTION=mysql",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 13,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_HOST=127.0.0.1",
-      "label": "DB_HOST=127.0.0.1",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 14,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_PORT=3306",
-      "label": "DB_PORT=3306",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 15,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_DATABASE=laravel",
-      "label": "DB_DATABASE=laravel",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 16,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_USERNAME=root",
-      "label": "DB_USERNAME=root",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 17,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:DB_PASSWORD=",
-      "label": "DB_PASSWORD=",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 18,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 2: Fix MySQL-Specific Migrations (Crucial)",
-      "label": "Step 2: Fix MySQL-Specific Migrations (Crucial)",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 26,
-      "level": 2
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 3: Install and Configure NativePHP",
-      "label": "Step 3: Install and Configure NativePHP",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 35,
-      "level": 2
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 4: Run the NativePHP Database Setup (IMPORTANT)",
-      "label": "Step 4: Run the NativePHP Database Setup (IMPORTANT)",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 56,
-      "level": 2
-    },
-    {
-      "id": "doc-section:nativePhp.md:Rebuild the NativePHP database schema",
-      "label": "Rebuild the NativePHP database schema",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 63,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:Seed the NativePHP database with the default admin and config",
-      "label": "Seed the NativePHP database with the default admin and config",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 66,
-      "level": 1
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 5: Run the Desktop Dev Server",
-      "label": "Step 5: Run the Desktop Dev Server",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 72,
-      "level": 2
-    },
-    {
-      "id": "doc-section:nativePhp.md:Step 6: Build the Executable",
-      "label": "Step 6: Build the Executable",
-      "type": "doc_section",
-      "file": "nativePhp.md",
-      "line": 82,
+      "line": 384,
       "level": 2
     },
     {
@@ -13855,22 +13932,6 @@
       "type": "doc_section",
       "file": "README.md",
       "line": 49,
-      "level": 2
-    },
-    {
-      "id": "doc-section:README.md:builder",
-      "label": "builder",
-      "type": "doc_section",
-      "file": "README.md",
-      "line": 80,
-      "level": 2
-    },
-    {
-      "id": "doc-section:README.md:manually chagne ``installDirectory ``",
-      "label": "manually chagne ``installDirectory ``",
-      "type": "doc_section",
-      "file": "README.md",
-      "line": 86,
       "level": 2
     },
     {
@@ -14181,11 +14242,6 @@
       "file": "resources/views/lan/locations.blade.php"
     },
     {
-      "id": "route-name:lan.locations.resync-ip",
-      "label": "lan.locations.resync-ip",
-      "type": "route_name"
-    },
-    {
       "id": "route-name:lan.locations.poke",
       "label": "lan.locations.poke",
       "type": "route_name"
@@ -14201,13 +14257,28 @@
       "type": "route_name"
     },
     {
+      "id": "route-name:lan.locations.retry",
+      "label": "lan.locations.retry",
+      "type": "route_name"
+    },
+    {
       "id": "route-name:lan.locations.self-name",
       "label": "lan.locations.self-name",
       "type": "route_name"
     },
     {
+      "id": "route-name:lan.locations.resync-ip",
+      "label": "lan.locations.resync-ip",
+      "type": "route_name"
+    },
+    {
       "id": "route-name:lan.locations.store",
       "label": "lan.locations.store",
+      "type": "route_name"
+    },
+    {
+      "id": "route-name:lan.locations.resync-ip.preview",
+      "label": "lan.locations.resync-ip.preview",
       "type": "route_name"
     },
     {
@@ -14493,6 +14564,11 @@
       "label": "resources/views/receivings/show.blade.php",
       "type": "view_file",
       "file": "resources/views/receivings/show.blade.php"
+    },
+    {
+      "id": "route-name:receivings.close-transfer",
+      "label": "receivings.close-transfer",
+      "type": "route_name"
     },
     {
       "id": "file:resources/views/reports/closeout.blade.php",
@@ -16127,6 +16203,19 @@
       "type": "controller_action"
     },
     {
+      "id": "route:POST:/receivings/{receivingId}/close:ReceivingController:closeTransferReceiving",
+      "label": "POST /receivings/{receivingId}/close",
+      "type": "route",
+      "file": "routes/rony/receive_return_module.php",
+      "line": 28,
+      "action": "closeTransferReceiving"
+    },
+    {
+      "id": "method-ref:ReceivingController.closeTransferReceiving",
+      "label": "ReceivingController@closeTransferReceiving",
+      "type": "controller_action"
+    },
+    {
       "id": "file:routes/rony/sales_inventory_modules.php",
       "label": "routes/rony/sales_inventory_modules.php",
       "type": "route_file",
@@ -16962,11 +17051,24 @@
       "type": "controller_action"
     },
     {
+      "id": "route:GET:/lan/locations/resync-ip/preview:LanStatusController:resyncIpPreview",
+      "label": "GET /lan/locations/resync-ip/preview",
+      "type": "route",
+      "file": "routes/web.php",
+      "line": 59,
+      "action": "resyncIpPreview"
+    },
+    {
+      "id": "method-ref:LanStatusController.resyncIpPreview",
+      "label": "LanStatusController@resyncIpPreview",
+      "type": "controller_action"
+    },
+    {
       "id": "route:POST:/lan/locations/resync-ip:LanStatusController:resyncIp",
       "label": "POST /lan/locations/resync-ip",
       "type": "route",
       "file": "routes/web.php",
-      "line": 59,
+      "line": 60,
       "action": "resyncIp"
     },
     {
@@ -16979,7 +17081,7 @@
       "label": "POST /lan/locations/{location}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 60,
+      "line": 61,
       "action": "update"
     },
     {
@@ -16992,7 +17094,7 @@
       "label": "POST /lan/locations/{location}/delete",
       "type": "route",
       "file": "routes/web.php",
-      "line": 61,
+      "line": 62,
       "action": "destroy"
     },
     {
@@ -17005,7 +17107,7 @@
       "label": "POST /lan/locations/{location}/poke",
       "type": "route",
       "file": "routes/web.php",
-      "line": 62,
+      "line": 63,
       "action": "poke"
     },
     {
@@ -17014,11 +17116,24 @@
       "type": "controller_action"
     },
     {
+      "id": "route:POST:/lan/locations/retry/{id}:LanStatusController:retry",
+      "label": "POST /lan/locations/retry/{id}",
+      "type": "route",
+      "file": "routes/web.php",
+      "line": 64,
+      "action": "retry"
+    },
+    {
+      "id": "method-ref:LanStatusController.retry",
+      "label": "LanStatusController@retry",
+      "type": "controller_action"
+    },
+    {
       "id": "route:GET:/zkteco:ZktecoController:index",
       "label": "GET /zkteco",
       "type": "route",
       "file": "routes/web.php",
-      "line": 64,
+      "line": 66,
       "action": "index"
     },
     {
@@ -17036,7 +17151,7 @@
       "label": "GET /zkteco/connect",
       "type": "route",
       "file": "routes/web.php",
-      "line": 65,
+      "line": 67,
       "action": "connect"
     },
     {
@@ -17049,7 +17164,7 @@
       "label": "GET /zkteco/attendance",
       "type": "route",
       "file": "routes/web.php",
-      "line": 66,
+      "line": 68,
       "action": "attendance"
     },
     {
@@ -17062,7 +17177,7 @@
       "label": "POST /zkteco/config",
       "type": "route",
       "file": "routes/web.php",
-      "line": 67,
+      "line": 69,
       "action": "saveConfig"
     },
     {
@@ -17075,7 +17190,7 @@
       "label": "GET /app_files/view/{fileId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 70,
+      "line": 71,
       "action": "view"
     },
     {
@@ -17093,7 +17208,7 @@
       "label": "GET /orders",
       "type": "route",
       "file": "routes/web.php",
-      "line": 72,
+      "line": 73,
       "action": "index"
     },
     {
@@ -17111,7 +17226,7 @@
       "label": "POST /orders",
       "type": "route",
       "file": "routes/web.php",
-      "line": 73,
+      "line": 74,
       "action": "store"
     },
     {
@@ -17124,7 +17239,7 @@
       "label": "GET /orders/pull-list",
       "type": "route",
       "file": "routes/web.php",
-      "line": 74,
+      "line": 75,
       "action": "pullList"
     },
     {
@@ -17137,7 +17252,7 @@
       "label": "GET /orders/search-items",
       "type": "route",
       "file": "routes/web.php",
-      "line": 75,
+      "line": 76,
       "action": "searchItems"
     },
     {
@@ -17150,7 +17265,7 @@
       "label": "GET /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 76,
+      "line": 77,
       "action": "show"
     },
     {
@@ -17163,7 +17278,7 @@
       "label": "GET /orders/{receivingId}/edit",
       "type": "route",
       "file": "routes/web.php",
-      "line": 77,
+      "line": 78,
       "action": "edit"
     },
     {
@@ -17176,7 +17291,7 @@
       "label": "PUT /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 78,
+      "line": 79,
       "action": "update"
     },
     {
@@ -17189,7 +17304,7 @@
       "label": "POST /orders/{receivingId}/close",
       "type": "route",
       "file": "routes/web.php",
-      "line": 79,
+      "line": 80,
       "action": "close"
     },
     {
@@ -17202,7 +17317,7 @@
       "label": "GET /orders/{receivingId}/print",
       "type": "route",
       "file": "routes/web.php",
-      "line": 80,
+      "line": 81,
       "action": "print"
     },
     {
@@ -17215,7 +17330,7 @@
       "label": "DELETE /orders/{receivingId}",
       "type": "route",
       "file": "routes/web.php",
-      "line": 81,
+      "line": 82,
       "action": "destroy"
     },
     {
@@ -17228,7 +17343,7 @@
       "label": "GET /profile",
       "type": "route",
       "file": "routes/web.php",
-      "line": 83,
+      "line": 84,
       "action": "profile"
     },
     {
@@ -17241,7 +17356,7 @@
       "label": "POST /profile",
       "type": "route",
       "file": "routes/web.php",
-      "line": 84,
+      "line": 85,
       "action": "updateProfile"
     },
     {
@@ -17254,7 +17369,7 @@
       "label": "POST /logout",
       "type": "route",
       "file": "routes/web.php",
-      "line": 86,
+      "line": 87,
       "action": "logout"
     },
     {
@@ -17272,7 +17387,7 @@
       "label": "GET /login",
       "type": "route",
       "file": "routes/web.php",
-      "line": 90,
+      "line": 91,
       "action": "showLoginForm"
     },
     {
@@ -17285,7 +17400,7 @@
       "label": "POST /login",
       "type": "route",
       "file": "routes/web.php",
-      "line": 91,
+      "line": 92,
       "action": "login"
     },
     {
@@ -17417,6 +17532,24 @@
     }
   ],
   "edges": [
+    {
+      "source": "file:app/Console/Commands/RegisterSelf.php",
+      "target": "class:App\\Console\\Commands\\RegisterSelf",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Console\\Commands\\RegisterSelf",
+      "target": "class-ref:Command",
+      "type": "extends",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Console\\Commands\\RegisterSelf",
+      "target": "method:app/Console/Commands/RegisterSelf.php:handle",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
     {
       "source": "file:app/Http/Controllers/AppFileController.php",
       "target": "class:App\\Http\\Controllers\\AppFileController",
@@ -18648,18 +18781,6 @@
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Http/Controllers/LanController.php:announce",
-      "target": "class-ref:Location",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/LanController.php:announce",
-      "target": "class-ref:PhpposLocation",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
       "source": "class:App\\Http\\Controllers\\LanController",
       "target": "method:app/Http/Controllers/LanController.php:sync",
       "type": "defines",
@@ -18680,6 +18801,24 @@
     {
       "source": "method:app/Http/Controllers/LanController.php:receive",
       "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\LanController",
+      "target": "method:app/Http/Controllers/LanController.php:log",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanController.php:log",
+      "target": "class-ref:TransferQueue",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanController.php:log",
+      "target": "class-ref:Location",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -18766,7 +18905,7 @@
       "target": "view:lan.locations",
       "type": "renders",
       "confidence": "EXTRACTED",
-      "evidence": "app/Http/Controllers/LanStatusController.php:29"
+      "evidence": "app/Http/Controllers/LanStatusController.php:30"
     },
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:index",
@@ -18777,12 +18916,6 @@
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:index",
       "target": "class-ref:TransferQueue",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/LanStatusController.php:index",
-      "target": "class-ref:PhpposLocation",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -18799,27 +18932,9 @@
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Http/Controllers/LanStatusController.php:updateSelfName",
-      "target": "class-ref:PhpposLocation",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
       "source": "class:App\\Http\\Controllers\\LanStatusController",
       "target": "method:app/Http/Controllers/LanStatusController.php:store",
       "type": "defines",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/LanStatusController.php:store",
-      "target": "class-ref:PhpposLocation",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Http/Controllers/LanStatusController.php:store",
-      "target": "class-ref:Location",
-      "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
@@ -18836,7 +18951,7 @@
     },
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:destroy",
-      "target": "class-ref:Location",
+      "target": "class-ref:TransferQueue",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -18848,6 +18963,42 @@
     },
     {
       "source": "method:app/Http/Controllers/LanStatusController.php:poke",
+      "target": "class-ref:TransferQueue",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:poke",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\LanStatusController",
+      "target": "method:app/Http/Controllers/LanStatusController.php:retry",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:retry",
+      "target": "class-ref:TransferQueue",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:retry",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\LanStatusController",
+      "target": "method:app/Http/Controllers/LanStatusController.php:resyncIpPreview",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/LanStatusController.php:resyncIpPreview",
       "target": "class-ref:Location",
       "type": "uses_model",
       "confidence": "EXTRACTED"
@@ -18866,19 +19017,13 @@
     },
     {
       "source": "class:App\\Http\\Controllers\\LanStatusController",
-      "target": "method:app/Http/Controllers/LanStatusController.php:resolveLanIp",
-      "type": "defines",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "class:App\\Http\\Controllers\\LanStatusController",
-      "target": "method:app/Http/Controllers/LanStatusController.php:isValidLanIp",
-      "type": "defines",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "class:App\\Http\\Controllers\\LanStatusController",
       "target": "method:app/Http/Controllers/LanStatusController.php:setEnvValue",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\LanStatusController",
+      "target": "method:app/Http/Controllers/LanStatusController.php:syncHeaders",
       "type": "defines",
       "confidence": "EXTRACTED"
     },
@@ -19960,6 +20105,18 @@
     },
     {
       "source": "method:app/Http/Controllers/ReceivingController.php:print",
+      "target": "class-ref:PhpposReceiving",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Http\\Controllers\\ReceivingController",
+      "target": "method:app/Http/Controllers/ReceivingController.php:closeTransferReceiving",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Http/Controllers/ReceivingController.php:closeTransferReceiving",
       "target": "class-ref:PhpposReceiving",
       "type": "uses_model",
       "confidence": "EXTRACTED"
@@ -21781,6 +21938,18 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "class:App\\Jobs\\AnnouncePresence",
+      "target": "method:app/Jobs/AnnouncePresence.php:log",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Jobs\\AnnouncePresence",
+      "target": "method:app/Jobs/AnnouncePresence.php:syncHeaders",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "file:app/Jobs/SendItem.php",
       "target": "class:App\\Jobs\\SendItem",
       "type": "contains",
@@ -21793,27 +21962,9 @@
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Jobs/SendItem.php:__construct",
-      "target": "class-ref:PhpposTransfer",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Jobs/SendItem.php:__construct",
-      "target": "class-ref:PhpposLocation",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Jobs/SendItem.php:__construct",
-      "target": "class-ref:PhpposTransferItem",
-      "type": "uses_model",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "method:app/Jobs/SendItem.php:__construct",
-      "target": "class-ref:PhpposItem",
-      "type": "uses_model",
+      "source": "class:App\\Jobs\\SendItem",
+      "target": "method:app/Jobs/SendItem.php:backoff",
+      "type": "defines",
       "confidence": "EXTRACTED"
     },
     {
@@ -21823,25 +21974,61 @@
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Jobs/SendItem.php:handle",
+      "source": "class:App\\Jobs\\SendItem",
+      "target": "method:app/Jobs/SendItem.php:log",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Jobs/SendItem.php:log",
       "target": "class-ref:PhpposTransfer",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Jobs/SendItem.php:handle",
+      "source": "method:app/Jobs/SendItem.php:log",
       "target": "class-ref:PhpposLocation",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Jobs/SendItem.php:handle",
+      "source": "method:app/Jobs/SendItem.php:log",
       "target": "class-ref:PhpposTransferItem",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
     {
-      "source": "method:app/Jobs/SendItem.php:handle",
+      "source": "method:app/Jobs/SendItem.php:log",
+      "target": "class-ref:PhpposItem",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Jobs\\SendItem",
+      "target": "method:app/Jobs/SendItem.php:failed",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Jobs/SendItem.php:failed",
+      "target": "class-ref:PhpposTransfer",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Jobs/SendItem.php:failed",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Jobs/SendItem.php:failed",
+      "target": "class-ref:PhpposTransferItem",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Jobs/SendItem.php:failed",
       "target": "class-ref:PhpposItem",
       "type": "uses_model",
       "confidence": "EXTRACTED"
@@ -21874,6 +22061,18 @@
       "source": "method:app/Jobs/SendItem.php:buildPayload",
       "target": "class-ref:PhpposItem",
       "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Jobs\\SendItem",
+      "target": "method:app/Jobs/SendItem.php:syncHeaders",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Jobs\\SendItem",
+      "target": "method:app/Jobs/SendItem.php:markTransferFailed",
+      "type": "defines",
       "confidence": "EXTRACTED"
     },
     {
@@ -25057,6 +25256,138 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "file:app/Services/LanLocationRegistry.php",
+      "target": "class:App\\Services\\LanLocationRegistry",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:registerSelf",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:registerSelf",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:registerSelf",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:upsertPeer",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:upsertPeer",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:upsertPeer",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:selfOrFail",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:selfOrFail",
+      "target": "class-ref:Location",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:announcePayload",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:urlFor",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:resolveLanIp",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:resolveLanIp",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:isUsableLanIp",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:isUsableLanIp",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:normalizeIp",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:normalizeIp",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:validatePort",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:validatePort",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:resolvePhpposLocation",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LanLocationRegistry.php:resolvePhpposLocation",
+      "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "class:App\\Services\\LanLocationRegistry",
+      "target": "method:app/Services/LanLocationRegistry.php:syncPhpposLocation",
+      "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "file:app/Services/LocationContextService.php",
       "target": "class:App\\Services\\LocationContextService",
       "type": "contains",
@@ -25071,6 +25402,12 @@
     {
       "source": "method:app/Services/LocationContextService.php:resolveLocationId",
       "target": "class-ref:PhpposLocation",
+      "type": "uses_model",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "method:app/Services/LocationContextService.php:resolveLocationId",
+      "target": "class-ref:Location",
       "type": "uses_model",
       "confidence": "EXTRACTED"
     },
@@ -32928,7 +33265,19 @@
     },
     {
       "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:✅ Transfer Syncing: Location Resolution",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
       "target": "doc-section:MIGRATION_HANDOFF.md:📜 History (Completed Work)",
+      "type": "contains",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:MIGRATION_HANDOFF.md",
+      "target": "doc-section:MIGRATION_HANDOFF.md:June 8, 2026 (Transfer Queue Retry Button + Error Display)",
       "type": "contains",
       "confidence": "EXTRACTED"
     },
@@ -33215,96 +33564,6 @@
       "confidence": "EXTRACTED"
     },
     {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Migrating Laravel POS to a NativePHP Desktop App",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 1: Update Your Environment Variables",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_CONNECTION=mysql",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_HOST=127.0.0.1",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_PORT=3306",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_DATABASE=laravel",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_USERNAME=root",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:DB_PASSWORD=",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 2: Fix MySQL-Specific Migrations (Crucial)",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 3: Install and Configure NativePHP",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 4: Run the NativePHP Database Setup (IMPORTANT)",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Rebuild the NativePHP database schema",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Seed the NativePHP database with the default admin and config",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 5: Run the Desktop Dev Server",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:nativePhp.md",
-      "target": "doc-section:nativePhp.md:Step 6: Build the Executable",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
       "source": "file:README.md",
       "target": "doc-section:README.md:LAN Discovery Check",
       "type": "contains",
@@ -33325,18 +33584,6 @@
     {
       "source": "file:README.md",
       "target": "doc-section:README.md:NSSM Queue Worker (Configured by Installer)",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:README.md",
-      "target": "doc-section:README.md:builder",
-      "type": "contains",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "file:README.md",
-      "target": "doc-section:README.md:manually chagne ``installDirectory ``",
       "type": "contains",
       "confidence": "EXTRACTED"
     },
@@ -33774,12 +34021,6 @@
     },
     {
       "source": "view:lan.locations",
-      "target": "route-name:lan.locations.resync-ip",
-      "type": "links_to_route",
-      "confidence": "EXTRACTED"
-    },
-    {
-      "source": "view:lan.locations",
       "target": "route-name:lan.locations.poke",
       "type": "links_to_route",
       "confidence": "EXTRACTED"
@@ -33798,13 +34039,31 @@
     },
     {
       "source": "view:lan.locations",
+      "target": "route-name:lan.locations.retry",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:lan.locations",
       "target": "route-name:lan.locations.self-name",
       "type": "links_to_route",
       "confidence": "EXTRACTED"
     },
     {
       "source": "view:lan.locations",
+      "target": "route-name:lan.locations.resync-ip",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:lan.locations",
       "target": "route-name:lan.locations.store",
+      "type": "links_to_route",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:lan.locations",
+      "target": "route-name:lan.locations.resync-ip.preview",
       "type": "links_to_route",
       "confidence": "EXTRACTED"
     },
@@ -34292,6 +34551,12 @@
       "source": "file:resources/views/receivings/show.blade.php",
       "target": "view:receivings.show",
       "type": "defines",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "view:receivings.show",
+      "target": "route-name:receivings.close-transfer",
+      "type": "links_to_route",
       "confidence": "EXTRACTED"
     },
     {
@@ -36473,6 +36738,24 @@
       "confidence": "EXTRACTED"
     },
     {
+      "source": "file:routes/rony/receive_return_module.php",
+      "target": "route:POST:/receivings/{receivingId}/close:ReceivingController:closeTransferReceiving",
+      "type": "declares",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/receivings/{receivingId}/close:ReceivingController:closeTransferReceiving",
+      "target": "class-ref:ReceivingController",
+      "type": "handled_by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/receivings/{receivingId}/close:ReceivingController:closeTransferReceiving",
+      "target": "method-ref:ReceivingController.closeTransferReceiving",
+      "type": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
       "source": "file:routes/rony/sales_inventory_modules.php",
       "target": "route:GET:/sales/register/open:SalesController:showRegisterOpenForm",
       "type": "declares",
@@ -37572,6 +37855,24 @@
     },
     {
       "source": "file:routes/web.php",
+      "target": "route:GET:/lan/locations/resync-ip/preview:LanStatusController:resyncIpPreview",
+      "type": "declares",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:GET:/lan/locations/resync-ip/preview:LanStatusController:resyncIpPreview",
+      "target": "class-ref:LanStatusController",
+      "type": "handled_by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:GET:/lan/locations/resync-ip/preview:LanStatusController:resyncIpPreview",
+      "target": "method-ref:LanStatusController.resyncIpPreview",
+      "type": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:routes/web.php",
       "target": "route:POST:/lan/locations/resync-ip:LanStatusController:resyncIp",
       "type": "declares",
       "confidence": "EXTRACTED"
@@ -37639,6 +37940,24 @@
     {
       "source": "route:POST:/lan/locations/{location}/poke:LanStatusController:poke",
       "target": "method-ref:LanStatusController.poke",
+      "type": "calls",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "file:routes/web.php",
+      "target": "route:POST:/lan/locations/retry/{id}:LanStatusController:retry",
+      "type": "declares",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/lan/locations/retry/{id}:LanStatusController:retry",
+      "target": "class-ref:LanStatusController",
+      "type": "handled_by",
+      "confidence": "EXTRACTED"
+    },
+    {
+      "source": "route:POST:/lan/locations/retry/{id}:LanStatusController:retry",
+      "target": "method-ref:LanStatusController.retry",
       "type": "calls",
       "confidence": "EXTRACTED"
     },

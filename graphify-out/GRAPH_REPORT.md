@@ -4,9 +4,9 @@ Generated from local static analysis of routes, controllers, models, migrations,
 
 ## Snapshot
 
-- Nodes: 2,718
-- Edges: 3,436
-- Routes: 161
+- Nodes: 2,738
+- Edges: 3,470
+- Routes: 164
 - Controllers: 31
 - Models: 65
 - Tables/table refs: 125
@@ -23,13 +23,13 @@ Generated from local static analysis of routes, controllers, models, migrations,
 
 ## Most Connected Concepts
 
-- PhpposLocation [model_ref], degree 65
+- PhpposLocation [model_ref], degree 68
 - Model [class_ref], degree 63
 - PhpposItem [model_ref], degree 62
 - layouts.app [view], degree 58
 - phppos_items [table], degree 56 (database/migrations/2026_05_10_232648_add_reorder_level_to_items_tables.php:35)
-- MIGRATION_HANDOFF.md [doc_file], degree 52
-- routes/web.php [route_file], degree 52
+- MIGRATION_HANDOFF.md [doc_file], degree 54
+- routes/web.php [route_file], degree 54
 - phppos_item_kits [table], degree 49 (database/migrations/2026_05_01_000037_create_phppos_item_kits_table.php:11)
 - PhpposSupplier [model_ref], degree 48
 - PhpposItemKit [model_ref], degree 48
@@ -42,14 +42,14 @@ Generated from local static analysis of routes, controllers, models, migrations,
 ## Relationship Types
 
 - has_column: 876
-- defines: 674
-- uses_model: 573
-- contains: 205
-- links_to_route: 182
-- declares: 161
-- handled_by: 161
-- calls: 161
-- extends: 150
+- defines: 696
+- uses_model: 585
+- contains: 192
+- links_to_route: 185
+- declares: 164
+- handled_by: 164
+- calls: 164
+- extends: 151
 - creates: 125
 - renders: 73
 - belongsTo: 36
