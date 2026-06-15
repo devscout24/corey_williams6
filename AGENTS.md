@@ -21,7 +21,7 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 | `npm run dev` | Vite only (Tailwind v4 + laravel-vite-plugin) |
 | `composer run test` | `config:clear` then `php artisan test` |
 | `composer run setup` | Full fresh install (composer, .env, key, migrate, npm) |
-| `composer run native:dev` | NativePHP desktop dev via `native:serve` + Vite |
+
 
 ## Testing
 
@@ -71,7 +71,7 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 ## Install modes
 
 - **Browser mode**: PHP built-in server (`php -S 0.0.0.0:8020 -t public server.php`) + queue worker, managed via NSSM.
-- **NativePHP desktop**: `php artisan native:build win` — uses SQLite, Electron shell.
+
 
 ## LAN sync
 
@@ -95,7 +95,7 @@ Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `graphify
 
 - `MIGRATION_HANDOFF.md` — migration rules + completed/pending work log.
 - `INSTALLER_BROWSER_MODE.md` — NSSM setup details.
-- `nativePhp.md` — NativePHP desktop build guide.
+
 
 ## CI
 

@@ -77,21 +77,7 @@ Installer actions:
 
 
 
-## builder
-```bash
-mkdir -p build/nativephp
-touch  build/nativephp/electron-builder.js
-```
 
-## manually chagne ``installDirectory ``
-
-```javascript
-import { exec } from 'child_process';
-import { join } from 'path';
-
-const appUrl = process.env.APP_URL;
-const appId = process.env.NATIVEPHP_APP_ID;
-const appName = process.env.NATIVEPHP_APP_NAME;
 const isBuilding = process.env.NATIVEPHP_BUILDING;
 const appAuthor = process.env.NATIVEPHP_APP_AUTHOR;
 const fileName = process.env.NATIVEPHP_APP_FILENAME;

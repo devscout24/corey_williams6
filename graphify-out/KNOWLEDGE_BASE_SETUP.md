@@ -215,7 +215,7 @@ The local generator scans:
 - `README.md`
 - `MIGRATION_HANDOFF.md`
 - `INSTALLER_BROWSER_MODE.md`
-- `nativePhp.md`
+
 
 It intentionally skips:
 
