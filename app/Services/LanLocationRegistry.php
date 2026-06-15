@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Location;
 use App\Models\PhpposLocation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -200,6 +201,10 @@ class LanLocationRegistry
 
     private function syncPhpposLocation(PhpposLocation $location, string $name, string $ip, int $port): void
     {
+        if (! $location->ulid) {
+            $location->ulid = (string) Str::ulid();
+        }
+
         $location->forceFill([
             'name' => $name,
             'sync_url' => "http://{$ip}:{$port}",
