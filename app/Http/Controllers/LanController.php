@@ -24,11 +24,12 @@ class LanController extends Controller
             'ip' => ['required', 'string', 'max:45'],
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
             'name' => ['required', 'string', 'max:255'],
+            'phppos_location_ulid' => ['nullable', 'string', 'max:26'],
         ]);
 
-        $this->log('Announce from '.$data['name'].' ('.$data['ip'].':'.$data['port'].')');
+        $this->log('Announce from '.$data['name'].' ('.$data['ip'].':'.$data['port'].') ulid='.($data['phppos_location_ulid'] ?? 'null'));
 
-        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name']);
+        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name'], $data['phppos_location_ulid'] ?? null);
 
         return response()->json(['ok' => true]);
     }

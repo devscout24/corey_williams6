@@ -51,12 +51,12 @@ class LanLocationRegistry
         });
     }
 
-    public function upsertPeer(string $ip, int $port, string $name): Location
+    public function upsertPeer(string $ip, int $port, string $name, ?string $ulid = null): Location
     {
         $ip = $this->normalizeIp($ip);
         $this->validatePort($port);
 
-        return DB::transaction(function () use ($ip, $port, $name): Location {
+        return DB::transaction(function () use ($ip, $port, $name, $ulid): Location {
             $location = Location::query()->where('ip', $ip)->first() ?? new Location();
 
             $phpposLocation = $location->phpposLocation;
@@ -64,7 +64,7 @@ class LanLocationRegistry
                 $phpposLocation = PhpposLocation::create(['name' => $name]);
             }
 
-            $this->syncPhpposLocation($phpposLocation, $name, $ip, $port);
+            $this->syncPhpposLocation($phpposLocation, $name, $ip, $port, $ulid);
 
             $location->fill([
                 'name' => $name,
@@ -102,6 +102,7 @@ class LanLocationRegistry
             'ip' => $self->ip,
             'port' => (int) $self->port,
             'name' => $self->name,
+            'phppos_location_ulid' => $self->phpposLocation?->ulid,
         ];
     }
 
@@ -199,9 +200,11 @@ class LanLocationRegistry
         return $firstLocation ?? PhpposLocation::create(['name' => $name]);
     }
 
-    private function syncPhpposLocation(PhpposLocation $location, string $name, string $ip, int $port): void
+    private function syncPhpposLocation(PhpposLocation $location, string $name, string $ip, int $port, ?string $remoteUlid = null): void
     {
-        if (! $location->ulid) {
+        if ($remoteUlid) {
+            $location->ulid = $remoteUlid;
+        } elseif (! $location->ulid) {
             $location->ulid = (string) Str::ulid();
         }
 

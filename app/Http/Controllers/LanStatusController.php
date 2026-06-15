@@ -130,6 +130,7 @@ class LanStatusController extends Controller
 
         try {
             $response = Http::timeout(10)
+                ->asJson()
                 ->withHeaders($this->syncHeaders())
                 ->post($registry->urlFor($location).'/api/lan/announce', $registry->announcePayload());
 
