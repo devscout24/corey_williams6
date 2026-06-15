@@ -129,8 +129,19 @@
             <div class="doc-meta">
                 @if($receiving->suspended)
                     <span class="badge bg-secondary">Closed / Suspended</span>
+                @elseif(!$receiving->closed_at && $receiving->source === 'transfer')
+                    <span class="badge bg-warning text-dark">Pending Transfer</span>
                 @else
                     <span class="badge bg-success">Open</span>
+                @endif
+
+                @if(!$receiving->closed_at && $receiving->source === 'transfer')
+                    <form method="POST" action="{{ route('receivings.close-transfer', $receiving->receiving_id) }}" class="d-inline-block mt-2">
+                        @csrf
+                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Complete this transfer receiving? Items will be added to inventory.');">
+                            <i class="bi bi-check-circle"></i> Complete Transfer
+                        </button>
+                    </form>
                 @endif
             </div>
         </div>

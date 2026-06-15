@@ -25,4 +25,6 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/receivings/cancel', [ReceivingController::class, 'cancel'])->name('receivings.cancel');
 
     // returns
+    Route::post('/receivings/{receivingId}/close', [ReceivingController::class, 'closeTransferReceiving'])->name('receivings.close-transfer');
+
 });

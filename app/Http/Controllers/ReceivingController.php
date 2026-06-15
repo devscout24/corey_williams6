@@ -864,5 +864,47 @@ class ReceivingController extends Controller
         $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
         return view('receivings.print', compact('receiving'));
     }
+
+    public function closeTransferReceiving(int $receivingId, InventoryFlowService $inventoryFlowService): RedirectResponse
+    {
+        $receiving = PhpposReceiving::with('items')->findOrFail($receivingId);
+
+        if ($receiving->closed_at) {
+            return redirect()->route('purchases.show', $receivingId)
+                ->with('error', 'Receiving is already closed.');
+        }
+
+        if ($receiving->source !== 'transfer') {
+            return redirect()->route('purchases.show', $receivingId)
+                ->with('error', 'Only transfer receivings can be closed via this action.');
+        }
+
+        $employeeId = auth('employee')->id();
+        if (! $employeeId) {
+            $employeeId = DB::table('phppos_employees')->value('person_id');
+        }
+
+        DB::transaction(function () use ($receiving, $inventoryFlowService, $employeeId): void {
+            foreach ($receiving->items as $item) {
+                $inventoryFlowService->receive(
+                    $receiving->location_id,
+                    $item->item_id,
+                    (float) $item->quantity_purchased,
+                    $employeeId,
+                    'Transfer in #'.$receiving->reference_id
+                );
+
+                $item->update(['quantity_received' => $item->quantity_purchased]);
+            }
+
+            $receiving->update([
+                'closed_at' => now(),
+                'total_quantity_received' => $receiving->total_quantity_purchased,
+            ]);
+        });
+
+        return redirect()->route('purchases.show', $receivingId)
+            ->with('status', 'Transfer receiving #'.$receiving->internal_code.' completed successfully. Items added to inventory.');
+    }
 }
 
