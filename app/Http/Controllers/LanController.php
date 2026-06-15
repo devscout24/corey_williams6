@@ -8,11 +8,13 @@ use App\Models\Location;
 use App\Models\TransferQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
+use App\Models\PhpposReceiving;
+use App\Models\PhpposReceivingItem;
 use App\Services\LanLocationRegistry;
-use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -42,7 +44,7 @@ class LanController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function receive(Request $request, InventoryFlowService $inventoryFlowService, LocationContextService $locationContextService): JsonResponse
+    public function receive(Request $request, LocationContextService $locationContextService): JsonResponse
     {
         $this->log('Incoming receive from '.$request->input('from_ip', '?'));
 
@@ -125,25 +127,68 @@ class LanController extends Controller
                 ];
             }
 
-            $this->log('Calling importTransferIn from='.$fromLocation->location_id.' to='.$currentLocation->location_id.' external_transfer_id='.$payload['transfer_out_id']);
+            $this->log('Creating pending receiving from='.$fromLocation->location_id.' to='.$currentLocation->location_id.' transfer_out_id='.$payload['transfer_out_id']);
 
-            $inventoryFlowService->importTransferIn(
-                $fromLocation->location_id,
-                $currentLocation->location_id,
-                $lines,
-                (string) ($payload['source_device_id'] ?? $data['from_ip'] ?? 'unknown'),
-                (string) $payload['transfer_out_id'],
-                $payload['notes'] ?? null,
-                $payload['created_at'] ?? null,
-                null,
-                $payload['status'] ?? 'closed'
-            );
+            $this->log('Full payload: '.json_encode($data));
 
-            $this->log('SUCCESS: Transfer received for transfer_out_id='.$payload['transfer_out_id']);
+            $employeeId = DB::table('phppos_employees')->value('person_id');
+            $timestamp = isset($payload['created_at']) ? \Carbon\Carbon::parse($payload['created_at']) : now();
+
+            $subtotal = 0.0;
+            $totalQty = 0.0;
+            foreach ($lines as $line) {
+                $itemCost = (float) (PhpposItem::find($line['item_id'])?->cost_price ?? 0);
+                $subtotal += $itemCost * $line['quantity'];
+                $totalQty += $line['quantity'];
+            }
+
+            $receiving = DB::transaction(function () use ($currentLocationId, $fromLocation, $payload, $employeeId, $timestamp, $lines, $subtotal, $totalQty): PhpposReceiving {
+                $receiving = PhpposReceiving::create([
+                    'receiving_time' => $timestamp,
+                    'closed_at' => null,
+                    'supplier_id' => null,
+                    'employee_id' => $employeeId,
+                    'comment' => $payload['notes'] ?? 'Transfer from '.$payload['source_device_id'].' #'.$payload['transfer_out_id'],
+                    'location_id' => $currentLocationId,
+                    'subtotal' => $subtotal,
+                    'total' => $subtotal,
+                    'total_quantity_purchased' => $totalQty,
+                    'total_quantity_received' => 0,
+                    'mode' => 'transfer',
+                    'type' => 'transfer',
+                    'source' => 'transfer',
+                    'reference_id' => $payload['transfer_out_id'],
+                ]);
+                $receiving->syncDocumentIdentity();
+
+                $lineNumber = 0;
+                foreach ($lines as $line) {
+                    $itemCost = (float) (PhpposItem::find($line['item_id'])?->cost_price ?? 0);
+
+                    PhpposReceivingItem::create([
+                        'receiving_id' => $receiving->receiving_id,
+                        'item_id' => $line['item_id'],
+                        'line' => $lineNumber,
+                        'quantity_purchased' => $line['quantity'],
+                        'quantity_received' => 0,
+                        'item_cost_price' => $itemCost,
+                        'item_unit_price' => $itemCost,
+                        'discount_percent' => 0,
+                        'subtotal' => $itemCost * $line['quantity'],
+                        'total' => $itemCost * $line['quantity'],
+                    ]);
+                    $lineNumber++;
+                }
+
+                return $receiving;
+            });
+
+            $this->log('SUCCESS: Created receiving #'.$receiving->receiving_id.' ('.$receiving->internal_code.') for transfer_out_id='.$payload['transfer_out_id']);
 
             return response()->json([
                 'ok' => true,
                 'message' => 'Transfer received',
+                'receiving_id' => $receiving->receiving_id,
             ]);
         }
 
