@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class LanController extends Controller
 {
@@ -140,6 +141,22 @@ class LanController extends Controller
 
             $this->log('from_location_id='.$fromLocation->location_id.' to_location_id='.$toLocation->location_id.' current_id='.$currentLocationId);
 
+            $existing = DB::table('phppos_receivings')
+                ->where('reference_id', $payload['transfer_out_id'])
+                ->where('location_id', $currentLocationId)
+                ->where('source', 'transfer')
+                ->first();
+
+            if ($existing) {
+                $this->log('DUPLICATE: receiving #'.$existing->receiving_id.' already exists for transfer_out_id='.$payload['transfer_out_id']);
+
+                return response()->json([
+                    'ok' => true,
+                    'message' => 'Already received',
+                    'receiving_id' => $existing->receiving_id,
+                ]);
+            }
+
             if (! empty($payload['source_device_id']) && ! empty($payload['source_port'])) {
                 $registry->upsertPeer(
                     $payload['source_device_id'],
@@ -241,9 +258,11 @@ class LanController extends Controller
                 try {
                     Notification::create([
                         'type' => 'transfer_received',
+                        'reference_type' => 'receiving',
+                        'reference_id' => $receiving->receiving_id,
                         'title' => 'Transfer received from '.$senderName,
                         'body' => ($payload['transfer_code'] ?? 'Transfer #'.$payload['transfer_out_id']).' — '.count($lines).' item(s), awaiting confirmation.',
-                        'action_url' => '/receivings/'.$receiving->receiving_id,
+                        'action_url' => '/purchases/'.$receiving->receiving_id,
                     ]);
                 } catch (\Throwable) {
                 }
@@ -327,22 +346,50 @@ class LanController extends Controller
 
     public function appNotifications(): JsonResponse
     {
-        $notifications = Notification::latest()->take(20)->get()->map(function (Notification $n): array {
-            return [
-                'id' => $n->id,
-                'type' => $n->type,
-                'title' => $n->title,
-                'body' => $n->body,
-                'action_url' => $n->action_url,
-                'is_unread' => $n->read_at === null,
-                'created_at' => $n->created_at,
-            ];
-        });
+        $recent = Notification::latest()->take(2)->get()->map(fn (Notification $n): array => [
+            'id' => $n->id,
+            'type' => $n->type,
+            'reference_type' => $n->reference_type,
+            'reference_id' => $n->reference_id,
+            'title' => $n->title,
+            'body' => $n->body,
+            'action_url' => $n->action_url,
+            'is_unread' => $n->read_at === null,
+            'created_at' => $n->created_at,
+            'time_ago' => $n->created_at?->diffForHumans(),
+        ]);
 
         return response()->json([
             'unread_count' => Notification::unread()->count(),
-            'notifications' => $notifications,
+            'notifications' => $recent,
         ]);
+    }
+
+    public function allNotifications(): View
+    {
+        $notifications = Notification::latest()->paginate(20);
+        $canDelete = $this->canDeleteNotifications();
+
+        return view('notifications.index', compact('notifications', 'canDelete'));
+    }
+
+    public function deleteNotification(int $id): JsonResponse
+    {
+        if (! $this->canDeleteNotifications()) {
+            abort(403, 'You do not have permission to delete notifications.');
+        }
+
+        $notification = Notification::findOrFail($id);
+        $notification->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    private function canDeleteNotifications(): bool
+    {
+        $employee = auth('employee')->user();
+
+        return $employee && $employee->hasModulePermission('config');
     }
 
     public function readNotification(int $id): JsonResponse
@@ -413,6 +460,8 @@ class LanController extends Controller
             try {
                 Notification::create([
                     'type' => 'transfer_completed',
+                    'reference_type' => 'transfer',
+                    'reference_id' => (int) $data['transfer_out_id'],
                     'title' => 'Transfer #'.$data['transfer_out_id'].' completed by receiver',
                     'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
                     'action_url' => '/transfers',

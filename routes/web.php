@@ -65,7 +65,9 @@ Route::middleware('installed')->group(function (): void {
         Route::post('/lan/locations/retry/{id}', [LanStatusController::class, 'retry'])->name('lan.locations.retry');
 
         Route::get('/app/notifications', [LanController::class, 'appNotifications'])->name('app.notifications');
+        Route::get('/app/notifications/all', [LanController::class, 'allNotifications'])->name('app.notifications.all');
         Route::post('/app/notifications/{id}/read', [LanController::class, 'readNotification'])->name('app.notifications.read');
+        Route::delete('/app/notifications/{id}', [LanController::class, 'deleteNotification'])->name('app.notifications.delete');
 
         Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
         Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');

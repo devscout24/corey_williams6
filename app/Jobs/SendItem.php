@@ -104,6 +104,8 @@ class SendItem implements ShouldQueue
                 try {
                     Notification::create([
                         'type' => 'transfer_delivered',
+                        'reference_type' => 'transfer',
+                        'reference_id' => $transfer->item_id,
                         'title' => 'Transfer #'.$transfer->id.' delivered',
                         'body' => 'Sent to '.$location->name.' ('.$location->ip.')',
                         'action_url' => '/lan/locations',
@@ -215,6 +217,8 @@ class SendItem implements ShouldQueue
         try {
             Notification::create([
                 'type' => 'queue_failed',
+                'reference_type' => 'transfer',
+                'reference_id' => $transfer->item_id,
                 'title' => 'Transfer #'.$transfer->id.' failed',
                 'body' => $error,
                 'action_url' => '/lan/locations',

@@ -90,6 +90,7 @@
                 </a>
             </div>
             <div class="nav-item"><a href="{{ route('messages.index') }}" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Messages</span></a></div>
+            <div class="nav-item"><a href="{{ route('app.notifications.all') }}" class="nav-link"><i class="bi bi-bell-fill"></i><span>Notifications</span></a></div>
         </nav>
 
         <div class="sidebar-footer">

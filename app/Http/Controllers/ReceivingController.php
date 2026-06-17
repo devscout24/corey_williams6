@@ -933,9 +933,11 @@ class ReceivingController extends Controller
             try {
                 Notification::create([
                     'type' => 'transfer_completed',
+                    'reference_type' => 'receiving',
+                    'reference_id' => $receiving->receiving_id,
                     'title' => 'Transfer receiving #'.$receiving->internal_code.' completed',
                     'body' => 'Items added to inventory.',
-                    'action_url' => '/receivings/'.$receiving->receiving_id,
+                    'action_url' => '/purchases/'.$receiving->receiving_id,
                 ]);
             } catch (\Throwable) {
             }
@@ -949,7 +951,16 @@ class ReceivingController extends Controller
 
     private function notifySenderTransferCompleted(PhpposReceiving $receiving): void
     {
-        $senderLocation = Location::where('ip', $receiving->comment ? self::extractSourceIp($receiving->comment) : null)->first();
+        $transferIn = PhpposTransfer::where('transfer_type', 'in')
+            ->where('external_transfer_id', $receiving->reference_id)
+            ->first();
+
+        $senderIp = $transferIn?->external_source;
+        if (! $senderIp) {
+            return;
+        }
+
+        $senderLocation = Location::where('ip', $senderIp)->first();
         if (! $senderLocation || ! $senderLocation->ip || ! $senderLocation->port) {
             return;
         }
@@ -964,14 +975,5 @@ class ReceivingController extends Controller
                 ]);
         } catch (\Throwable) {
         }
-    }
-
-    private static function extractSourceIp(string $comment): ?string
-    {
-        if (preg_match('/\bon\s+([\d.]+)/', $comment, $m)) {
-            return $m[1];
-        }
-
-        return null;
     }
 }

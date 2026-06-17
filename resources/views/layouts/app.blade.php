@@ -77,9 +77,26 @@
                     <button type="button" class="topbar-icon-btn" id="lanSyncButton" title="Sync LAN">
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
-                    <button type="button" class="topbar-icon-btn" id="lanRefreshButton" title="Refresh Notifications">
-                        <i class="bi bi-bell"></i>
-                    </button>
+                    <div class="dropdown" id="notificationBell">
+                        <button type="button" class="topbar-icon-btn dropdown-toggle border-0" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <i class="bi bi-bell"></i>
+                            <span class="badge-dot" id="notificationBadge" style="display:none;"></span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow border-0 radius-lg mt-2" id="notificationDropdown" style="width:360px;max-height:480px;overflow-y:auto;">
+                            <div class="px-3 py-2 fw-semibold border-bottom" style="font-size:0.9rem;">
+                                Notifications
+                                <span class="badge bg-secondary ms-1" id="unreadCountLabel">0</span>
+                            </div>
+                            <div id="notificationList" style="min-height:60px;">
+                                <div class="px-3 py-3 text-muted small text-center">Loading...</div>
+                            </div>
+                            <div class="border-top text-center">
+                                <a href="{{ route('app.notifications.all') }}" class="dropdown-item py-2 small text-primary">
+                                    View all notifications
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     <div class="dropdown">
                         <button class="btn-add dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-plus-lg"></i> Add
@@ -148,11 +165,9 @@
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
             const syncButton = document.getElementById('lanSyncButton');
-            const refreshButton = document.getElementById('lanRefreshButton');
             const htmlEl = document.documentElement;
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const syncToken = document.querySelector('meta[name="sync-token"]')?.getAttribute('content');
-            const notificationKey = 'lanLastNotificationId';
             
             const savedTheme = localStorage.getItem('theme') || 'light';
             htmlEl.setAttribute('data-theme', savedTheme);
@@ -177,44 +192,69 @@
                 }
             }
 
-            async function fetchNotifications(showToast) {
+            const notifList = document.getElementById('notificationList');
+            const notifBadge = document.getElementById('notificationBadge');
+            const unreadCountLabel = document.getElementById('unreadCountLabel');
+
+            async function loadNotifications() {
                 try {
-                    const response = await fetch('/api/lan/notifications', {
-                        headers: {
-                            ...(syncToken ? { 'X-Sync-Token': syncToken } : {}),
-                        },
+                    const res = await fetch('{{ route('app.notifications') }}', {
+                        headers: { 'Accept': 'application/json' },
                     });
-                    if (!response.ok) {
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    const unread = data.unread_count || 0;
+                    if (unreadCountLabel) unreadCountLabel.textContent = unread;
+                    if (notifBadge) {
+                        notifBadge.style.display = unread > 0 ? '' : 'none';
+                    }
+
+                    if (!notifList) return;
+                    const items = data.notifications || [];
+                    if (items.length === 0) {
+                        notifList.innerHTML = '<div class="px-3 py-3 text-muted small text-center">No notifications</div>';
                         return;
                     }
 
-                    const data = await response.json();
-                    if (!Array.isArray(data) || data.length === 0) {
-                        return;
-                    }
+                    notifList.innerHTML = items.map(n => {
+                        const url = n.action_url || '#';
+                        const cls = n.is_unread ? 'fw-semibold' : '';
+                        const ref = (n.reference_type && n.reference_id) ? n.reference_type + ' #' + n.reference_id : '';
+                        return '<a href="' + url + '" class="dropdown-item py-2 px-3 border-bottom notification-item ' + cls + '" data-id="' + n.id + '" data-unread="' + n.is_unread + '">' +
+                            '<div style="font-size:0.85rem;">' + escHtml(n.title) + '</div>' +
+                            (n.body ? '<div class="text-muted small" style="font-size:0.75rem;">' + escHtml(n.body) + '</div>' : '') +
+                            (ref ? '<div class="text-muted" style="font-size:0.7rem;">' + ref + '</div>' : '') +
+                            '<div class="text-muted" style="font-size:0.7rem;">' + (n.time_ago || '') + '</div>' +
+                            '</a>';
+                    }).join('');
 
-                    const latest = data[0];
-                    const lastId = Number(localStorage.getItem(notificationKey) || 0);
-
-                    if (latest.id > lastId) {
-                        localStorage.setItem(notificationKey, String(latest.id));
-                        if (showToast) {
-                            const statusLabel = latest.status ? latest.status.toUpperCase() : 'PENDING';
-                            Swal.fire({
-                                icon: latest.status === 'failed' ? 'error' : 'success',
-                                title: 'Sync ' + statusLabel,
-                                text: `${latest.item_type} #${latest.item_id} → ${latest.destination}`,
-                                timer: 3000,
-                                timerProgressBar: true,
-                                showConfirmButton: false,
-                                toast: true,
-                                position: 'top-end',
-                            });
-                        }
-                    }
-                } catch (error) {
-                    // Ignore notification failures.
+                    notifList.querySelectorAll('.notification-item').forEach(el => {
+                        el.addEventListener('click', async function(e) {
+                            const id = this.dataset.id;
+                            const unread = this.dataset.unread === 'true' || this.dataset.unread === '1';
+                            if (unread && id) {
+                                await fetch('/app/notifications/' + id + '/read', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': csrfToken,
+                                        'Accept': 'application/json',
+                                    },
+                                });
+                                loadNotifications();
+                            }
+                        });
+                    });
+                } catch (e) {
+                    // ignore
                 }
+            }
+
+            function escHtml(str) {
+                if (!str) return '';
+                const d = document.createElement('div');
+                d.textContent = str;
+                return d.innerHTML;
             }
 
             if (syncButton) {
@@ -244,7 +284,7 @@
                             position: 'top-end',
                         });
 
-                        fetchNotifications(true);
+                        setTimeout(loadNotifications, 3000);
                     } catch (error) {
                         Swal.fire({
                             icon: 'error',
@@ -263,11 +303,8 @@
                 });
             }
 
-            if (refreshButton) {
-                refreshButton.addEventListener('click', () => {
-                    fetchNotifications(true);
-                });
-            }
+            loadNotifications();
+            setInterval(loadNotifications, 15000);
         });
     </script>
     @stack('scripts')
