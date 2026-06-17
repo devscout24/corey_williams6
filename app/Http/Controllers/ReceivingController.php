@@ -930,12 +930,15 @@ class ReceivingController extends Controller
                 $transferIn->update(['status' => 'closed', 'closed_at' => now()]);
             }
 
-            Notification::create([
-                'type' => 'transfer_completed',
-                'title' => 'Transfer receiving #'.$receiving->internal_code.' completed',
-                'body' => 'Items added to inventory.',
-                'action_url' => '/receivings/'.$receiving->receiving_id,
-            ]);
+            try {
+                Notification::create([
+                    'type' => 'transfer_completed',
+                    'title' => 'Transfer receiving #'.$receiving->internal_code.' completed',
+                    'body' => 'Items added to inventory.',
+                    'action_url' => '/receivings/'.$receiving->receiving_id,
+                ]);
+            } catch (\Throwable) {
+            }
         });
 
         $this->notifySenderTransferCompleted($receiving);

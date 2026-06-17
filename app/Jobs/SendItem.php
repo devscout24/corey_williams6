@@ -101,12 +101,15 @@ class SendItem implements ShouldQueue
                 ]);
                 $this->log('Transfer #'.$transfer->id.' delivered successfully');
 
-                Notification::create([
-                    'type' => 'transfer_delivered',
-                    'title' => 'Transfer #'.$transfer->id.' delivered',
-                    'body' => 'Sent to '.$location->name.' ('.$location->ip.')',
-                    'action_url' => '/lan/locations',
-                ]);
+                try {
+                    Notification::create([
+                        'type' => 'transfer_delivered',
+                        'title' => 'Transfer #'.$transfer->id.' delivered',
+                        'body' => 'Sent to '.$location->name.' ('.$location->ip.')',
+                        'action_url' => '/lan/locations',
+                    ]);
+                } catch (\Throwable) {
+                }
 
                 return;
             }
@@ -207,11 +210,16 @@ class SendItem implements ShouldQueue
             'error' => $error,
         ]);
 
-        Notification::create([
-            'type' => 'queue_failed',
-            'title' => 'Transfer #'.$transfer->id.' failed',
-            'body' => $error,
-            'action_url' => '/lan/locations',
-        ]);
+        Log::channel('queue_fail')->error('Transfer #'.$transfer->id.' failed: '.$error);
+
+        try {
+            Notification::create([
+                'type' => 'queue_failed',
+                'title' => 'Transfer #'.$transfer->id.' failed',
+                'body' => $error,
+                'action_url' => '/lan/locations',
+            ]);
+        } catch (\Throwable) {
+        }
     }
 }

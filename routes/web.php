@@ -4,6 +4,7 @@ use App\Http\Controllers\AppFileController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\ConfigController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\LanController;
 use App\Http\Controllers\LanStatusController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\OrderController;
@@ -62,6 +63,9 @@ Route::middleware('installed')->group(function (): void {
         Route::post('/lan/locations/{location}/delete', [LanStatusController::class, 'destroy'])->name('lan.locations.destroy');
         Route::post('/lan/locations/{location}/poke', [LanStatusController::class, 'poke'])->name('lan.locations.poke');
         Route::post('/lan/locations/retry/{id}', [LanStatusController::class, 'retry'])->name('lan.locations.retry');
+
+        Route::get('/app/notifications', [LanController::class, 'appNotifications'])->name('app.notifications');
+        Route::post('/app/notifications/{id}/read', [LanController::class, 'readNotification'])->name('app.notifications.read');
 
         Route::get('/zkteco', [ZktecoController::class, 'index'])->name('zkteco.index');
         Route::get('/zkteco/connect', [ZktecoController::class, 'connect'])->name('zkteco.connect');

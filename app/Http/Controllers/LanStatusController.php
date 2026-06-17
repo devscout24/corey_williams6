@@ -205,7 +205,8 @@ class LanStatusController extends Controller
 
         $configuredName = config('app.node_name');
         $host = gethostname();
-        $name = $configuredName ?: ($host ?: 'unnamed');
+        // $name = $configuredName ?: ($host ?: 'unnamed');
+        $name = $host;
 
         $existingSelf = Location::query()->where('is_self', true)->first();
         $port = (int) ($existingSelf?->port ?: config('app.node_port') ?: parse_url((string) config('app.url'), PHP_URL_PORT) ?: 8000);

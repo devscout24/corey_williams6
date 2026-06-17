@@ -70,12 +70,15 @@ class LanController extends Controller
 
         $location->update(['last_poke_received_at' => now()]);
 
-        Notification::create([
-            'type' => 'poke_received',
-            'title' => 'Poke received from '.$data['name'],
-            'body' => $data['ip'].':'.$data['port'],
-            'action_url' => '/lan/locations',
-        ]);
+        try {
+            Notification::create([
+                'type' => 'poke_received',
+                'title' => 'Poke received from '.$data['name'],
+                'body' => $data['ip'].':'.$data['port'],
+                'action_url' => '/lan/locations',
+            ]);
+        } catch (\Throwable) {
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -235,12 +238,15 @@ class LanController extends Controller
                 $receiving->syncDocumentIdentity();
 
                 $transferIn->update(['notes' => $receiving->internal_code]);
-                Notification::create([
-                    'type' => 'transfer_received',
-                    'title' => 'Transfer received from '.$senderName,
-                    'body' => ($payload['transfer_code'] ?? 'Transfer #'.$payload['transfer_out_id']).' — '.count($lines).' item(s), awaiting confirmation.',
-                    'action_url' => '/receivings/'.$receiving->receiving_id,
-                ]);
+                try {
+                    Notification::create([
+                        'type' => 'transfer_received',
+                        'title' => 'Transfer received from '.$senderName,
+                        'body' => ($payload['transfer_code'] ?? 'Transfer #'.$payload['transfer_out_id']).' — '.count($lines).' item(s), awaiting confirmation.',
+                        'action_url' => '/receivings/'.$receiving->receiving_id,
+                    ]);
+                } catch (\Throwable) {
+                }
 
                 $lineNumber = 0;
                 foreach ($lines as $line) {
@@ -404,12 +410,15 @@ class LanController extends Controller
             ->first();
 
         if ($transferOut) {
-            Notification::create([
-                'type' => 'transfer_completed',
-                'title' => 'Transfer #'.$data['transfer_out_id'].' completed by receiver',
-                'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
-                'action_url' => '/transfers',
-            ]);
+            try {
+                Notification::create([
+                    'type' => 'transfer_completed',
+                    'title' => 'Transfer #'.$data['transfer_out_id'].' completed by receiver',
+                    'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
+                    'action_url' => '/transfers',
+                ]);
+            } catch (\Throwable) {
+            }
         }
 
         return response()->json(['ok' => true]);

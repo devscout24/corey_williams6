@@ -129,6 +129,13 @@ return [
             'level' => 'debug',
         ],
 
+        'queue_fail' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/queue-fail.log'),
+            'level' => 'error',
+            'days' => 30,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
