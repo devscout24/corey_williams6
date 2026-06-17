@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SetupController extends Controller
@@ -40,15 +41,15 @@ class SetupController extends Controller
         ]);
 
         $envPath = base_path('.env');
-        if (!file_exists($envPath)) {
+        if (! file_exists($envPath)) {
             return redirect()->back()->with('error', '.env file not found.');
         }
 
         $env = file_get_contents($envPath);
         $env = $this->setEnvValue($env, 'APP_NAME', $data['app_name']);
-        $env = $this->setEnvValue($env, 'APP_NODE_NAME', $data['node_name']);
+        $env = $this->setEnvValue($env, 'APP_NODE_NAME', Str::slug($data['node_name']));
 
-        if (!empty($data['storage_path'])) {
+        if (! empty($data['storage_path'])) {
             $env = $this->setEnvValue($env, 'LARAVEL_STORAGE_PATH', $data['storage_path']);
         }
 
@@ -67,6 +68,7 @@ class SetupController extends Controller
             ['location_id' => 1],
             [
                 'name' => $data['store_location_name'],
+                'slug' => Str::slug($data['store_location_name']),
                 'deleted' => 0,
                 'updated_at' => now(),
                 'created_at' => now(),
@@ -112,7 +114,7 @@ class SetupController extends Controller
     private function resolveLanIp(): ?string
     {
         $host = gethostname();
-        if (!$host) {
+        if (! $host) {
             return null;
         }
 
@@ -183,7 +185,7 @@ class SetupController extends Controller
     private function markInstalled(): void
     {
         $lockPath = storage_path('app/install.lock');
-        if (!file_exists(dirname($lockPath))) {
+        if (! file_exists(dirname($lockPath))) {
             mkdir(dirname($lockPath), 0755, true);
         }
 

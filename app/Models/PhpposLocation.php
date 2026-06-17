@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 
 class PhpposLocation extends Model
 {
@@ -25,8 +26,28 @@ class PhpposLocation extends Model
     {
         static::creating(function (self $location) {
             if (empty($location->ulid)) {
-                $location->ulid = (string) \Illuminate\Support\Str::ulid();
+                $location->ulid = (string) Str::ulid();
+            }
+            static::generateSlug($location);
+        });
+
+        static::updating(function (self $location) {
+            if ($location->isDirty('name')) {
+                static::generateSlug($location);
             }
         });
+    }
+
+    private static function generateSlug(self $location): void
+    {
+        if ($location->name) {
+            $base = Str::slug($location->name);
+            $slug = $base;
+            $suffix = 1;
+            while (static::query()->where('slug', $slug)->when($location->exists, fn ($q) => $q->where('location_id', '!=', $location->location_id))->exists()) {
+                $slug = $base.'-'.$suffix++;
+            }
+            $location->slug = $slug;
+        }
     }
 }

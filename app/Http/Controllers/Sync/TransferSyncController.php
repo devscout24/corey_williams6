@@ -55,6 +55,7 @@ class TransferSyncController extends Controller
         return response()->json([
             'source_device_id' => config('sync.device_id'),
             'transfer_out_id' => (string) $transfer->id,
+            'transfer_code' => $transfer->internal_code ?? ('TRN-OUT-' . str_pad((string) $transfer->id, 8, '0', STR_PAD_LEFT)),
             'from_location_ulid' => $fromLocation->ulid,
             'to_location_ulid' => $toLocation->ulid,
             'notes' => $transfer->notes,
@@ -68,6 +69,7 @@ class TransferSyncController extends Controller
         $data = $request->validate([
             'source_device_id' => 'required|string|max:100',
             'transfer_out_id' => 'required|string|max:100',
+            'transfer_code' => 'nullable|string|max:50',
             'from_location_ulid' => 'required|string|max:26',
             'to_location_ulid' => 'required|string|max:26',
             'notes' => 'nullable|string',
@@ -136,7 +138,8 @@ class TransferSyncController extends Controller
             $data['notes'] ?? null,
             $data['created_at'] ?? null,
             null,
-            $data['status'] ?? 'closed'
+            $data['status'] ?? 'closed',
+            $data['transfer_code'] ?? null,
         );
 
         return response()->json([

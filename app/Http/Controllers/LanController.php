@@ -5,17 +5,19 @@ namespace App\Http\Controllers;
 use App\Jobs\AnnouncePresence;
 use App\Jobs\SendItem;
 use App\Models\Location;
-use App\Models\TransferQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
+use App\Models\TransferQueue;
 use App\Services\LanLocationRegistry;
 use App\Services\LocationContextService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LanController extends Controller
@@ -26,12 +28,39 @@ class LanController extends Controller
             'ip' => ['required', 'string', 'max:45'],
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
             'phppos_location_ulid' => ['nullable', 'string', 'max:26'],
         ]);
 
         $this->log('Announce from '.$data['name'].' ('.$data['ip'].':'.$data['port'].') ulid='.($data['phppos_location_ulid'] ?? 'null'));
 
-        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name'], $data['phppos_location_ulid'] ?? null);
+        $isPoke = $request->header('X-Poke') === '1';
+        $isPokeAck = $request->header('X-Poke-Ack') === '1';
+        $pokeId = $request->header('X-Poke-Id');
+
+        $location = $registry->upsertPeer(
+            $data['ip'],
+            (int) $data['port'],
+            $data['name'],
+            $data['slug'] ?? null,
+            $data['phppos_location_ulid'] ?? null
+        );
+
+        if ($isPoke && ! $isPokeAck) {
+            $location->update(['last_poke_received_at' => now()]);
+
+            $this->log('Poke received from '.$data['name'].' — sending poke-back');
+
+            $registry->pokeBack($data, $pokeId ?? (string) Str::ulid());
+        }
+
+        if ($isPokeAck && $pokeId) {
+            $sourceLocation = Location::query()->where('ip', $data['ip'])->first();
+            if ($sourceLocation && $sourceLocation->last_poke_id === $pokeId) {
+                $sourceLocation->update(['last_poke_ack_at' => now()]);
+                $this->log('Poke ack received from '.$data['name'].' — handshake complete');
+            }
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -61,6 +90,7 @@ class LanController extends Controller
             $transferPayload = $request->validate([
                 'payload.source_device_id' => ['nullable', 'string', 'max:100'],
                 'payload.transfer_out_id' => ['required', 'string', 'max:100'],
+                'payload.transfer_code' => ['nullable', 'string', 'max:50'],
                 'payload.from_location_ulid' => ['required', 'string', 'max:26'],
                 'payload.to_location_ulid' => ['required', 'string', 'max:26'],
                 'payload.notes' => ['nullable', 'string'],
@@ -81,8 +111,8 @@ class LanController extends Controller
             $currentLocationId = $locationContextService->resolveLocationId(null);
             $currentLocation = PhpposLocation::where('location_id', $currentLocationId)->first();
 
-            if (!$fromLocation || !$toLocation || !$currentLocation) {
-                $this->log('FAIL: Location ULID not found — from='.($fromLocation?'ok':'MISSING').' to='.($toLocation?'ok':'MISSING').' current='.($currentLocation?'ok':'MISSING'));
+            if (! $fromLocation || ! $toLocation || ! $currentLocation) {
+                $this->log('FAIL: Location ULID not found — from='.($fromLocation ? 'ok' : 'MISSING').' to='.($toLocation ? 'ok' : 'MISSING').' current='.($currentLocation ? 'ok' : 'MISSING'));
                 throw ValidationException::withMessages([
                     'location' => 'Location ULID not found on this device.',
                 ]);
@@ -107,14 +137,14 @@ class LanController extends Controller
                 }
 
                 $item = null;
-                if (!empty($line['item_id'])) {
+                if (! empty($line['item_id'])) {
                     $item = PhpposItem::find($line['item_id']);
                 }
-                if (!$item && !empty($line['item_number'])) {
+                if (! $item && ! empty($line['item_number'])) {
                     $item = PhpposItem::where('item_number', $line['item_number'])->first();
                 }
 
-                if (!$item) {
+                if (! $item) {
                     $this->log('FAIL: line '.$index.' item not found — item_id='.($line['item_id'] ?? 'null').' item_number='.($line['item_number'] ?? 'null'));
                     throw ValidationException::withMessages([
                         "payload.lines.$index.item_id" => 'Item not found for this transfer line.',
@@ -132,7 +162,7 @@ class LanController extends Controller
             $this->log('Full payload: '.json_encode($data));
 
             $employeeId = DB::table('phppos_employees')->value('person_id');
-            $timestamp = isset($payload['created_at']) ? \Carbon\Carbon::parse($payload['created_at']) : now();
+            $timestamp = isset($payload['created_at']) ? Carbon::parse($payload['created_at']) : now();
 
             $subtotal = 0.0;
             $totalQty = 0.0;
@@ -142,13 +172,13 @@ class LanController extends Controller
                 $totalQty += $line['quantity'];
             }
 
-            $receiving = DB::transaction(function () use ($currentLocationId, $fromLocation, $payload, $employeeId, $timestamp, $lines, $subtotal, $totalQty): PhpposReceiving {
+            $receiving = DB::transaction(function () use ($currentLocationId, $payload, $employeeId, $timestamp, $lines, $subtotal, $totalQty): PhpposReceiving {
                 $receiving = PhpposReceiving::create([
                     'receiving_time' => $timestamp,
                     'closed_at' => null,
                     'supplier_id' => null,
                     'employee_id' => $employeeId,
-                    'comment' => $payload['notes'] ?? 'Transfer from '.$payload['source_device_id'].' #'.$payload['transfer_out_id'],
+                    'comment' => $payload['notes'] ?? 'Transfer from '.$payload['source_device_id'].' #'.($payload['transfer_code'] ?? $payload['transfer_out_id']),
                     'location_id' => $currentLocationId,
                     'subtotal' => $subtotal,
                     'total' => $subtotal,
@@ -157,7 +187,7 @@ class LanController extends Controller
                     'mode' => 'transfer',
                     'type' => 'transfer',
                     'source' => 'transfer',
-                    'reference_id' => $payload['transfer_out_id'],
+                    'reference_id' => $payload['transfer_code'] ?? $payload['transfer_out_id'],
                 ]);
                 $receiving->syncDocumentIdentity();
 

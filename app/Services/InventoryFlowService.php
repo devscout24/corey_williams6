@@ -70,6 +70,7 @@ class InventoryFlowService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->setTransferInternalCode($transferOutId, 'out');
 
             $transferInId = DB::table('phppos_transfers')->insertGetId([
                 'transfer_type' => 'in',
@@ -84,6 +85,7 @@ class InventoryFlowService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->setTransferInternalCode($transferInId, 'in');
 
             foreach ($lines as $line) {
                 $itemId = (int) $line['item_id'];
@@ -170,6 +172,8 @@ class InventoryFlowService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            $this->setTransferInternalCode($transferOutId, 'out');
 
             foreach ($lines as $line) {
                 $itemId = (int) $line['item_id'];
@@ -338,7 +342,8 @@ class InventoryFlowService
         ?string $notes = null,
         ?string $createdAt = null,
         ?int $employeePersonId = null,
-        string $status = 'closed'
+        string $status = 'closed',
+        ?string $transferCode = null,
     ): array {
         if ($fromLocationId === $toLocationId) {
             throw new RuntimeException('From and To location must be different.');
@@ -430,7 +435,8 @@ class InventoryFlowService
             }
 
             $receivingEmployeeId = $employeePersonId ?? $this->resolveSyncEmployeeId();
-            $receivingComment = 'Synced Transfer Out '.$externalTransferId.' from '.$externalSource;
+            $displayCode = $transferCode ?? $externalTransferId;
+            $receivingComment = 'Synced Transfer Out '.$displayCode.' from '.$externalSource;
             if ($notes) {
                 $receivingComment .= ' - '.$notes;
             }
@@ -463,7 +469,7 @@ class InventoryFlowService
                 'mode' => 'receive',
                 'type' => 'receive',
                 'source' => 'transfer',
-                'reference_id' => $externalTransferId,
+                'reference_id' => $displayCode,
             ]);
             $receiving->syncDocumentIdentity();
 
@@ -568,6 +574,16 @@ class InventoryFlowService
             ->update([
                 'quantity' => $newQty,
                 'updated_at' => now(),
+            ]);
+    }
+
+    private function setTransferInternalCode(int $transferId, string $type): void
+    {
+        $prefix = $type === 'out' ? 'TRN-OUT' : 'TRN-IN';
+        DB::table('phppos_transfers')
+            ->where('id', $transferId)
+            ->update([
+                'internal_code' => $prefix . '-' . str_pad((string) $transferId, 8, '0', STR_PAD_LEFT),
             ]);
     }
 }

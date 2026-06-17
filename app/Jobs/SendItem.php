@@ -161,6 +161,7 @@ class SendItem implements ShouldQueue
             'payload' => [
                 'source_device_id' => $selfIp,
                 'transfer_out_id' => (string) $transferOut->id,
+                'transfer_code' => $transferOut->internal_code ?? ('TRN-OUT-' . str_pad((string) $transferOut->id, 8, '0', STR_PAD_LEFT)),
                 'from_location_ulid' => $fromLocation->ulid,
                 'to_location_ulid' => $toLocation->ulid,
                 'notes' => $transferOut->notes,

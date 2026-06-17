@@ -1,8 +1,9 @@
 <?php
 
+use App\Services\LanLocationRegistry;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use App\Services\LanLocationRegistry;
+use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -13,21 +14,24 @@ Artisan::command('app:bind-identity', function () {
     $ip = $registry->resolveLanIp();
     if (! $ip) {
         $this->error('Could not resolve a non-loopback LAN IP address.');
+
         return;
     }
 
     $host = gethostname();
     $name = $host ?: 'unnamed';
+    $slug = Str::slug($name);
 
     $envPath = base_path('.env');
-    if (!file_exists($envPath)) {
+    if (! file_exists($envPath)) {
         $this->error('.env file not found.');
+
         return;
     }
 
     $env = file_get_contents($envPath);
     $env = appBindIdentitySetEnv($env, 'APP_NODE_IP', $ip);
-    $env = appBindIdentitySetEnv($env, 'APP_NODE_NAME', $name);
+    $env = appBindIdentitySetEnv($env, 'APP_NODE_NAME', $slug);
     file_put_contents($envPath, $env);
 
     $this->info("Bound identity: {$name} ({$ip})");

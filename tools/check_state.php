@@ -7,7 +7,7 @@ echo "=== Locations ===\n";
 echo json_encode(App\Models\Location::all()->toArray(), JSON_PRETTY_PRINT) . "\n\n";
 
 echo "=== PhpposLocations (not deleted) ===\n";
-$locs = App\Models\PhpposLocation::where('deleted', 0)->get(['location_id', 'name', 'ulid']);
+$locs = App\Models\PhpposLocation::where('deleted', 0)->get(['location_id', 'name', 'slug', 'ulid']);
 echo json_encode($locs->toArray(), JSON_PRETTY_PRINT) . "\n\n";
 
 echo "=== Config ===\n";

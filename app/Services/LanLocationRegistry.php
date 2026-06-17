@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Location;
 use App\Models\PhpposLocation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
@@ -26,11 +27,12 @@ class LanLocationRegistry
                 $self = $location;
             }
 
-            $location = $self ?? $location ?? new Location();
+            $location = $self ?? $location ?? new Location;
             $name = $name ?: $location->name ?: config('app.node_name') ?: gethostname() ?: 'unnamed';
+            $slug = $location->slug ?: Str::slug($name);
 
-            $phpposLocation = $this->resolvePhpposLocation($phpposLocationId, $location, $name);
-            $this->syncPhpposLocation($phpposLocation, $name, $ip, $port);
+            $phpposLocation = $this->resolvePhpposLocation($phpposLocationId, $location, $name, $slug);
+            $this->syncPhpposLocation($phpposLocation, $name, $slug, $ip, $port);
 
             Location::query()
                 ->where('is_self', true)
@@ -39,6 +41,7 @@ class LanLocationRegistry
 
             $location->fill([
                 'name' => $name,
+                'slug' => $slug,
                 'ip' => $ip,
                 'port' => $port,
                 'is_self' => true,
@@ -51,23 +54,29 @@ class LanLocationRegistry
         });
     }
 
-    public function upsertPeer(string $ip, int $port, string $name, ?string $ulid = null): Location
+    public function upsertPeer(string $ip, int $port, string $name, ?string $slug = null, ?string $ulid = null): Location
     {
         $ip = $this->normalizeIp($ip);
         $this->validatePort($port);
 
-        return DB::transaction(function () use ($ip, $port, $name, $ulid): Location {
-            $location = Location::query()->where('ip', $ip)->first() ?? new Location();
+        return DB::transaction(function () use ($ip, $port, $name, $slug, $ulid): Location {
+            $location = Location::query()->where('ip', $ip)->first() ?? new Location;
+
+            $slug = $slug ?: ($location->slug ?: Str::slug($name));
 
             $phpposLocation = $location->phpposLocation;
+            if (! $phpposLocation) {
+                $phpposLocation = PhpposLocation::query()->where('slug', $slug)->first();
+            }
             if (! $phpposLocation) {
                 $phpposLocation = PhpposLocation::create(['name' => $name]);
             }
 
-            $this->syncPhpposLocation($phpposLocation, $name, $ip, $port, $ulid);
+            $this->syncPhpposLocation($phpposLocation, $name, $slug, $ip, $port, $ulid);
 
             $location->fill([
                 'name' => $name,
+                'slug' => $slug,
                 'ip' => $ip,
                 'port' => $port,
                 'is_self' => false,
@@ -102,6 +111,7 @@ class LanLocationRegistry
             'ip' => $self->ip,
             'port' => (int) $self->port,
             'name' => $self->name,
+            'slug' => $self->slug,
             'phppos_location_ulid' => $self->phpposLocation?->ulid,
         ];
     }
@@ -146,6 +156,7 @@ class LanLocationRegistry
         }
 
         $configured = config('app.node_ip');
+
         return $this->isUsableLanIp($configured) ? $configured : null;
     }
 
@@ -162,6 +173,31 @@ class LanLocationRegistry
         return ! str_starts_with($ip, '127.')
             && $ip !== '::1'
             && $ip !== '0.0.0.0';
+    }
+
+    public function syncHeaders(): array
+    {
+        return [
+            'X-Sync-Token' => (string) config('sync.shared_token'),
+        ];
+    }
+
+    public function pokeBack(array $incomingData, string $pokeId): void
+    {
+        $payload = $this->announcePayload();
+        $targetUrl = "http://{$incomingData['ip']}:{$incomingData['port']}/api/lan/announce";
+
+        try {
+            Http::timeout(10)
+                ->asJson()
+                ->withHeaders(array_merge($this->syncHeaders(), [
+                    'X-Poke-Ack' => '1',
+                    'X-Poke-Id' => $pokeId,
+                ]))
+                ->post($targetUrl, $payload);
+        } catch (\Throwable) {
+            // Poke-back is best-effort; the initiator can retry
+        }
     }
 
     private function normalizeIp(string $ip): string
@@ -182,7 +218,7 @@ class LanLocationRegistry
         }
     }
 
-    private function resolvePhpposLocation(?int $phpposLocationId, Location $location, string $name): PhpposLocation
+    private function resolvePhpposLocation(?int $phpposLocationId, Location $location, string $name, string $slug): PhpposLocation
     {
         if ($phpposLocationId) {
             return PhpposLocation::query()->where('location_id', $phpposLocationId)->firstOrFail();
@@ -190,6 +226,11 @@ class LanLocationRegistry
 
         if ($location->phpposLocation) {
             return $location->phpposLocation;
+        }
+
+        $bySlug = PhpposLocation::query()->where('slug', $slug)->first();
+        if ($bySlug) {
+            return $bySlug;
         }
 
         $firstLocation = PhpposLocation::query()
@@ -200,7 +241,7 @@ class LanLocationRegistry
         return $firstLocation ?? PhpposLocation::create(['name' => $name]);
     }
 
-    private function syncPhpposLocation(PhpposLocation $location, string $name, string $ip, int $port, ?string $remoteUlid = null): void
+    private function syncPhpposLocation(PhpposLocation $location, string $name, string $slug, string $ip, int $port, ?string $remoteUlid = null): void
     {
         if ($remoteUlid) {
             $location->ulid = $remoteUlid;
@@ -210,6 +251,7 @@ class LanLocationRegistry
 
         $location->forceFill([
             'name' => $name,
+            'slug' => $slug,
             'sync_url' => "http://{$ip}:{$port}",
             'deleted' => false,
         ])->save();

@@ -6,10 +6,12 @@ use App\Jobs\SendItem;
 use App\Models\Location;
 use App\Models\TransferQueue;
 use App\Services\LanLocationRegistry;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class LanStatusController extends Controller
@@ -36,14 +38,18 @@ class LanStatusController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        $slug = Str::slug($data['name']);
+
         $self = Location::query()->where('is_self', true)->first();
         if ($self) {
             $self->name = $data['name'];
+            $self->slug = $slug;
             $self->save();
 
             if ($self->phpposLocation) {
                 $self->phpposLocation->update([
                     'name' => $data['name'],
+                    'slug' => $slug,
                     'sync_url' => $self->ip && $self->port ? "http://{$self->ip}:{$self->port}" : $self->phpposLocation->sync_url,
                     'deleted' => false,
                 ]);
@@ -53,7 +59,7 @@ class LanStatusController extends Controller
         $envPath = base_path('.env');
         if (file_exists($envPath)) {
             $env = file_get_contents($envPath);
-            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $data['name']);
+            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $slug);
             file_put_contents($envPath, $env);
         }
 
@@ -70,7 +76,8 @@ class LanStatusController extends Controller
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
 
-        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name']);
+        $slug = Str::slug($data['name']);
+        $registry->upsertPeer($data['ip'], (int) $data['port'], $data['name'], $slug);
 
         return redirect()->route('lan.locations')
             ->with('status', "Location {$data['name']} ({$data['ip']}) added.");
@@ -84,8 +91,11 @@ class LanStatusController extends Controller
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
         ]);
 
+        $slug = Str::slug($data['name']);
+
         $location->update([
             'name' => $data['name'],
+            'slug' => $slug,
             'ip' => $data['ip'],
             'port' => (int) $data['port'],
         ]);
@@ -93,6 +103,7 @@ class LanStatusController extends Controller
         if ($location->phpposLocation) {
             $location->phpposLocation->update([
                 'name' => $data['name'],
+                'slug' => $slug,
                 'sync_url' => "http://{$data['ip']}:{$data['port']}",
                 'deleted' => false,
             ]);
@@ -123,27 +134,44 @@ class LanStatusController extends Controller
 
     public function poke(Location $location, LanLocationRegistry $registry): RedirectResponse
     {
-        if ($location->is_self || !$location->ip || !$location->port) {
+        if ($location->is_self || ! $location->ip || ! $location->port) {
             return redirect()->route('lan.locations')
                 ->with('error', 'Cannot poke the self location or a location without an IP and port.');
         }
 
+        $pokeId = (string) Str::ulid();
+
         try {
             $response = Http::timeout(10)
                 ->asJson()
-                ->withHeaders($this->syncHeaders())
+                ->withHeaders(array_merge($registry->syncHeaders(), [
+                    'X-Poke' => '1',
+                    'X-Poke-Id' => $pokeId,
+                ]))
                 ->post($registry->urlFor($location).'/api/lan/announce', $registry->announcePayload());
+
+            $location->update([
+                'last_poke_id' => $pokeId,
+                'last_poke_sent_at' => now(),
+                'last_poke_ack_at' => null,
+            ]);
 
             if ($response->ok()) {
                 return redirect()->route('lan.locations')
-                    ->with('status', "Poke sent to {$location->name} at {$location->url} — host acknowledged.");
+                    ->with('status', "Poke sent to {$location->name} — waiting for response.");
             }
 
             return redirect()->route('lan.locations')
-                ->with('error', "Poke sent to {$location->name} at {$location->url} but target responded with {$response->status()}.");
+                ->with('error', "Poke sent to {$location->name} but target responded with {$response->status()}.");
         } catch (\Throwable $e) {
+            $location->update([
+                'last_poke_id' => $pokeId,
+                'last_poke_sent_at' => now(),
+                'last_poke_ack_at' => null,
+            ]);
+
             return redirect()->route('lan.locations')
-                ->with('error', "Could not reach {$location->name} at {$location->url}: {$e->getMessage()}");
+                ->with('error', "Could not reach {$location->name}: {$e->getMessage()}");
         }
     }
 
@@ -162,10 +190,10 @@ class LanStatusController extends Controller
             ->with('status', "Transfer #{$id} queued for retry.");
     }
 
-    public function resyncIpPreview(LanLocationRegistry $registry): \Illuminate\Http\JsonResponse
+    public function resyncIpPreview(LanLocationRegistry $registry): JsonResponse
     {
         $ip = $registry->resolveLanIp();
-        if (!$ip) {
+        if (! $ip) {
             return response()->json(['error' => 'Could not resolve a LAN IP address. Check network connectivity.'], 422);
         }
 
@@ -177,7 +205,7 @@ class LanStatusController extends Controller
         $port = (int) ($existingSelf?->port ?: config('app.node_port') ?: parse_url((string) config('app.url'), PHP_URL_PORT) ?: 8000);
 
         return response()->json([
-            'ip'   => $ip,
+            'ip' => $ip,
             'port' => $port,
             'name' => $name,
         ]);
@@ -186,14 +214,15 @@ class LanStatusController extends Controller
     public function resyncIp(Request $request, LanLocationRegistry $registry): RedirectResponse
     {
         $data = $request->validate([
-            'ip'   => ['required', 'string', 'max:45'],
+            'ip' => ['required', 'string', 'max:45'],
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $ip   = $data['ip'];
+        $ip = $data['ip'];
         $port = (int) $data['port'];
         $name = $data['name'];
+        $slug = Str::slug($name);
 
         $existingSelf = Location::query()->where('is_self', true)->first();
         $self = $registry->registerSelf($ip, $port, $name, $existingSelf?->phppos_location_id);
@@ -202,7 +231,7 @@ class LanStatusController extends Controller
         if (file_exists($envPath)) {
             $env = file_get_contents($envPath);
             $env = $this->setEnvValue($env, 'APP_NODE_IP', $ip);
-            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $name);
+            $env = $this->setEnvValue($env, 'APP_NODE_NAME', $slug);
             file_put_contents($envPath, $env);
         }
 
@@ -216,20 +245,13 @@ class LanStatusController extends Controller
 
     private function setEnvValue(string $contents, string $key, string $value): string
     {
-        $line = $key . '=' . $value;
-        $pattern = '/^' . preg_quote($key, '/') . '=.*/m';
+        $line = $key.'='.$value;
+        $pattern = '/^'.preg_quote($key, '/').'=.*/m';
 
         if (preg_match($pattern, $contents) === 1) {
             return (string) preg_replace($pattern, $line, $contents);
         }
 
-        return rtrim($contents) . PHP_EOL . $line . PHP_EOL;
-    }
-
-    private function syncHeaders(): array
-    {
-        return [
-            'X-Sync-Token' => (string) config('sync.shared_token'),
-        ];
+        return rtrim($contents).PHP_EOL.$line.PHP_EOL;
     }
 }

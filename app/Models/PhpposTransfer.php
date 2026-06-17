@@ -14,6 +14,21 @@ class PhpposTransfer extends Model
 
     protected $guarded = [];
 
+    protected static function booted(): void
+    {
+        static::created(function (self $transfer) {
+            $transfer->syncDocumentIdentity();
+        });
+    }
+
+    public function syncDocumentIdentity(): void
+    {
+        $prefix = $this->transfer_type === 'out' ? 'TRN-OUT' : 'TRN-IN';
+        $this->forceFill([
+            'internal_code' => $prefix . '-' . str_pad((string) $this->id, 8, '0', STR_PAD_LEFT),
+        ])->saveQuietly();
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(PhpposTransferItem::class, 'transfer_id');

@@ -44,6 +44,7 @@
                                 <th>Name</th>
                                 <th>Address</th>
                                 <th>Last Seen</th>
+                                <th>Poke Status</th>
                                 <th>Self</th>
                                 <th>Actions</th>
                             </tr>
@@ -54,6 +55,25 @@
                                     <td>{{ $location->name }}</td>
                                     <td><code>{{ $location->ip }}:{{ $location->port ?? 8000 }}</code></td>
                                     <td>{{ $location->last_seen_at ? \Carbon\Carbon::parse($location->last_seen_at)->format('m/d/Y H:i') : 'Never' }}</td>
+                                    <td>
+                                        @if($location->is_self)
+                                            <span class="text-muted small">—</span>
+                                        @elseif($location->last_poke_sent_at && $location->last_poke_ack_at && $location->last_poke_sent_at->eq($location->last_poke_ack_at))
+                                            <span class="badge bg-success" title="Sent: {{ $location->last_poke_sent_at->format('m/d/Y H:i') }}, Response: {{ $location->last_poke_ack_at->format('m/d/Y H:i') }}">
+                                                <i class="bi bi-check-circle me-1"></i>Complete
+                                            </span>
+                                        @elseif($location->last_poke_sent_at && $location->last_poke_ack_at)
+                                            <span class="badge bg-success" title="Sent: {{ $location->last_poke_sent_at->format('m/d/Y H:i') }}, Response: {{ $location->last_poke_ack_at->format('m/d/Y H:i') }}">
+                                                <i class="bi bi-check-circle me-1"></i>Complete
+                                            </span>
+                                        @elseif($location->last_poke_sent_at)
+                                            <span class="badge bg-warning text-dark" title="Sent: {{ $location->last_poke_sent_at->format('m/d/Y H:i') }}, awaiting response">
+                                                <i class="bi bi-hourglass-split me-1"></i>Waiting
+                                            </span>
+                                        @else
+                                            <span class="text-muted small">Not poked</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($location->is_self)
                                             <span class="badge bg-success">Yes</span>
@@ -92,7 +112,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5">
+                                    <td colspan="6" class="text-center py-5">
                                         <div class="text-muted mb-3">No LAN nodes discovered yet.</div>
                                         <button type="button" class="btn btn-primary me-2" id="resyncIpBtnEmpty">
                                             <i class="bi bi-plus-circle me-1"></i> Set Self Location
