@@ -91,7 +91,7 @@ class LanController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function receive(Request $request, LocationContextService $locationContextService): JsonResponse
+    public function receive(Request $request, LocationContextService $locationContextService, LanLocationRegistry $registry): JsonResponse
     {
         $this->log('Incoming receive from '.$request->input('from_ip', '?'));
 

@@ -1,14 +1,17 @@
 # AGENTS.md — Laravel POS
 
-## Quick start (SQLite supported, MySQL `.env.example` default)
+## Quick start
+
+Canonical one-step setup (handles .env, key, migrate, npm):
 
 ```powershell
-composer install
-npm install
-copy .env.example .env
-php artisan key:generate
-php artisan migrate:fresh --seed
-npm run build
+composer run setup
+```
+
+Manual equivalent (useful for `migrate:fresh --seed` resets):
+
+```powershell
+composer install; npm install; copy .env.example .env; php artisan key:generate; php artisan migrate:fresh --seed; npm run build
 ```
 
 Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
@@ -17,23 +20,22 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
 | Command | What it runs |
 |---|---|
-| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3` + `pail` + Vite, via concurrently |
+| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3 --timeout=0` + `pail --timeout=0` + Vite, via concurrently |
 | `npm run dev` | Vite only (Tailwind v4 + laravel-vite-plugin) |
 | `composer run test` | `config:clear` then `php artisan test` |
-| `composer run setup` | Full fresh install (composer, .env, key, migrate, npm) |
+| `composer run setup` | composer install, copy .env, key:generate, `migrate --force` (not fresh), npm install, npm run build |
 
 ## Testing
 
 - **PHPUnit** with SQLite `:memory:` — env overrides in `phpunit.xml`.
-- Suites: `tests/Unit`, `tests/Feature`.
 - Queue forced to `sync` in tests (no worker needed).
-- Tests using `RefreshDatabase` must manually `@touch(storage_path('app/install.lock'))` in `setUp()` to pass `EnsureInstalled` middleware (see `tests/Feature/*` examples).
+- Tests using `RefreshDatabase` must manually `@touch(storage_path('app/install.lock'))` in `setUp()` to pass `EnsureInstalled` middleware.
 - Run a single test: `php artisan test --filter TestName`
 
 ## Auth
 
-- Custom **`employee` guard** (`auth:employee` middleware) backed by `PhpposEmployee` model.
-- Default credentials: **admin** / **12345678** (legacy MD5 stored in seeder; auto-upgrades to bcrypt on first login).
+- Custom **`employee` guard** (`auth:employee` middleware) backed by `PhpposEmployee`.
+- Default credentials: **admin** / **12345678** (legacy MD5 in seeder; auto-upgrades to bcrypt on first login).
 - Login: `GET/POST /login`. Logout: `POST /logout` (inside `auth:employee` group).
 
 ## Database & migrations
@@ -42,20 +44,22 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 - **One create-only migration per `phppos_*` table** — prefer updating the existing create migration and running `migrate:fresh` over adding `Schema::table()` alters. Existing alter migrations exist but don't add new ones.
 - Use `foreignId()->constrained()` for FKs. Explicit `cascadeOnDelete`/`nullOnDelete`.
 - Seed all baseline data in `database/seeders/` (never in migrations). `PosCoreSeeder` runs always; `PosDemoSeeder` runs only if `POS_SEED_DEMO=true`.
-- Validates with: `php artisan migrate:fresh --seed`
+- Validate with: `php artisan migrate:fresh --seed`
 - Legacy migrations in `database/migrations/legacy/` (reference only).
 - Laravel default migrations (`users`, `cache`, `jobs`) kept as-is.
+- `CACHE_STORE=database` and `SESSION_DRIVER=database` defaults (cache + sessions tables exist in stock Laravel migrations).
 
 ## Queue
 
 - `QUEUE_CONNECTION=database` default (DB-driven queue). Required for LAN sync.
-- Start worker: `php artisan queue:work --sleep=1 --tries=1 --timeout=60`
+- Dev server embedded (`composer run dev`): `queue:listen --tries=3 --timeout=0`
+- Standalone worker: `php artisan queue:work --sleep=1 --tries=1 --timeout=60`
 - NSSM service `LaravelPosQueueWorker` auto-starts worker in production.
 
 ## Architecture
 
 - Routes: `routes/web.php` (main POS routes), `routes/api.php` (LAN sync, `sync.auth` middleware), `routes/rony/*` (CRUD bundles for items, people, receiving, sales/inventory — required from `web.php`), `routes/console.php` (custom Artisan commands).
-- 65+ Eloquent models in `app/Models/` — most prefixed `phppos_*`, except `Location`, `TransferQueue`, `PriceRule`, `PriceRulePriceBreak`, `PriceTier`, `Attribute`, `AttributeValue`, `ItemVariation`, `User`.
+- 60+ Eloquent models in `app/Models/` — most prefixed `phppos_*`, except: `Location`, `TransferQueue`, `PriceRule`, `PriceRulePriceBreak`, `PriceTier`, `Attribute`, `AttributeValue`, `ItemVariation`, `User`, `Notification`.
 - Two location tables: `phppos_locations` (POS stores) and `locations` (LAN peer registry with `ip`, `port`, `is_self`, `last_seen_at`).
 - **Location resolution chain** (`LocationContextService`): ULID header/cookie → requested ID → employee current location → LAN self-record → first location fallback.
 - **Setup guard**: `installed` middleware checks for `storage/app/install.lock` — all routes redirect to `/setup` until lock exists.
@@ -66,7 +70,7 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
 ## Code style
 
-- Laravel Pint (`./vendor/bin/pint`) — run before committing.
+- Laravel Pint (`./vendor/bin/pint`) — no local `pint.json`; uses defaults. Run before committing.
 - EditorConfig: 4-space indent, LF endings, UTF-8.
 - Node 26 (`.nvmrc`).
 
