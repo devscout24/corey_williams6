@@ -17,6 +17,7 @@ use App\Services\LanLocationRegistry;
 use App\Services\LocationContextService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -373,7 +374,7 @@ class LanController extends Controller
         return view('notifications.index', compact('notifications', 'canDelete'));
     }
 
-    public function deleteNotification(int $id): JsonResponse
+    public function deleteNotification(int $id): JsonResponse|RedirectResponse
     {
         if (! $this->canDeleteNotifications()) {
             abort(403, 'You do not have permission to delete notifications.');
@@ -382,7 +383,11 @@ class LanController extends Controller
         $notification = Notification::findOrFail($id);
         $notification->delete();
 
-        return response()->json(['ok' => true]);
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->route('app.notifications.all')->with('status', 'Notification deleted.');
     }
 
     private function canDeleteNotifications(): bool
@@ -392,12 +397,16 @@ class LanController extends Controller
         return $employee && $employee->hasModulePermission('config');
     }
 
-    public function readNotification(int $id): JsonResponse
+    public function readNotification(int $id): JsonResponse|RedirectResponse
     {
         $notification = Notification::findOrFail($id);
         $notification->markAsRead();
 
-        return response()->json(['ok' => true]);
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->route('app.notifications.all')->with('status', 'Notification marked as read.');
     }
 
     public function locations(): JsonResponse

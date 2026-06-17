@@ -75,7 +75,7 @@
             </thead>
             <tbody>
                 @forelse($notifications as $n)
-                <tr class="{{ $n->read_at === null ? 'unread' : '' }}">
+                <tr class="{{ $n->read_at === null ? 'unread' : '' }}" data-id="{{ $n->id }}">
                     <td><span class="badge bg-secondary">{{ $n->type }}</span></td>
                     <td>
                         @if($n->reference_type && $n->reference_id)
@@ -93,19 +93,12 @@
                     </td>
                     <td class="text-muted">{{ $n->body ?? '-' }}</td>
                     <td class="text-muted" style="white-space:nowrap;">{{ $n->created_at?->diffForHumans() ?? '-' }}</td>
-                    <td style="white-space:nowrap;">
+                    <td class="notif-actions" style="white-space:nowrap;">
                         @if($n->read_at === null)
-                        <form method="POST" action="{{ route('app.notifications.read', $n->id) }}" style="display:inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Mark read</button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mark-read-btn" data-id="{{ $n->id }}">Mark read</button>
                         @endif
                         @if($canDelete)
-                        <form method="POST" action="{{ route('app.notifications.delete', $n->id) }}" style="display:inline;" onsubmit="return confirm('Delete this notification?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn-delete-notif" title="Delete"><i class="bi bi-trash"></i></button>
-                        </form>
+                        <button type="button" class="btn-delete-notif delete-notif-btn" data-id="{{ $n->id }}" title="Delete"><i class="bi bi-trash"></i></button>
                         @endif
                     </td>
                 </tr>
@@ -123,3 +116,50 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    document.querySelectorAll('.mark-read-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const id = this.dataset.id;
+            const row = this.closest('tr');
+            try {
+                const res = await fetch('{{ route('app.notifications.read', '') }}/' + id, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                });
+                if (!res.ok) return;
+                row.classList.remove('unread');
+                this.remove();
+            } catch (e) {
+                // ignore
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-notif-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            if (!confirm('Delete this notification?')) return;
+            const id = this.dataset.id;
+            const row = this.closest('tr');
+            try {
+                const res = await fetch('{{ route('app.notifications.delete', '') }}/' + id, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                    },
+                });
+                if (!res.ok) return;
+                row.remove();
+            } catch (e) {
+                // ignore
+            }
+        });
+    });
+});
+</script>
+@endpush
