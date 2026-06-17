@@ -88,7 +88,7 @@ class PosCoreSeeder extends Seeder
         if (Schema::hasTable('phppos_employees_locations')) {
             DB::table('phppos_employees_locations')->insertOrIgnore([
                 ['employee_id' => 1, 'location_id' => 1],
-                ['employee_id' => 1, 'location_id' => 2],
+                // ['employee_id' => 1, 'location_id' => 2],
             ]);
         }
 
@@ -245,14 +245,14 @@ class PosCoreSeeder extends Seeder
                 ]
             );
 
-            DB::table('phppos_location_items')->updateOrInsert(
-                ['location_id' => 2, 'item_id' => 1],
-                [
-                    'quantity' => 0,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]
-            );
+            // DB::table('phppos_location_items')->updateOrInsert(
+            //     ['location_id' => 2, 'item_id' => 1],
+            //     [
+            //         'quantity' => 0,
+            //         'created_at' => $now,
+            //         'updated_at' => $now,
+            //     ]
+            // );
         }
 
         if (Schema::hasTable('phppos_registers')) {
