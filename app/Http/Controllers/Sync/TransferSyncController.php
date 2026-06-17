@@ -18,8 +18,7 @@ class TransferSyncController extends Controller
     public function __construct(
         private readonly InventoryFlowService $inventoryFlowService,
         private readonly LocationContextService $locationContextService,
-    ) {
-    }
+    ) {}
 
     public function ping(): JsonResponse
     {
@@ -45,6 +44,7 @@ class TransferSyncController extends Controller
         $items = PhpposTransferItem::where('transfer_id', $transfer->id)->get();
         $lines = $items->map(function ($item) {
             $itemModel = PhpposItem::find($item->item_id);
+
             return [
                 'item_id' => $item->item_id,
                 'item_number' => $itemModel?->item_number,
@@ -55,7 +55,7 @@ class TransferSyncController extends Controller
         return response()->json([
             'source_device_id' => config('sync.device_id'),
             'transfer_out_id' => (string) $transfer->id,
-            'transfer_code' => $transfer->internal_code ?? ('TRN-OUT-' . str_pad((string) $transfer->id, 8, '0', STR_PAD_LEFT)),
+            'transfer_code' => $transfer->internal_code ?? ('TRN-OUT-'.str_pad((string) $transfer->id, 8, '0', STR_PAD_LEFT)),
             'from_location_ulid' => $fromLocation->ulid,
             'to_location_ulid' => $toLocation->ulid,
             'notes' => $transfer->notes,

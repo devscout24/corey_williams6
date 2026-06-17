@@ -144,22 +144,28 @@ class LanStatusController extends Controller
         try {
             $response = Http::timeout(10)
                 ->asJson()
-                ->withHeaders(array_merge($registry->syncHeaders(), [
-                    'X-Poke' => '1',
-                    'X-Poke-Id' => $pokeId,
-                ]))
-                ->post($registry->urlFor($location).'/api/lan/announce', $registry->announcePayload());
+                ->withHeaders($registry->syncHeaders())
+                ->post($registry->urlFor($location).'/api/lan/poke', array_merge(
+                    $registry->announcePayload(),
+                    ['poke_id' => $pokeId],
+                ));
+
+            if ($response->ok()) {
+                $location->update([
+                    'last_poke_id' => $pokeId,
+                    'last_poke_sent_at' => now(),
+                    'last_poke_ack_at' => now(),
+                ]);
+
+                return redirect()->route('lan.locations')
+                    ->with('status', "Poke sent to {$location->name} — handshake complete.");
+            }
 
             $location->update([
                 'last_poke_id' => $pokeId,
                 'last_poke_sent_at' => now(),
                 'last_poke_ack_at' => null,
             ]);
-
-            if ($response->ok()) {
-                return redirect()->route('lan.locations')
-                    ->with('status', "Poke sent to {$location->name} — waiting for response.");
-            }
 
             return redirect()->route('lan.locations')
                 ->with('error', "Poke sent to {$location->name} but target responded with {$response->status()}.");

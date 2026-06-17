@@ -2,9 +2,14 @@
 
 namespace App\Services;
 
+use App\Jobs\SendItem;
+use App\Models\Location;
 use App\Models\PhpposItem;
+use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
+use App\Models\PhpposTransfer;
+use App\Models\TransferQueue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -50,7 +55,7 @@ class InventoryFlowService
     /**
      * Transfer out closes immediately and auto-creates a closed transfer in.
      *
-     * @param array<int, array{item_id:int, quantity:float}> $lines
+     * @param  array<int, array{item_id:int, quantity:float}>  $lines
      */
     public function transferOutAndAutoIn(int $fromLocationId, int $toLocationId, array $lines, ?int $employeePersonId = null, ?string $notes = null): array
     {
@@ -178,7 +183,9 @@ class InventoryFlowService
             foreach ($lines as $line) {
                 $itemId = (int) $line['item_id'];
                 $qty = (float) $line['quantity'];
-                if ($qty <= 0) continue;
+                if ($qty <= 0) {
+                    continue;
+                }
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
                     'item_id' => $itemId,
@@ -187,6 +194,7 @@ class InventoryFlowService
                     'updated_at' => now(),
                 ]);
             }
+
             return $transferOutId;
         });
     }
@@ -202,7 +210,9 @@ class InventoryFlowService
             foreach ($lines as $line) {
                 $itemId = (int) $line['item_id'];
                 $qty = (float) $line['quantity'];
-                if ($qty <= 0) continue;
+                if ($qty <= 0) {
+                    continue;
+                }
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
                     'item_id' => $itemId,
@@ -218,7 +228,7 @@ class InventoryFlowService
     {
         return DB::transaction(function () use ($transferOutId, $employeePersonId): array {
             $transfer = DB::table('phppos_transfers')->where('id', $transferOutId)->first();
-            if (!$transfer || $transfer->status === 'closed') {
+            if (! $transfer || $transfer->status === 'closed') {
                 throw new RuntimeException('Transfer is already closed or not found.');
             }
 
@@ -301,37 +311,37 @@ class InventoryFlowService
 
     public function syncTransferEvent(int $transferOutId): void
     {
-        $transfer = \App\Models\PhpposTransfer::find($transferOutId);
-        if (!$transfer) {
+        $transfer = PhpposTransfer::find($transferOutId);
+        if (! $transfer) {
             return;
         }
 
-        $toLocation = \App\Models\PhpposLocation::where('location_id', $transfer->to_location_id)->first();
-        if (!$toLocation) {
+        $toLocation = PhpposLocation::where('location_id', $transfer->to_location_id)->first();
+        if (! $toLocation) {
             return;
         }
 
-        $lanLocation = \App\Models\Location::where('name', $toLocation->name)
+        $lanLocation = Location::where('name', $toLocation->name)
             ->where('is_self', false)
             ->orderByDesc('last_seen_at')
             ->first();
 
-        if (!$lanLocation || empty($lanLocation->ip)) {
+        if (! $lanLocation || empty($lanLocation->ip)) {
             return;
         }
 
-        $transferQueue = \App\Models\TransferQueue::create([
+        $transferQueue = TransferQueue::create([
             'location_id' => $lanLocation->id,
             'item_type' => 'transfer_out',
             'item_id' => $transfer->id,
             'status' => 'pending',
         ]);
 
-        \App\Jobs\SendItem::dispatch($transferQueue);
+        SendItem::dispatch($transferQueue);
     }
 
     /**
-     * @param array<int, array{item_id:int, quantity:float}> $lines
+     * @param  array<int, array{item_id:int, quantity:float}>  $lines
      */
     public function importTransferIn(
         int $fromLocationId,
@@ -380,12 +390,13 @@ class InventoryFlowService
                             'updated_at' => now(),
                         ]);
                     }
+
                     return [
                         'transfer_in_id' => $existing->id,
                         'already_imported' => false,
                     ];
                 }
-                
+
                 // Existing is open, but new status is closed. We will update it to closed and process inventory.
                 $transferInId = $existing->id;
                 DB::table('phppos_transfers')->where('id', $transferInId)->update([
@@ -419,7 +430,9 @@ class InventoryFlowService
                 foreach ($lines as $line) {
                     $itemId = (int) $line['item_id'];
                     $qty = (float) $line['quantity'];
-                    if ($qty <= 0) continue;
+                    if ($qty <= 0) {
+                        continue;
+                    }
                     DB::table('phppos_transfer_items')->insert([
                         'transfer_id' => $transferInId,
                         'item_id' => $itemId,
@@ -428,6 +441,7 @@ class InventoryFlowService
                         'updated_at' => now(),
                     ]);
                 }
+
                 return [
                     'transfer_in_id' => $transferInId,
                     'already_imported' => false,
@@ -583,7 +597,7 @@ class InventoryFlowService
         DB::table('phppos_transfers')
             ->where('id', $transferId)
             ->update([
-                'internal_code' => $prefix . '-' . str_pad((string) $transferId, 8, '0', STR_PAD_LEFT),
+                'internal_code' => $prefix.'-'.str_pad((string) $transferId, 8, '0', STR_PAD_LEFT),
             ]);
     }
 }
