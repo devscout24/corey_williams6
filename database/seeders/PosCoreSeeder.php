@@ -52,16 +52,16 @@ class PosCoreSeeder extends Seeder
                 ]
             );
 
-            DB::table('phppos_locations')->updateOrInsert(
-                ['location_id' => 2],
-                [
-                    'name' => 'Store 2',
-                    'address_1' => 'Address 2',
-                    'deleted' => 0,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]
-            );
+            // DB::table('phppos_locations')->updateOrInsert(
+            //     ['location_id' => 2],
+            //     [
+            //         'name' => 'Store 2',
+            //         'address_1' => 'Address 2',
+            //         'deleted' => 0,
+            //         'created_at' => $now,
+            //         'updated_at' => $now,
+            //     ]
+            // );
         }
 
         if (Schema::hasTable('phppos_vat_rates')) {
