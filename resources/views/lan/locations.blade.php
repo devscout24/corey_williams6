@@ -23,6 +23,16 @@
         This instance: <code>{{ $appUrl }}</code>
     </div>
 
+    <div id="notificationsPanel" class="mb-3" style="display:none;">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0"><i class="bi bi-bell me-1"></i>Notifications <span id="unreadBadge" class="badge bg-danger ms-1" style="display:none;">0</span></h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="markAllRead()">Mark all read</button>
+            </div>
+            <div id="notificationsList" class="list-group list-group-flush"></div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -392,6 +402,89 @@
             if (el) el.addEventListener('click', triggerResync);
         });
     });
+})();
+
+(function () {
+    const panel = document.getElementById('notificationsPanel');
+    const list = document.getElementById('notificationsList');
+    const badge = document.getElementById('unreadBadge');
+
+    function fetchNotifications() {
+        fetch('/app/notifications', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.notifications && data.notifications.length) {
+                panel.style.display = '';
+                list.innerHTML = data.notifications.map(function (n) {
+                    var cls = n.is_unread ? 'list-group-item list-group-item-action' : 'list-group-item list-group-item-action text-muted';
+                    var html = '<div class="' + cls + '" data-id="' + n.id + '">';
+                    html += '<div class="d-flex w-100 justify-content-between"><small class="text-' + (n.is_unread ? 'primary' : 'secondary') + ' fw-semibold">' + escHtml(n.type) + '</small>';
+                    if (n.is_unread) {
+                        html += '<button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="markRead(' + n.id + ')" title="Dismiss">&times;</button>';
+                    }
+                    html += '</div>';
+                    html += '<a href="' + (n.action_url || '#') + '" class="text-decoration-none stretched-link text-reset"><strong>' + escHtml(n.title) + '</strong></a>';
+                    if (n.body) html += '<br><small>' + escHtml(n.body) + '</small>';
+                    html += '<small class="d-block text-muted mt-1">' + timeAgo(n.created_at) + '</small>';
+                    html += '</div>';
+                    return html;
+                }).join('');
+            } else {
+                panel.style.display = 'none';
+            }
+
+            if (data.unread_count > 0) {
+                badge.textContent = data.unread_count;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        })
+        .catch(function () {});
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function timeAgo(ts) {
+        if (!ts) return '';
+        var diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    window.markRead = function (id) {
+        fetch('/app/notifications/' + id + '/read', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function () { fetchNotifications(); })
+            .catch(function () {});
+    };
+
+    window.markAllRead = function () {
+        fetch('/app/notifications', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.notifications) {
+                var promises = data.notifications.filter(function (n) { return n.is_unread; }).map(function (n) {
+                    return fetch('/app/notifications/' + n.id + '/read', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                });
+                Promise.all(promises).then(function () { fetchNotifications(); });
+            }
+        })
+        .catch(function () {});
+    };
+
+    fetchNotifications();
+    setInterval(fetchNotifications, 10000);
 })();
 </script>
 @endpush

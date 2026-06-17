@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Models\Location;
+use App\Models\Notification;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
 use App\Models\PhpposTransfer;
@@ -26,9 +28,7 @@ class SendItem implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public TransferQueue $transfer)
-    {
-    }
+    public function __construct(public TransferQueue $transfer) {}
 
     public function backoff(): array
     {
@@ -38,20 +38,22 @@ class SendItem implements ShouldQueue
     public function handle(LanLocationRegistry $registry): void
     {
         $transfer = $this->transfer->fresh();
-        if (!$transfer) {
+        if (! $transfer) {
             $this->log('Transfer #'.$this->transfer->id.' vanished after fresh()');
+
             return;
         }
 
         $this->log('Handling SendItem #'.$transfer->id.' status='.$transfer->status);
 
         $location = $transfer->destination;
-        if (!$location || empty($location->ip)) {
+        if (! $location || empty($location->ip)) {
             $this->log('Destination not found for Transfer #'.$transfer->id);
             $transfer->update([
                 'status' => 'failed',
                 'error' => 'Destination location not found.',
             ]);
+
             return;
         }
 
@@ -64,19 +66,21 @@ class SendItem implements ShouldQueue
                     'status' => 'failed',
                     'error' => 'Destination location port is not configured.',
                 ]);
+
                 return;
             }
 
             $self = $registry->selfOrFail();
             $this->log('Self: '.$self->name.' @ '.$self->ip.':'.$self->port);
 
-            $payload = $this->buildPayload($transfer, $self->ip);
-            if (!$payload) {
+            $payload = $this->buildPayload($transfer, $self->ip, $self);
+            if (! $payload) {
                 $this->log('buildPayload returned null for Transfer #'.$transfer->id);
                 $transfer->update([
                     'status' => 'failed',
                     'error' => 'Unsupported item_type or missing data.',
                 ]);
+
                 return;
             }
 
@@ -96,6 +100,14 @@ class SendItem implements ShouldQueue
                     'error' => null,
                 ]);
                 $this->log('Transfer #'.$transfer->id.' delivered successfully');
+
+                Notification::create([
+                    'type' => 'transfer_delivered',
+                    'title' => 'Transfer #'.$transfer->id.' delivered',
+                    'body' => 'Sent to '.$location->name.' ('.$location->ip.')',
+                    'action_url' => '/lan/locations',
+                ]);
+
                 return;
             }
 
@@ -104,6 +116,7 @@ class SendItem implements ShouldQueue
             $this->log('Exception: '.$exception->getMessage());
             if ($this->attempts() >= $this->tries) {
                 $this->markTransferFailed($exception->getMessage());
+
                 return;
             }
 
@@ -123,7 +136,7 @@ class SendItem implements ShouldQueue
         $this->markTransferFailed($exception?->getMessage() ?: 'Transfer send failed.');
     }
 
-    private function buildPayload(TransferQueue $transfer, string $selfIp): ?array
+    private function buildPayload(TransferQueue $transfer, string $selfIp, ?Location $selfLocation = null): ?array
     {
         if ($transfer->item_type !== 'transfer_out') {
             return null;
@@ -133,14 +146,14 @@ class SendItem implements ShouldQueue
             ->where('transfer_type', 'out')
             ->first();
 
-        if (!$transferOut) {
+        if (! $transferOut) {
             return null;
         }
 
         $fromLocation = PhpposLocation::where('location_id', $transferOut->from_location_id)->first();
         $toLocation = PhpposLocation::where('location_id', $transferOut->to_location_id)->first();
 
-        if (!$fromLocation || !$toLocation) {
+        if (! $fromLocation || ! $toLocation) {
             return null;
         }
 
@@ -160,8 +173,10 @@ class SendItem implements ShouldQueue
             'item_id' => $transferOut->id,
             'payload' => [
                 'source_device_id' => $selfIp,
+                'source_port' => $selfLocation ? (int) $selfLocation->port : null,
+                'source_name' => $selfLocation ? $selfLocation->name : null,
                 'transfer_out_id' => (string) $transferOut->id,
-                'transfer_code' => $transferOut->internal_code ?? ('TRN-OUT-' . str_pad((string) $transferOut->id, 8, '0', STR_PAD_LEFT)),
+                'transfer_code' => $transferOut->internal_code ?? ('TRN-OUT-'.str_pad((string) $transferOut->id, 8, '0', STR_PAD_LEFT)),
                 'from_location_ulid' => $fromLocation->ulid,
                 'to_location_ulid' => $toLocation->ulid,
                 'notes' => $transferOut->notes,
@@ -190,6 +205,13 @@ class SendItem implements ShouldQueue
         $transfer->update([
             'status' => 'failed',
             'error' => $error,
+        ]);
+
+        Notification::create([
+            'type' => 'queue_failed',
+            'title' => 'Transfer #'.$transfer->id.' failed',
+            'body' => $error,
+            'action_url' => '/lan/locations',
         ]);
     }
 }

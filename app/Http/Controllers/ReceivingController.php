@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ItemVariation;
+use App\Models\Location;
+use App\Models\Notification;
+use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
-use App\Models\ItemVariation;
-use App\Models\PhpposCategory;
+use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
 use App\Models\PhpposSupplier;
-use App\Models\PhpposLocation;
-use App\Models\PhpposSupplierStoreAccount;
+use App\Models\PhpposTransfer;
 use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,15 +20,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
-
 class ReceivingController extends Controller
 {
-    public function __construct(private readonly LocationContextService $locationContextService)
-    {
-    }
+    public function __construct(private readonly LocationContextService $locationContextService) {}
 
     private function getCart(): array
     {
@@ -110,6 +110,7 @@ class ReceivingController extends Controller
                     });
             });
         }
+
         return $query;
     }
 
@@ -232,7 +233,7 @@ class ReceivingController extends Controller
             ->whereNull('parent_id')
             ->orderBy('name')
             ->get(['id', 'name']);
-        
+
         $subtotal = 0;
         foreach ($cart['items'] as $item) {
             $subtotal += $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
@@ -260,10 +261,10 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
 
-        if ($categoryId && !$isRootCategory) {
+        if ($categoryId && ! $isRootCategory) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -281,7 +282,7 @@ class ReceivingController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -292,7 +293,7 @@ class ReceivingController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->cost_price,
                     ];
                 });
@@ -333,7 +334,7 @@ class ReceivingController extends Controller
         if ($categoryId && $categories->isEmpty()) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -351,7 +352,7 @@ class ReceivingController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -362,7 +363,7 @@ class ReceivingController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->cost_price,
                     ];
                 });
@@ -434,6 +435,7 @@ class ReceivingController extends Controller
             ->get(['item_id', 'name', 'cost_price'])
             ->map(function ($item) {
                 $item->type = 'item';
+
                 return $item;
             });
 
@@ -458,19 +460,20 @@ class ReceivingController extends Controller
         $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'cost_price'])
             ->map(function ($kit) {
-                $kit->item_id = 'KIT ' . $kit->id;
-                $kit->name = '[KIT] ' . $kit->name;
+                $kit->item_id = 'KIT '.$kit->id;
+                $kit->name = '[KIT] '.$kit->name;
                 $kit->type = 'kit';
+
                 return $kit;
             });
 
         $variationsQuery = ItemVariation::select([
-                'phppos_item_variations.id',
-                'phppos_item_variations.name',
-                'phppos_item_variations.unit_price',
-                'phppos_item_variations.cost_price',
-                'phppos_items.name as parent_item_name',
-            ])
+            'phppos_item_variations.id',
+            'phppos_item_variations.name',
+            'phppos_item_variations.unit_price',
+            'phppos_item_variations.cost_price',
+            'phppos_items.name as parent_item_name',
+        ])
             ->join('phppos_items', 'phppos_item_variations.item_id', '=', 'phppos_items.item_id')
             ->where('phppos_item_variations.deleted', 0);
 
@@ -488,10 +491,11 @@ class ReceivingController extends Controller
         $variations = $variationsQuery->limit(10)
             ->get()
             ->map(function ($variation) {
-                $variation->item_id = 'VAR ' . $variation->id;
-                $variation->display_name = $variation->name . ' (' . $variation->parent_item_name . ')';
+                $variation->item_id = 'VAR '.$variation->id;
+                $variation->display_name = $variation->name.' ('.$variation->parent_item_name.')';
                 $variation->type = 'variant';
                 unset($variation->parent_item_name, $variation->id);
+
                 return $variation;
             });
 
@@ -530,6 +534,7 @@ class ReceivingController extends Controller
         }
 
         Session::put('receiving_cart', $cart);
+
         return redirect()->route('purchases.create');
     }
 
@@ -552,7 +557,7 @@ class ReceivingController extends Controller
 
     private function addKitAsLineItem($kit, $quantity, &$cart): void
     {
-        $kitLineId = 'KIT_' . $kit->id;
+        $kitLineId = 'KIT_'.$kit->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
             if (($cartItem['item_id'] ?? null) === $kitLineId) {
@@ -564,11 +569,11 @@ class ReceivingController extends Controller
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
             $cart['items'][] = [
-                'item_id'    => $kitLineId,
-                'name'       => '[KIT] ' . $kit->name,
-                'quantity'   => $quantity,
+                'item_id' => $kitLineId,
+                'name' => '[KIT] '.$kit->name,
+                'quantity' => $quantity,
                 'cost_price' => (float) ($kit->cost_price ?? 0),
-                'discount'   => 0,
+                'discount' => 0,
             ];
         }
     }
@@ -590,7 +595,7 @@ class ReceivingController extends Controller
         } else {
             $entry = [
                 'item_id' => $item->item_id,
-                'name' => $variation ? $variation->name . ' (' . $item->name . ')' : $item->name,
+                'name' => $variation ? $variation->name.' ('.$item->name.')' : $item->name,
                 'quantity' => $quantity,
                 'cost_price' => $variation?->cost_price ?? $item->cost_price,
                 'discount' => 0,
@@ -606,11 +611,18 @@ class ReceivingController extends Controller
     {
         $cart = $this->getCart();
         if (isset($cart['items'][$index])) {
-            if ($request->has('quantity')) $cart['items'][$index]['quantity'] = (float) $request->quantity;
-            if ($request->has('cost_price')) $cart['items'][$index]['cost_price'] = (float) $request->cost_price;
-            if ($request->has('discount')) $cart['items'][$index]['discount'] = (float) $request->discount;
+            if ($request->has('quantity')) {
+                $cart['items'][$index]['quantity'] = (float) $request->quantity;
+            }
+            if ($request->has('cost_price')) {
+                $cart['items'][$index]['cost_price'] = (float) $request->cost_price;
+            }
+            if ($request->has('discount')) {
+                $cart['items'][$index]['discount'] = (float) $request->discount;
+            }
             Session::put('receiving_cart', $cart);
         }
+
         return redirect()->route('purchases.create');
     }
 
@@ -622,6 +634,7 @@ class ReceivingController extends Controller
             $cart['items'] = array_values($cart['items']);
             Session::put('receiving_cart', $cart);
         }
+
         return redirect()->route('purchases.create');
     }
 
@@ -630,6 +643,7 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
         $cart['supplier_id'] = $request->supplier_id ?: null;
         Session::put('receiving_cart', $cart);
+
         return redirect()->route('purchases.create');
     }
 
@@ -638,6 +652,7 @@ class ReceivingController extends Controller
         $cart = $this->getCart();
         $cart['mode'] = $request->mode;
         Session::put('receiving_cart', $cart);
+
         return redirect()->route('purchases.create');
     }
 
@@ -677,7 +692,7 @@ class ReceivingController extends Controller
             $receiving->syncDocumentIdentity();
 
             $itemIds = collect($cart['items'])
-                ->filter(static fn (array $row): bool => !str_starts_with((string) ($row['item_id'] ?? ''), 'KIT_'))
+                ->filter(static fn (array $row): bool => ! str_starts_with((string) ($row['item_id'] ?? ''), 'KIT_'))
                 ->pluck('item_id')
                 ->map(static fn ($id): int => (int) $id)
                 ->unique()
@@ -719,20 +734,21 @@ class ReceivingController extends Controller
                     // Store as a kit-level line item (no tax class lookup for bare kit lines)
                     $kitId = (int) str_replace('KIT_', '', $item['item_id']);
                     PhpposReceivingItem::create([
-                        'receiving_id'   => $receiving->receiving_id,
-                        'item_id'        => null,
-                        'item_kit_id'    => $kitId,
-                        'line'           => $index,
-                        'description'    => $item['name'],
+                        'receiving_id' => $receiving->receiving_id,
+                        'item_id' => null,
+                        'item_kit_id' => $kitId,
+                        'line' => $index,
+                        'description' => $item['name'],
                         'quantity_purchased' => $item['quantity'],
-                        'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
-                        'item_cost_price'    => $item['cost_price'],
-                        'item_unit_price'    => $item['cost_price'],
-                        'discount_percent'   => $item['discount'] ?? 0,
+                        'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                        'item_cost_price' => $item['cost_price'],
+                        'item_unit_price' => $item['cost_price'],
+                        'discount_percent' => $item['discount'] ?? 0,
                         'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
-                        'total'    => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
-                        'vat'      => 0,
+                        'total' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
+                        'vat' => 0,
                     ]);
+
                     // Kits with no component items: no inventory movement (nothing to deduct)
                     continue;
                 }
@@ -793,18 +809,18 @@ class ReceivingController extends Controller
                 $totalVat += $lineVat;
 
                 PhpposReceivingItem::create([
-                    'receiving_id'      => $receiving->receiving_id,
-                    'item_id'           => $item['item_id'],
+                    'receiving_id' => $receiving->receiving_id,
+                    'item_id' => $item['item_id'],
                     'item_variation_id' => $item['variation_id'] ?? null,
-                    'line'              => $index,
+                    'line' => $index,
                     'quantity_purchased' => $item['quantity'],
-                    'quantity_received'  => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
-                    'item_cost_price'    => $item['cost_price'],
-                    'item_unit_price'    => $item['cost_price'],
-                    'discount_percent'   => $item['discount'],
+                    'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                    'item_cost_price' => $item['cost_price'],
+                    'item_unit_price' => $item['cost_price'],
+                    'discount_percent' => $item['discount'],
                     'subtotal' => $lineSubtotal,
-                    'total'    => $lineSubtotal,
-                    'vat'      => round($lineVat, 10),
+                    'total' => $lineSubtotal,
+                    'vat' => round($lineVat, 10),
                 ]);
 
                 // Update inventory
@@ -818,17 +834,17 @@ class ReceivingController extends Controller
                     );
 
                 DB::table('phppos_inventory_movements')->insert([
-                    'movement_type'      => $cart['mode'] == 'receive' ? 'receiving' : 'return',
-                    'item_id'            => $item['item_id'],
-                    'from_location_id'   => $cart['mode'] == 'return' ? $locationId : null,
-                    'to_location_id'     => $cart['mode'] == 'receive' ? $locationId : null,
-                    'quantity'           => abs($inventoryToMove),
-                    'reference_id'       => $receiving->receiving_id,
-                    'reference_type'     => 'receiving',
+                    'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
+                    'item_id' => $item['item_id'],
+                    'from_location_id' => $cart['mode'] == 'return' ? $locationId : null,
+                    'to_location_id' => $cart['mode'] == 'receive' ? $locationId : null,
+                    'quantity' => abs($inventoryToMove),
+                    'reference_id' => $receiving->receiving_id,
+                    'reference_type' => 'receiving',
                     'created_by_person_id' => auth('employee')->id(),
-                    'notes'       => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ') . $receiving->receiving_id,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ').$receiving->receiving_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -850,18 +866,21 @@ class ReceivingController extends Controller
     public function cancel(): RedirectResponse
     {
         Session::forget('receiving_cart');
+
         return redirect()->route('purchases.index');
     }
 
     public function show($receivingId): View
     {
         $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+
         return view('receivings.show', compact('receiving'));
     }
 
     public function print($receivingId): View
     {
         $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
+
         return view('receivings.print', compact('receiving'));
     }
 
@@ -901,10 +920,55 @@ class ReceivingController extends Controller
                 'closed_at' => now(),
                 'total_quantity_received' => $receiving->total_quantity_purchased,
             ]);
+
+            $transferIn = PhpposTransfer::where('transfer_type', 'in')
+                ->where('external_transfer_id', $receiving->reference_id)
+                ->where('to_location_id', $receiving->location_id)
+                ->first();
+
+            if ($transferIn) {
+                $transferIn->update(['status' => 'closed', 'closed_at' => now()]);
+            }
+
+            Notification::create([
+                'type' => 'transfer_completed',
+                'title' => 'Transfer receiving #'.$receiving->internal_code.' completed',
+                'body' => 'Items added to inventory.',
+                'action_url' => '/receivings/'.$receiving->receiving_id,
+            ]);
         });
+
+        $this->notifySenderTransferCompleted($receiving);
 
         return redirect()->route('purchases.show', $receivingId)
             ->with('status', 'Transfer receiving #'.$receiving->internal_code.' completed successfully. Items added to inventory.');
     }
-}
 
+    private function notifySenderTransferCompleted(PhpposReceiving $receiving): void
+    {
+        $senderLocation = Location::where('ip', $receiving->comment ? self::extractSourceIp($receiving->comment) : null)->first();
+        if (! $senderLocation || ! $senderLocation->ip || ! $senderLocation->port) {
+            return;
+        }
+
+        try {
+            Http::timeout(5)
+                ->asJson()
+                ->withHeaders(['X-Sync-Token' => (string) config('sync.shared_token')])
+                ->post('http://'.$senderLocation->ip.':'.$senderLocation->port.'/api/lan/transfer-completed', [
+                    'transfer_out_id' => $receiving->reference_id,
+                    'receiving_code' => $receiving->internal_code,
+                ]);
+        } catch (\Throwable) {
+        }
+    }
+
+    private static function extractSourceIp(string $comment): ?string
+    {
+        if (preg_match('/\bon\s+([\d.]+)/', $comment, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+}

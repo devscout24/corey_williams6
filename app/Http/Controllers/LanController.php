@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\AnnouncePresence;
 use App\Jobs\SendItem;
 use App\Models\Location;
+use App\Models\Notification;
 use App\Models\PhpposItem;
 use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
@@ -69,6 +70,13 @@ class LanController extends Controller
 
         $location->update(['last_poke_received_at' => now()]);
 
+        Notification::create([
+            'type' => 'poke_received',
+            'title' => 'Poke received from '.$data['name'],
+            'body' => $data['ip'].':'.$data['port'],
+            'action_url' => '/lan/locations',
+        ]);
+
         return response()->json(['ok' => true]);
     }
 
@@ -96,6 +104,8 @@ class LanController extends Controller
         if ($data['item_type'] === 'transfer_out') {
             $transferPayload = $request->validate([
                 'payload.source_device_id' => ['nullable', 'string', 'max:100'],
+                'payload.source_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
+                'payload.source_name' => ['nullable', 'string', 'max:255'],
                 'payload.transfer_out_id' => ['required', 'string', 'max:100'],
                 'payload.transfer_code' => ['nullable', 'string', 'max:50'],
                 'payload.from_location_ulid' => ['required', 'string', 'max:26'],
@@ -126,6 +136,16 @@ class LanController extends Controller
             }
 
             $this->log('from_location_id='.$fromLocation->location_id.' to_location_id='.$toLocation->location_id.' current_id='.$currentLocationId);
+
+            if (! empty($payload['source_device_id']) && ! empty($payload['source_port'])) {
+                $registry->upsertPeer(
+                    $payload['source_device_id'],
+                    (int) $payload['source_port'],
+                    $payload['source_name'] ?? $payload['source_device_id'],
+                    null,
+                    $fromLocation->ulid,
+                );
+            }
 
             if ((int) $toLocation->location_id !== (int) $currentLocationId) {
                 $this->log('FAIL: to_location_id '.$toLocation->location_id.' != current '.$currentLocationId);
@@ -184,6 +204,18 @@ class LanController extends Controller
                 ->value('name') ?? $payload['source_device_id'] ?? 'Unknown';
 
             $receiving = DB::transaction(function () use ($currentLocationId, $payload, $employeeId, $timestamp, $lines, $subtotal, $totalQty, $fromLocation, $senderName): PhpposReceiving {
+                $transferIn = PhpposTransfer::create([
+                    'transfer_type' => 'in',
+                    'from_location_id' => $fromLocation->location_id,
+                    'to_location_id' => $currentLocationId,
+                    'auto_generated' => false,
+                    'status' => 'open',
+                    'created_by_person_id' => $employeeId,
+                    'notes' => 'Received from '.$senderName.' on '.($payload['source_device_id'] ?? '?').' — ref: '.($payload['transfer_code'] ?? $payload['transfer_out_id']),
+                    'external_source' => $payload['source_device_id'] ?? null,
+                    'external_transfer_id' => $payload['transfer_out_id'],
+                ]);
+
                 $receiving = PhpposReceiving::create([
                     'receiving_time' => $timestamp,
                     'closed_at' => null,
@@ -198,20 +230,16 @@ class LanController extends Controller
                     'mode' => 'transfer',
                     'type' => 'transfer',
                     'source' => 'transfer',
-                    'reference_id' => $payload['transfer_code'] ?? $payload['transfer_out_id'],
+                    'reference_id' => $payload['transfer_out_id'],
                 ]);
                 $receiving->syncDocumentIdentity();
 
-                $transferIn = PhpposTransfer::create([
-                    'transfer_type' => 'in',
-                    'from_location_id' => $fromLocation->location_id,
-                    'to_location_id' => $currentLocationId,
-                    'auto_generated' => false,
-                    'status' => 'open',
-                    'created_by_person_id' => $employeeId,
-                    'notes' => 'Received from '.$senderName.' on '.($payload['source_device_id'] ?? '?').' — ref: '.($payload['transfer_code'] ?? $payload['transfer_out_id']),
-                    'external_source' => $payload['source_device_id'] ?? null,
-                    'external_transfer_id' => $payload['transfer_out_id'],
+                $transferIn->update(['notes' => $receiving->internal_code]);
+                Notification::create([
+                    'type' => 'transfer_received',
+                    'title' => 'Transfer received from '.$senderName,
+                    'body' => ($payload['transfer_code'] ?? 'Transfer #'.$payload['transfer_out_id']).' — '.count($lines).' item(s), awaiting confirmation.',
+                    'action_url' => '/receivings/'.$receiving->receiving_id,
                 ]);
 
                 $lineNumber = 0;
@@ -291,6 +319,34 @@ class LanController extends Controller
         return response()->json($transfers);
     }
 
+    public function appNotifications(): JsonResponse
+    {
+        $notifications = Notification::latest()->take(20)->get()->map(function (Notification $n): array {
+            return [
+                'id' => $n->id,
+                'type' => $n->type,
+                'title' => $n->title,
+                'body' => $n->body,
+                'action_url' => $n->action_url,
+                'is_unread' => $n->read_at === null,
+                'created_at' => $n->created_at,
+            ];
+        });
+
+        return response()->json([
+            'unread_count' => Notification::unread()->count(),
+            'notifications' => $notifications,
+        ]);
+    }
+
+    public function readNotification(int $id): JsonResponse
+    {
+        $notification = Notification::findOrFail($id);
+        $notification->markAsRead();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function locations(): JsonResponse
     {
         $locations = Location::orderByDesc('is_self')
@@ -330,6 +386,31 @@ class LanController extends Controller
         ]);
 
         SendItem::dispatch($transfer);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function transferCompleted(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'transfer_out_id' => ['required', 'string', 'max:100'],
+            'receiving_code' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $this->log('Transfer completed signal for transfer_out_id='.$data['transfer_out_id'].' code='.($data['receiving_code'] ?? '?'));
+
+        $transferOut = PhpposTransfer::where('id', $data['transfer_out_id'])
+            ->where('transfer_type', 'out')
+            ->first();
+
+        if ($transferOut) {
+            Notification::create([
+                'type' => 'transfer_completed',
+                'title' => 'Transfer #'.$data['transfer_out_id'].' completed by receiver',
+                'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
+                'action_url' => '/transfers',
+            ]);
+        }
 
         return response()->json(['ok' => true]);
     }
