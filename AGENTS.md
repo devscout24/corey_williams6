@@ -2,102 +2,97 @@
 
 ## Quick start
 
-Canonical one-step setup (handles .env, key, migrate, npm):
-
 ```powershell
 composer run setup
 ```
 
-Manual equivalent (useful for `migrate:fresh --seed` resets):
-
-```powershell
-composer install; npm install; copy .env.example .env; php artisan key:generate; php artisan migrate:fresh --seed; npm run build
-```
+For fresh reseed: `composer install; npm install; copy .env.example .env; php artisan key:generate; php artisan migrate:fresh --seed; npm run build`
 
 Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
-## Dev server
+## Dev commands
 
-| Command | What it runs |
+| Command | Runs |
 |---|---|
-| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3 --timeout=0` + `pail --timeout=0` + Vite, via concurrently |
-| `npm run dev` | Vite only (Tailwind v4 + laravel-vite-plugin) |
+| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3 --timeout=0` + `pail --timeout=0` + Vite (concurrently) |
+| `npm run dev` | Vite only |
 | `composer run test` | `config:clear` then `php artisan test` |
-| `composer run setup` | composer install, copy .env, key:generate, `migrate --force` (not fresh), npm install, npm run build |
+| `composer run setup` | `composer install`, copy `.env`, key:generate, `migrate --force`, `npm install && npm run build` |
 
 ## Testing
 
-- **PHPUnit** with SQLite `:memory:` — env overrides in `phpunit.xml`.
-- Queue forced to `sync` in tests (no worker needed).
-- Tests using `RefreshDatabase` must manually `@touch(storage_path('app/install.lock'))` in `setUp()` to pass `EnsureInstalled` middleware.
-- Run a single test: `php artisan test --filter TestName`
+- PHPUnit with SQLite `:memory:` — env overrides in `phpunit.xml`.
+- Queue forced to `sync` in tests.
+- Tests using `RefreshDatabase` must `@touch(storage_path('app/install.lock'))` in `setUp()` for `EnsureInstalled` middleware.
+- Single: `php artisan test --filter TestName`
 
 ## Auth
 
-- Custom **`employee` guard** (`auth:employee` middleware) backed by `PhpposEmployee`.
-- Default credentials: **admin** / **12345678** (legacy MD5 in seeder; auto-upgrades to bcrypt on first login).
-- Login: `GET/POST /login`. Logout: `POST /logout` (inside `auth:employee` group).
+- Custom **`employee` guard** (`auth:employee`) backed by `PhpposEmployee` (`config/auth.php`).
+- Default: **admin** / **12345678** (MD5 in seeder; auto-upgrades to bcrypt on login).
 
 ## Database & migrations
 
-- **SQLite** fallback default (`config/database.php`); `.env.example` has MySQL uncommented — uncomment `DB_CONNECTION=sqlite` to use SQLite explicitly.
-- **One create-only migration per `phppos_*` table** — prefer updating the existing create migration and running `migrate:fresh` over adding `Schema::table()` alters. Existing alter migrations exist but don't add new ones.
-- Use `foreignId()->constrained()` for FKs. Explicit `cascadeOnDelete`/`nullOnDelete`.
-- Seed all baseline data in `database/seeders/` (never in migrations). `PosCoreSeeder` runs always; `PosDemoSeeder` runs only if `POS_SEED_DEMO=true`.
-- Validate with: `php artisan migrate:fresh --seed`
+- **SQLite** fallback default (`config/database.php`). `.env.example` has MySQL uncommented — set `DB_CONNECTION=sqlite` for SQLite.
+- **Prefer `Schema::create()` only** for `phppos_*` tables — update the existing create migration and `migrate:fresh` rather than adding `Schema::table()` alters. Past alter migrations exist in `database/migrations/`; don't add new ones.
+- Use `foreignId()->constrained()` with explicit `cascadeOnDelete`/`nullOnDelete`.
+- Seed data in `database/seeders/` only. `PosCoreSeeder` runs always; `PosDemoSeeder` only if `POS_SEED_DEMO=true`.
+- Validate: `php artisan migrate:fresh --seed`
 - Legacy migrations in `database/migrations/legacy/` (reference only).
-- Laravel default migrations (`users`, `cache`, `jobs`) kept as-is.
-- `CACHE_STORE=database` and `SESSION_DRIVER=database` defaults (cache + sessions tables exist in stock Laravel migrations).
+- Laravel stock migrations (`users`, `cache`, `jobs`) kept as-is.
+- `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database` defaults.
 
 ## Queue
 
-- `QUEUE_CONNECTION=database` default (DB-driven queue). Required for LAN sync.
-- Dev server embedded (`composer run dev`): `queue:listen --tries=3 --timeout=0`
-- Standalone worker: `php artisan queue:work --sleep=1 --tries=1 --timeout=60`
-- NSSM service `LaravelPosQueueWorker` auto-starts worker in production.
+- DB-driven queue (`QUEUE_CONNECTION=database`). Required for LAN sync.
+- Dev server: `queue:listen --tries=3 --timeout=0` (embedded in `composer run dev`).
+- Standalone: `php artisan queue:work --sleep=1 --tries=1 --timeout=60`
+- Production NSSM services: `LaravelPosWeb` (built-in PHP server) + `LaravelPosQueueWorker` (worker). See `INSTALLER_BROWSER_MODE.md`.
 
 ## Architecture
 
-- Routes: `routes/web.php` (main POS routes), `routes/api.php` (LAN sync, `sync.auth` middleware), `routes/rony/*` (CRUD bundles for items, people, receiving, sales/inventory — required from `web.php`), `routes/console.php` (custom Artisan commands).
-- 60+ Eloquent models in `app/Models/` — most prefixed `phppos_*`, except: `Location`, `TransferQueue`, `PriceRule`, `PriceRulePriceBreak`, `PriceTier`, `Attribute`, `AttributeValue`, `ItemVariation`, `User`, `Notification`.
-- Two location tables: `phppos_locations` (POS stores) and `locations` (LAN peer registry with `ip`, `port`, `is_self`, `last_seen_at`).
-- **Location resolution chain** (`LocationContextService`): ULID header/cookie → requested ID → employee current location → LAN self-record → first location fallback.
-- **Setup guard**: `installed` middleware checks for `storage/app/install.lock` — all routes redirect to `/setup` until lock exists.
-- Custom middleware aliases registered in `bootstrap/app.php`: `sync.auth`, `installed`, `check_register_open`.
-- Storage path overridable via `LARAVEL_STORAGE_PATH` env.
-- Frontend: **Blade + jQuery** (not Vue/React). Tailwind CSS v4. Custom assets in `public/assets/`.
-- Key composer dependencies: `barryvdh/laravel-dompdf` (PDF), `picqer/php-barcode-generator` (SVG barcodes), `rats/zkteco` (biometric device SDK).
+- **Routes:** `routes/web.php` (POS routes), `routes/api.php` (LAN sync, `sync.auth` middleware), `routes/rony/*` (CRUD bundles for items, people, receiving, sales/inventory — required from `web.php`), `routes/console.php` (`app:bind-identity` command defined inline, `inspire`).
+- **66 Eloquent models** in `app/Models/` — most prefixed `phppos_*`. Non-prefixed: `Location`, `TransferQueue`, `PriceRule`, `PriceRulePriceBreak`, `PriceTier`, `Attribute`, `AttributeValue`, `ItemVariation`, `User`, `Notification`.
+- **Two location tables:** `phppos_locations` (POS stores), `locations` (LAN peer registry with `ip`, `port`, `is_self`, `last_seen_at`).
+- **Location resolution** (`LocationContextService`): ULID header/cookie → requested ID → employee current location → LAN self-record → first location fallback.
+- **Install guard:** `EnsureInstalled` middleware checks `storage/app/install.lock` — all routes redirect to `/setup` until lock exists.
+- **Middleware aliases** (registered in `bootstrap/app.php`): `sync.auth`, `installed`, `check_register_open`.
+- **Storage path** overridable via `LARAVEL_STORAGE_PATH` env.
+- **Frontend:** Blade + jQuery, Tailwind CSS v4, custom assets in `public/assets/`.
+- **Key deps:** `barryvdh/laravel-dompdf` (PDF), `picqer/php-barcode-generator` (SVG barcodes), `rats/zkteco` (biometric SDK), `nativephp-laravel` (desktop app).
+- **LAN sync apps:** `announce:presence` (`app/Jobs/AnnouncePresence.php`), `send:item` (`app/Jobs/SendItem.php`). Only console command: `RegisterSelf` (`app:register-self`).
 
 ## Code style
 
-- Laravel Pint (`./vendor/bin/pint`) — no local `pint.json`; uses defaults. Run before committing.
+- Laravel Pint (`./vendor/bin/pint`) — no local config, uses defaults. Run before committing.
 - EditorConfig: 4-space indent, LF endings, UTF-8.
 - Node 26 (`.nvmrc`).
 
 ## LAN sync
 
-- `php artisan app:bind-identity` writes `APP_NODE_IP`/`APP_NODE_NAME` to `.env` (defined inline in `routes/console.php`).
-- `php artisan app:register-self --port=8000` registers this node in `locations` table (runs automatically in `composer run dev`).
-- Discovery + transfers use DB queue + `/api/lan/*` endpoints (`sync.auth` middleware, shared token in `config/sync.php`).
+- `php artisan app:bind-identity` writes `APP_NODE_IP`/`APP_NODE_NAME` to `.env`.
+- `php artisan app:register-self --port=8000` registers this node in `locations` table (auto-runs in `composer run dev`).
+- Discovery + transfers via DB queue + `/api/lan/*` endpoints (`sync.auth` middleware, shared token in `config/sync.php`).
 - No polling — manual Sync button in top bar.
-- After editing `.env` (IP/name changes), run `php artisan config:clear`.
+- After editing `.env`, run `php artisan config:clear`.
 
 ## Knowledge base
 
-Regenerate after changing routes, controllers, models, migrations, views, or docs:
+After changing routes, controllers, models, migrations, views, or docs:
 
 ```powershell
 python tools\build_knowledge_base.py
 ```
 
-Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `graphify-out/GRAPH_REPORT.md` before structural changes.
+Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `GRAPH_REPORT.md` before structural changes.
 
 ## Other docs
 
-- `MIGRATION_HANDOFF.md` — migration handoff rules, history, and pending work log.
-- `INSTALLER_BROWSER_MODE.md` — NSSM setup and browser-mode installer details.
-- `tools/` — helper scripts for debugging and testing (check state, transfers, announce, etc.).
+- **`MIGRATION_HANDOFF.md`** — migration rules, completed work history, pending tasks.
+- **`INSTALLER_BROWSER_MODE.md`** — NSSM service setup for web server + worker.
+- **`README.md`** — LAN sync debug guide (not a real project README; has leftover NativePHP build config at the bottom).
+- **`tools/`** — helper scripts for debugging and testing.
 
 ## CI
 
-- Only branch `night` deploys via FTP (`.github/workflows/night.yml`). No test runner in CI.
+- Only branch `night` deploys via FTP (`.github/workflows/night.yml`). No test runner.
