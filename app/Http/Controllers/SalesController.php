@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ItemVariation;
 use App\Models\PhpposCategory;
 use App\Models\PhpposCurrencyExchangeRate;
 use App\Models\PhpposCustomer;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
-use App\Models\ItemVariation;
 use App\Models\PhpposLocation;
+use App\Models\PhpposRegister;
+use App\Models\PhpposRegisterLog;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposTag;
 use App\Services\AppConfigService;
 use App\Services\EmployeeService;
 use App\Services\LocationContextService;
 use App\Services\SalesService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
@@ -30,8 +32,7 @@ class SalesController extends Controller
         private readonly AppConfigService $configService,
         private readonly LocationContextService $locationContextService,
         private readonly EmployeeService $employeeService,
-    ) {
-    }
+    ) {}
 
     private function getCart(): array
     {
@@ -63,12 +64,12 @@ class SalesController extends Controller
             ->orderBy('location_id')
             ->get();
         $registerId = session('register_id');
-        $currentRegister = \App\Models\PhpposRegister::find($registerId);
-        $registerLog = \App\Models\PhpposRegisterLog::with('employeeOpen.person')
+        $currentRegister = PhpposRegister::find($registerId);
+        $registerLog = PhpposRegisterLog::with('employeeOpen.person')
             ->where('register_id', $registerId)
             ->whereNull('shift_end')
             ->first();
-        $registers = \App\Models\PhpposRegister::where('location_id', $locationId)
+        $registers = PhpposRegister::where('location_id', $locationId)
             ->where('deleted', 0)
             ->get();
         $customers = PhpposCustomer::with('person')->orderBy('person_id')->get();
@@ -180,7 +181,7 @@ class SalesController extends Controller
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
 
-        if ($categoryId && !$isRootCategory) {
+        if ($categoryId && ! $isRootCategory) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
 
@@ -212,7 +213,7 @@ class SalesController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->unit_price,
                     ];
                 });
@@ -282,7 +283,7 @@ class SalesController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->unit_price,
                     ];
                 });
@@ -393,7 +394,7 @@ class SalesController extends Controller
             ->map(fn ($row) => [
                 'type' => 'kit',
                 'id' => $row->id,
-                'name' => '[KIT] ' . $row->name,
+                'name' => '[KIT] '.$row->name,
                 'price' => (float) ($row->price ?? 0),
             ]);
 
@@ -458,7 +459,7 @@ class SalesController extends Controller
             ->map(fn (PhpposItemKit $kit) => [
                 'type' => 'kit',
                 'id' => $kit->id,
-                'name' => '[KIT] ' . $kit->name,
+                'name' => '[KIT] '.$kit->name,
                 'price' => (float) ($kit->unit_price ?? 0),
             ]);
 
@@ -516,6 +517,7 @@ class SalesController extends Controller
             ->get(['item_id', 'name', 'unit_price'])
             ->map(function ($item) {
                 $item->type = 'item';
+
                 return $item;
             });
 
@@ -540,19 +542,20 @@ class SalesController extends Controller
         $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'unit_price'])
             ->map(function ($kit) {
-                $kit->item_id = 'KIT ' . $kit->id;
-                $kit->name = '[KIT] ' . $kit->name;
+                $kit->item_id = 'KIT '.$kit->id;
+                $kit->name = '[KIT] '.$kit->name;
                 $kit->type = 'kit';
+
                 return $kit;
             });
 
         $variationsQuery = ItemVariation::select([
-                'phppos_item_variations.id',
-                'phppos_item_variations.name',
-                'phppos_item_variations.unit_price',
-                'phppos_item_variations.cost_price',
-                'phppos_items.name as parent_item_name',
-            ])
+            'phppos_item_variations.id',
+            'phppos_item_variations.name',
+            'phppos_item_variations.unit_price',
+            'phppos_item_variations.cost_price',
+            'phppos_items.name as parent_item_name',
+        ])
             ->join('phppos_items', 'phppos_item_variations.item_id', '=', 'phppos_items.item_id')
             ->where('phppos_item_variations.deleted', 0);
 
@@ -570,10 +573,11 @@ class SalesController extends Controller
         $variations = $variationsQuery->limit(10)
             ->get()
             ->map(function ($variation) {
-                $variation->item_id = 'VAR ' . $variation->id;
-                $variation->display_name = $variation->name . ' (' . $variation->parent_item_name . ')';
+                $variation->item_id = 'VAR '.$variation->id;
+                $variation->display_name = $variation->name.' ('.$variation->parent_item_name.')';
                 $variation->type = 'variant';
                 unset($variation->parent_item_name, $variation->id);
+
                 return $variation;
             });
 
@@ -598,14 +602,8 @@ class SalesController extends Controller
             $this->addSingleItemToCart($parentItem, 1, $cart, $variation);
         } elseif (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
-            $this->addKitItemsToCart($kit, 1, $cart);
-
-            $countAfter = count($cart['items']);
-            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
-            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
-                $this->addKitAsLineItem($kit, 1, $cart);
-            }
+            $kit = PhpposItemKit::findOrFail($kitId);
+            $this->addKitToCart($kit, 1, $cart);
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
@@ -616,29 +614,12 @@ class SalesController extends Controller
         return redirect()->route('sales.index');
     }
 
-    private function addKitItemsToCart($kit, $quantity, &$cart): void
+    private function addKitToCart($kit, $quantity, &$cart): void
     {
-        foreach ($kit->items as $kitItem) {
-            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
-            if ($item) {
-                $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
-            }
-        }
-
-        foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
-            if ($nKit) {
-                $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
-            }
-        }
-    }
-
-    private function addKitAsLineItem($kit, $quantity, &$cart): void
-    {
-        $kitLineId = 'KIT_' . $kit->id;
+        $kitId = (int) $kit->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
-            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+            if (($cartItem['type'] ?? 'item') === 'kit' && ($cartItem['item_kit_id'] ?? null) === $kitId) {
                 $existingKey = $key;
                 break;
             }
@@ -647,8 +628,9 @@ class SalesController extends Controller
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
             $cart['items'][] = [
-                'item_id' => $kitLineId,
-                'name' => '[KIT] ' . $kit->name,
+                'type' => 'kit',
+                'item_kit_id' => $kitId,
+                'name' => $kit->name,
                 'quantity' => $quantity,
                 'unit_price' => (float) ($kit->unit_price ?? 0),
                 'discount' => 0,
@@ -662,6 +644,9 @@ class SalesController extends Controller
         $variationId = $variation?->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['type'] ?? 'item') !== 'item') {
+                continue;
+            }
             if ((int) $cartItem['item_id'] === $itemId && ($cartItem['variation_id'] ?? null) === $variationId) {
                 $existingKey = $key;
                 break;
@@ -673,7 +658,7 @@ class SalesController extends Controller
         } else {
             $entry = [
                 'item_id' => $item->item_id,
-                'name' => $variation ? $variation->name . ' (' . $item->name . ')' : $item->name,
+                'name' => $variation ? $variation->name.' ('.$item->name.')' : $item->name,
                 'quantity' => $quantity,
                 'unit_price' => (float) ($variation?->unit_price ?? $item->unit_price),
                 'discount' => 0,
@@ -723,6 +708,7 @@ class SalesController extends Controller
         $cart = $this->getCart();
         $cart['supplier_id'] = $request->supplier_id;
         Session::put('sales_cart', $cart);
+
         return redirect()->route('sales.index');
     }
 
@@ -850,18 +836,26 @@ class SalesController extends Controller
         if ($cart['customer_id']) {
             $customer = PhpposCustomer::with('person')->find($cart['customer_id']);
             if ($customer && $customer->person) {
-                $customerName = trim($customer->person->first_name . ' ' . $customer->person->last_name);
+                $customerName = trim($customer->person->first_name.' '.$customer->person->last_name);
             }
         }
 
         $comment = $request->input('comment');
 
         try {
-            // Strip kit-level fallback rows (KIT_*) — they have no real integer item_id
-            $saleItems = array_values(array_filter($cart['items'], static fn($item) => !str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_')));
+            $regularItems = [];
+            $kitEntries = [];
 
-            if (empty($saleItems)) {
-                return redirect()->back()->with('error', 'No valid items in cart. Add component items to the kit before selling.');
+            foreach ($cart['items'] as $item) {
+                if (($item['type'] ?? 'item') === 'kit') {
+                    $kitEntries[] = $item;
+                } else {
+                    $regularItems[] = $item;
+                }
+            }
+
+            if (empty($regularItems) && empty($kitEntries)) {
+                return redirect()->back()->with('error', 'Cart is empty.');
             }
 
             $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
@@ -869,18 +863,19 @@ class SalesController extends Controller
             $saleId = $this->salesService->createSaleFromCart(
                 $locationId,
                 (int) auth('employee')->id(),
-                $saleItems,
+                $regularItems,
                 $cart['payments'],
                 $customerName,
                 $comment,
                 (int) ($cart['sold_by_employee_id'] ?? auth('employee')->id()),
                 session('register_id'),
+                kitEntries: $kitEntries,
             );
 
             Session::forget('sales_cart');
 
             return redirect()->route('sales.receipt', ['sale' => $saleId])
-                ->with('status', 'Sale #' . $saleId . ' completed.');
+                ->with('status', 'Sale #'.$saleId.' completed.');
         } catch (Throwable $e) {
             return back()->withErrors(['sale' => $e->getMessage()]);
         }
@@ -926,7 +921,7 @@ class SalesController extends Controller
             )
             ->where('si.sale_id', $sale)
             ->get()
-            ->map(static function ($row) use ($sale): array {
+            ->map(static function ($row): array {
                 $arr = (array) $row;
                 $returnedQty = (float) DB::table('phppos_sales_item_returns')
                     ->where('sale_item_id', $arr['id'])
@@ -950,7 +945,16 @@ class SalesController extends Controller
         $payments = DB::table('phppos_sales_payments')
             ->where('sale_id', $sale)
             ->get()
-            ->map(static fn($row): array => (array) $row)
+            ->map(static fn ($row): array => (array) $row)
+            ->values()
+            ->all();
+
+        $kitLines = DB::table('phppos_sales_item_kits as sik')
+            ->leftJoin('phppos_item_kits as ik', 'ik.id', '=', 'sik.item_kit_id')
+            ->where('sik.sale_id', $sale)
+            ->select('sik.*', 'ik.name as item_kit_name')
+            ->get()
+            ->map(fn ($row) => (array) $row)
             ->values()
             ->all();
 
@@ -992,6 +996,7 @@ class SalesController extends Controller
         return view('sales.receipt', [
             'sale' => $saleRow,
             'lines' => $lines,
+            'kitLines' => $kitLines,
             'payments' => $payments,
             'settings' => $settings,
             'companyLogoUrl' => $companyLogoUrl,
@@ -1020,11 +1025,11 @@ class SalesController extends Controller
         ]);
 
         $lines = collect($data['returns'])
-            ->map(static fn(array $row): array => [
+            ->map(static fn (array $row): array => [
                 'sale_item_id' => (int) $row['sale_item_id'],
                 'quantity' => (float) $row['quantity'],
             ])
-            ->filter(static fn(array $row): bool => $row['quantity'] > 0)
+            ->filter(static fn (array $row): bool => $row['quantity'] > 0)
             ->values()
             ->all();
 
@@ -1047,19 +1052,19 @@ class SalesController extends Controller
         $locationId = session('employee_current_location_id') ?? auth('employee')->user()?->location_id ?? 1;
 
         $registerId = session('register_id');
-        if (!$registerId) {
+        if (! $registerId) {
             $defaultReg = $this->employeeService->getDefaultRegister($employeeId, $locationId);
             if ($defaultReg) {
                 $registerId = $defaultReg['register_id'];
             } else {
-                $firstReg = \App\Models\PhpposRegister::where('location_id', $locationId)->where('deleted', 0)->first();
+                $firstReg = PhpposRegister::where('location_id', $locationId)->where('deleted', 0)->first();
                 if ($firstReg) {
                     $registerId = $firstReg->register_id;
                 } else {
-                    $newReg = \App\Models\PhpposRegister::create([
+                    $newReg = PhpposRegister::create([
                         'location_id' => $locationId,
                         'name' => 'Default Register',
-                        'deleted' => 0
+                        'deleted' => 0,
                     ]);
                     $registerId = $newReg->register_id;
                 }
@@ -1067,12 +1072,12 @@ class SalesController extends Controller
             session(['register_id' => $registerId]);
         }
 
-        $registers = \App\Models\PhpposRegister::where('location_id', $locationId)
+        $registers = PhpposRegister::where('location_id', $locationId)
             ->where('deleted', 0)
             ->get();
-        $currentRegister = \App\Models\PhpposRegister::find($registerId);
+        $currentRegister = PhpposRegister::find($registerId);
 
-        $lastLog = \App\Models\PhpposRegisterLog::where('register_id', $registerId)
+        $lastLog = PhpposRegisterLog::where('register_id', $registerId)
             ->whereNotNull('shift_end')
             ->orderBy('register_log_id', 'desc')
             ->first();
@@ -1097,7 +1102,7 @@ class SalesController extends Controller
         ]);
 
         $registerId = session('register_id');
-        if (!$registerId) {
+        if (! $registerId) {
             return redirect()->route('sales.index');
         }
 
@@ -1138,7 +1143,7 @@ class SalesController extends Controller
         $locationId = session('employee_current_location_id') ?? auth('employee')->user()?->location_id ?? 1;
 
         // Verify register belongs to current location and is not deleted
-        $registerExists = \App\Models\PhpposRegister::where('register_id', $registerId)
+        $registerExists = PhpposRegister::where('register_id', $registerId)
             ->where('location_id', $locationId)
             ->where('deleted', 0)
             ->exists();
@@ -1156,15 +1161,16 @@ class SalesController extends Controller
         $registerId = session('register_id');
         $logId = session('register_log_id');
 
-        if (!$registerId || !$logId) {
+        if (! $registerId || ! $logId) {
             return redirect()->route('sales.index');
         }
 
-        $currentRegister = \App\Models\PhpposRegister::find($registerId);
-        $registerLog = \App\Models\PhpposRegisterLog::with('employeeOpen.person')->find($logId);
+        $currentRegister = PhpposRegister::find($registerId);
+        $registerLog = PhpposRegisterLog::with('employeeOpen.person')->find($logId);
 
-        if (!$registerLog || $registerLog->shift_end) {
+        if (! $registerLog || $registerLog->shift_end) {
             session()->forget('register_log_id');
+
             return redirect()->route('sales.index');
         }
 
@@ -1229,13 +1235,14 @@ class SalesController extends Controller
         ]);
 
         $logId = session('register_log_id');
-        if (!$logId) {
+        if (! $logId) {
             return redirect()->route('sales.index');
         }
 
-        $registerLog = \App\Models\PhpposRegisterLog::find($logId);
-        if (!$registerLog || $registerLog->shift_end) {
+        $registerLog = PhpposRegisterLog::find($logId);
+        if (! $registerLog || $registerLog->shift_end) {
             session()->forget('register_log_id');
+
             return redirect()->route('sales.index');
         }
 
@@ -1245,7 +1252,7 @@ class SalesController extends Controller
                 ->update([
                     'employee_id_close' => auth('employee')->id(),
                     'shift_end' => now(),
-                    'notes' => trim(($registerLog->notes ? $registerLog->notes . "\n" : '') . "Closing Notes: " . $request->notes),
+                    'notes' => trim(($registerLog->notes ? $registerLog->notes."\n" : '').'Closing Notes: '.$request->notes),
                     'updated_at' => now(),
                 ]);
 

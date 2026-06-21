@@ -258,11 +258,16 @@
                                 </thead>
                                 <tbody>
                                     @forelse($cart['items'] as $index => $item)
+                                        @php $isKit = ($item['type'] ?? 'item') === 'kit'; @endphp
                                         <tr>
                                             <td class="ps-4">{{ $index + 1 }}</td>
                                             <td>
                                                 <div class="fw-bold text-primary">{{ $item['name'] }}</div>
-                                                <small class="text-muted">ID: {{ $item['item_id'] }}</small>
+                                                @if($isKit)
+                                                    <small class="badge bg-primary-subtle text-primary ms-1">Kit</small>
+                                                @else
+                                                    <small class="text-muted">ID: {{ $item['item_id'] }}</small>
+                                                @endif
                                             </td>
                                             <td>
                                                 <form action="{{ route('sales.item.edit', $index) }}" method="POST">

@@ -137,6 +137,20 @@
                 </tr>
             </thead>
             <tbody>
+                @if(!empty($kitLines))
+                    @foreach($kitLines as $kl)
+                        <tr>
+                            <td>
+                                <div>{{ $kl['item_kit_name'] ?? 'Kit #'.$kl['item_kit_id'] }}</div>
+                                <div class="receipt-muted" style="font-size:0.85em;color:#6b21a8;">Kit</div>
+                            </td>
+                            <td style="text-align:right;">{{ $formatCurrency((float) $kl['item_kit_unit_price']) }}</td>
+                            <td style="text-align:right;">{{ rtrim(rtrim(number_format((float) $kl['quantity_purchased'], 3, '.', ''), '0'), '.') }}</td>
+                            <td style="text-align:right;">-</td>
+                            <td style="text-align:right;">{{ $formatCurrency((float) $kl['line_total']) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
                 @foreach($lines as $line)
                     <tr>
                         <td>

@@ -7,13 +7,12 @@ use RuntimeException;
 
 class SalesService
 {
-    public function __construct(private readonly LocationContextService $locationContextService)
-    {
-    }
+    public function __construct(private readonly LocationContextService $locationContextService) {}
 
     /**
-     * @param array<int, array{item_id:int, quantity:float, unit_price:float, discount:float, variation_id?:int|null}> $items
-     * @param array<int, array{type:string, amount:float}> $payments
+     * @param  array<int, array{item_id:int, quantity:float, unit_price:float, discount:float, variation_id?:int|null}>  $items
+     * @param  array<int, array{type:string, amount:float}>  $payments
+     * @param  array<int, array{type:'kit', item_kit_id:int, name:string, quantity:float, unit_price:float, discount:float}>  $kitEntries
      */
     public function createSaleFromCart(
         int $locationId,
@@ -24,10 +23,15 @@ class SalesService
         ?string $comment = null,
         ?int $soldByEmployeeId = null,
         ?int $registerId = null,
+        array $kitEntries = [],
     ): int {
         $resolvedLocationId = $this->locationContextService->resolveLocationId($locationId);
 
-        return DB::transaction(function () use ($resolvedLocationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId, $registerId): int {
+        return DB::transaction(function () use ($resolvedLocationId, $employeeId, $items, $payments, $customerName, $comment, $soldByEmployeeId, $registerId, $kitEntries): int {
+            if (empty($items) && empty($kitEntries)) {
+                throw new RuntimeException('At least one sale line is required.');
+            }
+
             $normalized = collect($items)
                 ->map(static fn (array $line): array => [
                     'item_id' => (int) $line['item_id'],
@@ -38,10 +42,6 @@ class SalesService
                 ])
                 ->filter(static fn (array $line): bool => $line['quantity'] > 0)
                 ->values();
-
-            if ($normalized->isEmpty()) {
-                throw new RuntimeException('At least one sale line is required.');
-            }
 
             $itemRows = DB::table('phppos_items')
                 ->whereIn('item_id', $normalized->pluck('item_id')->all())
@@ -76,6 +76,7 @@ class SalesService
 
             $totalVat = 0.0;
 
+            // ---- Process regular items (existing logic) ----
             foreach ($normalized as $line) {
                 $itemId = $line['item_id'];
                 $qty = $line['quantity'];
@@ -84,7 +85,7 @@ class SalesService
                 $item = $itemRows->get($itemId);
 
                 if (! $item) {
-                    throw new RuntimeException('Item ' . $itemId . ' not found.');
+                    throw new RuntimeException('Item '.$itemId.' not found.');
                 }
 
                 $stock = DB::table('phppos_location_items')
@@ -135,7 +136,6 @@ class SalesService
                 if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
                     $rates = $taxClassTaxes->get($lineTaxClassId);
 
-                    // Compute effective combined rate (handle cumulative stacking)
                     $baseCumulative = $lineTotal;
                     $totalTax = 0.0;
                     foreach ($rates as $rate) {
@@ -146,9 +146,8 @@ class SalesService
                             $baseCumulative += $lineTaxAmount;
                         }
                     }
-                    $lineTotalWithTax = $lineTotal + $totalTax; // total including all tax
+                    $lineTotalWithTax = $lineTotal + $totalTax;
 
-                    // We calculate combined effective TaxRate from subtotal/total relationship
                     if ($lineTotal > 0) {
                         $effectiveTaxRate = ($lineTotalWithTax - $lineTotal) / $lineTotal;
                         if ($effectiveTaxRate > 0) {
@@ -178,14 +177,13 @@ class SalesService
                     'tax_rows' => $taxRows,
                 ];
 
-                // Log inventory movement
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type' => 'sale',
                     'item_id' => $itemId,
                     'from_location_id' => $resolvedLocationId,
                     'to_location_id' => null,
                     'quantity' => $qty,
-                    'reference_id' => null, // Will be updated after sale is created
+                    'reference_id' => null,
                     'reference_type' => 'sale',
                     'created_by_person_id' => $employeeId,
                     'notes' => 'Sale stock out',
@@ -194,6 +192,83 @@ class SalesService
                 ]);
             }
 
+            // ---- Process kit entries (explode for inventory, use kit price for subtotal) ----
+            $kitSaleLines = [];
+
+            foreach ($kitEntries as $entry) {
+                $kitQty = (float) $entry['quantity'];
+                if ($kitQty <= 0) {
+                    continue;
+                }
+
+                $kitLineTotal = (float) $entry['unit_price'] * $kitQty * (1 - ((float) ($entry['discount'] ?? 0) / 100));
+                $subtotal += $kitLineTotal;
+
+                $kitSaleLines[] = [
+                    'item_kit_id' => (int) $entry['item_kit_id'],
+                    'quantity_purchased' => $kitQty,
+                    'item_kit_unit_price' => (float) $entry['unit_price'],
+                    'line_total' => $kitLineTotal,
+                ];
+
+                // Load kit with items for inventory explosion
+                $kit = DB::table('phppos_item_kits')->where('id', (int) $entry['item_kit_id'])->first();
+                if (! $kit) {
+                    continue;
+                }
+
+                // Decrement the kit's own stock (default_quantity)
+                DB::table('phppos_item_kits')
+                    ->where('id', (int) $entry['item_kit_id'])
+                    ->decrement('default_quantity', $kitQty);
+
+                $components = $this->explodeKitComponents((int) $kit->id, $kitQty);
+                foreach ($components as $comp) {
+                    $compItemId = $comp['item_id'];
+                    $compQty = $comp['quantity'];
+
+                    $compStock = DB::table('phppos_location_items')
+                        ->where('location_id', $resolvedLocationId)
+                        ->where('item_id', $compItemId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    $compStockQty = $compStock ? (float) $compStock->quantity : 0.0;
+                    if (! $compStock) {
+                        DB::table('phppos_location_items')->insert([
+                            'location_id' => $resolvedLocationId,
+                            'item_id' => $compItemId,
+                            'quantity' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+
+                    DB::table('phppos_location_items')
+                        ->where('location_id', $resolvedLocationId)
+                        ->where('item_id', $compItemId)
+                        ->update([
+                            'quantity' => $compStockQty - $compQty,
+                            'updated_at' => now(),
+                        ]);
+
+                    DB::table('phppos_inventory_movements')->insert([
+                        'movement_type' => 'sale',
+                        'item_id' => $compItemId,
+                        'from_location_id' => $resolvedLocationId,
+                        'to_location_id' => null,
+                        'quantity' => $compQty,
+                        'reference_id' => null,
+                        'reference_type' => 'kit_component_sale',
+                        'created_by_person_id' => $employeeId,
+                        'notes' => 'Kit component sale (kit #'.$kit->id.')',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // ---- Build payment rows ----
             $paymentRows = collect($payments)
                 ->map(static fn (array $payment): array => [
                     'payment_type' => (string) $payment['type'],
@@ -229,6 +304,7 @@ class SalesService
                 'updated_at' => now(),
             ], 'sale_id');
 
+            // ---- Write phppos_sales_items for regular items ----
             if (! empty($lineEntries)) {
                 $now = now();
                 foreach ($lineEntries as $entry) {
@@ -264,7 +340,7 @@ class SalesService
                 }
             }
 
-            // Update inventory movements with the sale ID
+            // Update inventory movements for regular items with the sale ID
             foreach ($lineRows as $lineRow) {
                 DB::table('phppos_inventory_movements')
                     ->where('item_id', $lineRow['item_id'])
@@ -274,7 +350,18 @@ class SalesService
                     ->update(['reference_id' => $saleId]);
             }
 
-            // Insert payment records
+            // Update inventory movements for kit component items with the sale ID
+            foreach ($kitEntries as $entry) {
+                $kitId = (int) $entry['item_kit_id'];
+                DB::table('phppos_inventory_movements')
+                    ->where('reference_type', 'kit_component_sale')
+                    ->whereNull('reference_id')
+                    ->where('notes', 'Kit component sale (kit #'.$kitId.')')
+                    ->limit(PHP_INT_MAX)
+                    ->update(['reference_id' => $saleId]);
+            }
+
+            // ---- Insert payment records ----
             foreach ($paymentRows as $paymentRow) {
                 DB::table('phppos_sales_payments')->insert([
                     'sale_id' => $saleId,
@@ -285,7 +372,7 @@ class SalesService
                 ]);
             }
 
-            // Update register log payments if a register_id is associated
+            // ---- Update register log payments ----
             if ($registerId) {
                 $openLog = DB::table('phppos_register_log')
                     ->where('register_id', $registerId)
@@ -323,8 +410,59 @@ class SalesService
                 }
             }
 
+            // ---- Insert kit-level sale records for receipt/report display ----
+            if (! empty($kitSaleLines)) {
+                $now = now();
+                foreach ($kitSaleLines as $kl) {
+                    DB::table('phppos_sales_item_kits')->insert([
+                        'sale_id' => $saleId,
+                        'item_kit_id' => $kl['item_kit_id'],
+                        'quantity_purchased' => $kl['quantity_purchased'],
+                        'item_kit_unit_price' => $kl['item_kit_unit_price'],
+                        'line_total' => $kl['line_total'],
+                        'subtotal' => $kl['line_total'],
+                        'total' => $kl['line_total'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
+            }
+
             return $saleId;
         });
+    }
+
+    /**
+     * Recursively explode a kit into flat component items with adjusted quantities.
+     *
+     * @return array<int, array{item_id:int, quantity:float}>
+     */
+    private function explodeKitComponents(int $kitId, float $kitQty): array
+    {
+        $items = [];
+
+        $kitItemRows = DB::table('phppos_item_kit_items')
+            ->where('item_kit_id', $kitId)
+            ->get();
+
+        foreach ($kitItemRows as $row) {
+            $itemId = (int) $row->item_id;
+            $qty = (float) $row->quantity * $kitQty;
+            $items[] = ['item_id' => $itemId, 'quantity' => $qty];
+        }
+
+        // Nested kits
+        $nestedRows = DB::table('phppos_item_kit_item_kits')
+            ->where('item_kit_id', $kitId)
+            ->get();
+
+        foreach ($nestedRows as $row) {
+            $nestedKitQty = (float) $row->quantity * $kitQty;
+            $child = $this->explodeKitComponents((int) $row->item_kit_item_kit, $nestedKitQty);
+            $items = [...$items, ...$child];
+        }
+
+        return $items;
     }
 
     /**
@@ -403,11 +541,12 @@ class SalesService
         }
 
         $profit = $lineTotal - ($costPrice * $quantity);
+
         return $profit * ($percent / 100);
     }
 
     /**
-     * @param array<int, array{sale_item_id:int, quantity:float}> $lines
+     * @param  array<int, array{sale_item_id:int, quantity:float}>  $lines
      */
     public function returnSaleItems(int $saleId, int $employeeId, array $lines, ?string $reason = null): void
     {

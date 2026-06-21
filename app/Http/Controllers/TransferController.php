@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
-use App\Models\PhpposCategory;
 use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
 use App\Models\PhpposSupplier;
+use App\Models\PhpposTransfer;
 use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Http\RedirectResponse;
@@ -22,8 +23,7 @@ class TransferController extends Controller
     public function __construct(
         private readonly InventoryFlowService $inventoryFlowService,
         private readonly LocationContextService $locationContextService,
-    ) {
-    }
+    ) {}
 
     private function getCart(): array
     {
@@ -46,8 +46,10 @@ class TransferController extends Controller
             if ($cart['to_location_id'] === $cart['from_location_id']) {
                 $cart['to_location_id'] = null;
             }
+
             return $cart;
         }
+
         return $defaultCart;
     }
 
@@ -108,45 +110,24 @@ class TransferController extends Controller
 
         if (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
-            $this->addKitItemsToCart($kit, 1, $cart);
-
-            $countAfter = count($cart['items']);
-            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
-            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
-                $this->addKitAsLineItem($kit, 1, $cart);
-            }
+            $kit = PhpposItemKit::findOrFail($kitId);
+            $this->addKitToCart($kit, 1, $cart);
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
         }
 
         Session::put('transfer_cart', $cart);
+
         return redirect()->route('transfers.create');
     }
 
-    private function addKitItemsToCart($kit, $quantity, &$cart): void
+    private function addKitToCart($kit, $quantity, &$cart): void
     {
-        foreach ($kit->items as $kitItem) {
-            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
-            if ($item) {
-                $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
-            }
-        }
-        foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
-            if ($nKit) {
-                $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
-            }
-        }
-    }
-
-    private function addKitAsLineItem($kit, $quantity, &$cart): void
-    {
-        $kitLineId = 'KIT_' . $kit->id;
+        $kitId = (int) $kit->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
-            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+            if (($cartItem['type'] ?? 'item') === 'kit' && ($cartItem['item_kit_id'] ?? null) === $kitId) {
                 $existingKey = $key;
                 break;
             }
@@ -155,9 +136,10 @@ class TransferController extends Controller
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
             $cart['items'][] = [
-                'item_id'    => $kitLineId,
-                'name'       => '[KIT] ' . $kit->name,
-                'quantity'   => $quantity,
+                'type' => 'kit',
+                'item_kit_id' => $kitId,
+                'name' => $kit->name,
+                'quantity' => $quantity,
                 'cost_price' => (float) ($kit->cost_price ?? 0),
             ];
         }
@@ -167,6 +149,9 @@ class TransferController extends Controller
     {
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['type'] ?? 'item') !== 'item') {
+                continue;
+            }
             if ($cartItem['item_id'] == $item->item_id) {
                 $existingKey = $key;
                 break;
@@ -189,9 +174,12 @@ class TransferController extends Controller
     {
         $cart = $this->getCart();
         if (isset($cart['items'][$index])) {
-            if ($request->has('quantity')) $cart['items'][$index]['quantity'] = (float) $request->quantity;
+            if ($request->has('quantity')) {
+                $cart['items'][$index]['quantity'] = (float) $request->quantity;
+            }
             Session::put('transfer_cart', $cart);
         }
+
         return redirect()->route('transfers.create');
     }
 
@@ -203,6 +191,7 @@ class TransferController extends Controller
             $cart['items'] = array_values($cart['items']);
             Session::put('transfer_cart', $cart);
         }
+
         return redirect()->route('transfers.create');
     }
 
@@ -211,6 +200,7 @@ class TransferController extends Controller
         $cart = $this->getCart();
         $cart['supplier_id'] = $request->supplier_id;
         Session::put('transfer_cart', $cart);
+
         return redirect()->route('transfers.create');
     }
 
@@ -235,7 +225,7 @@ class TransferController extends Controller
         if ($categoryId && ! $isRootCategory) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -253,7 +243,7 @@ class TransferController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -264,7 +254,7 @@ class TransferController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->cost_price,
                     ];
                 });
@@ -305,7 +295,7 @@ class TransferController extends Controller
         if ($categoryId && $categories->isEmpty()) {
             $itemsQuery = PhpposItem::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $itemsQuery->where('supplier_id', $supplierId);
             }
@@ -323,7 +313,7 @@ class TransferController extends Controller
 
             $kitsQuery = PhpposItemKit::where('deleted', 0)
                 ->where('category_id', $categoryId);
-            
+
             if ($supplierId) {
                 $kitsQuery->where('supplier_id', $supplierId);
             }
@@ -334,7 +324,7 @@ class TransferController extends Controller
                     return [
                         'type' => 'kit',
                         'id' => $kit->id,
-                        'name' => '[KIT] ' . $kit->name,
+                        'name' => '[KIT] '.$kit->name,
                         'price' => $kit->cost_price,
                     ];
                 });
@@ -378,14 +368,14 @@ class TransferController extends Controller
         $term = $request->input('term');
         $cart = $this->getCart();
         $supplierId = $cart['supplier_id'] ?? null;
-        
+
         $itemsQuery = PhpposItem::where('deleted', 0)
-            ->where(function($query) use ($term) {
+            ->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
-                      ->orWhere('item_id', $term)
-                      ->orWhere('product_id', $term);
+                    ->orWhere('item_id', $term)
+                    ->orWhere('product_id', $term);
             });
-        
+
         if ($supplierId) {
             $itemsQuery->where('supplier_id', $supplierId);
         }
@@ -394,12 +384,12 @@ class TransferController extends Controller
             ->get(['item_id', 'name', 'cost_price']);
 
         $kitsQuery = PhpposItemKit::where('deleted', 0)
-            ->where(function($query) use ($term) {
+            ->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
-                      ->orWhere('item_kit_number', $term)
-                      ->orWhere('product_id', $term);
+                    ->orWhere('item_kit_number', $term)
+                    ->orWhere('product_id', $term);
             });
-        
+
         if ($supplierId) {
             $kitsQuery->where('supplier_id', $supplierId);
         }
@@ -407,8 +397,9 @@ class TransferController extends Controller
         $kits = $kitsQuery->limit(10)
             ->get(['id', 'name', 'cost_price'])
             ->map(function ($kit) {
-                $kit->item_id = 'KIT ' . $kit->id;
-                $kit->name = '[KIT] ' . $kit->name;
+                $kit->item_id = 'KIT '.$kit->id;
+                $kit->name = '[KIT] '.$kit->name;
+
                 return $kit;
             });
 
@@ -433,12 +424,13 @@ class TransferController extends Controller
             $cart['comment'] = $request->comment;
         }
         Session::put('transfer_cart', $cart);
+
         return redirect()->route('transfers.create');
     }
 
     public function edit(int $transferId): RedirectResponse
     {
-        $transfer = \App\Models\PhpposTransfer::with('items')->where('id', $transferId)->where('transfer_type', 'out')->firstOrFail();
+        $transfer = PhpposTransfer::with('items')->where('id', $transferId)->where('transfer_type', 'out')->firstOrFail();
         if ($transfer->status === 'closed') {
             return redirect()->route('transfers.out')->with('error', 'Cannot edit a closed transfer.');
         }
@@ -452,7 +444,7 @@ class TransferController extends Controller
         ];
 
         foreach ($transfer->items as $tItem) {
-            $item = \App\Models\PhpposItem::find($tItem->item_id);
+            $item = PhpposItem::find($tItem->item_id);
             if ($item) {
                 $cart['items'][] = [
                     'item_id' => $item->item_id,
@@ -464,7 +456,35 @@ class TransferController extends Controller
         }
 
         Session::put('transfer_cart', $cart);
+
         return redirect()->route('transfers.create');
+    }
+
+    /**
+     * @return array<int, array{item_id:int, quantity:float, cost_price:float}>
+     */
+    private function explodeKitForTransfer($kit, float $kitQty): array
+    {
+        $items = [];
+        foreach ($kit->items as $kitItem) {
+            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
+            if (! $item) {
+                continue;
+            }
+            $items[] = [
+                'item_id' => (int) $item->item_id,
+                'quantity' => (float) $kitItem->quantity * $kitQty,
+                'cost_price' => (float) ($item->cost_price ?? 0),
+            ];
+        }
+        foreach ($kit->nestedKits as $nestedKit) {
+            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $nestedKit->item_kit_item_kit);
+            if ($nKit) {
+                $items = [...$items, ...$this->explodeKitForTransfer($nKit, (float) $nestedKit->quantity * $kitQty)];
+            }
+        }
+
+        return $items;
     }
 
     public function save(Request $request): RedirectResponse
@@ -474,17 +494,25 @@ class TransferController extends Controller
             return redirect()->back()->with('error', 'Cart is empty.');
         }
 
-        if (!$cart['to_location_id'] || $cart['from_location_id'] == $cart['to_location_id']) {
+        if (! $cart['to_location_id'] || $cart['from_location_id'] == $cart['to_location_id']) {
             return redirect()->back()->with('error', 'Please select a valid destination location different from the source.');
         }
 
         try {
-            // Strip kit-level fallback rows — no real integer item_id
-            $lines = collect($cart['items'])
-                ->filter(fn($i) => !str_starts_with((string) ($i['item_id'] ?? ''), 'KIT_'))
-                ->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
-                ->toArray();
-            
+            // Explode kits into component items at save time
+            $lines = [];
+            foreach ($cart['items'] as $item) {
+                if (($item['type'] ?? 'item') === 'kit') {
+                    $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
+                    if ($kit) {
+                        $exploded = $this->explodeKitForTransfer($kit, (float) $item['quantity']);
+                        $lines = [...$lines, ...$exploded];
+                    }
+                } else {
+                    $lines[] = ['item_id' => $item['item_id'], 'quantity' => $item['quantity']];
+                }
+            }
+
             if (isset($cart['transfer_id'])) {
                 $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
                 $transferOutId = $cart['transfer_id'];
@@ -502,6 +530,7 @@ class TransferController extends Controller
             $this->inventoryFlowService->syncTransferEvent($transferOutId);
 
             Session::forget('transfer_cart');
+
             return redirect()->route('transfers.out')->with('status', 'Transfer saved successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
@@ -515,22 +544,33 @@ class TransferController extends Controller
             return redirect()->back()->with('error', 'Cart is empty.');
         }
 
-        if (!$cart['to_location_id'] || $cart['from_location_id'] == $cart['to_location_id']) {
+        if (! $cart['to_location_id'] || $cart['from_location_id'] == $cart['to_location_id']) {
             return redirect()->back()->with('error', 'Please select a valid destination location different from the source.');
         }
 
         try {
             DB::transaction(function () use ($cart, $request) {
-                // Strip kit-level fallback rows — no real integer item_id
-                $realItems = collect($cart['items'])
-                    ->filter(fn($i) => !str_starts_with((string) ($i['item_id'] ?? ''), 'KIT_'))
-                    ->values()
-                    ->all();
+                // Explode kits into component items for inventory movement
+                $realItems = [];
+                $kitAuditLines = [];
+                foreach ($cart['items'] as $item) {
+                    if (($item['type'] ?? 'item') === 'kit') {
+                        $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
+                        if ($kit) {
+                            $kitQty = (float) $item['quantity'];
+                            $exploded = $this->explodeKitForTransfer($kit, $kitQty);
+                            $realItems = [...$realItems, ...$exploded];
+                            $kitAuditLines[] = $item;
+                        }
+                    } else {
+                        $realItems[] = $item;
+                    }
+                }
 
                 $lines = collect($realItems)
-                    ->map(fn($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
+                    ->map(fn ($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
                     ->toArray();
-                
+
                 if (isset($cart['transfer_id'])) {
                     $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
                     $transferOutId = $cart['transfer_id'];
@@ -547,24 +587,25 @@ class TransferController extends Controller
                 $this->inventoryFlowService->completeTransferOut($transferOutId, auth('employee')->id());
 
                 // 2. Create a "Return" record in receivings for audit/reporting purposes (as requested)
+                $allAuditItems = [...$realItems, ...$kitAuditLines];
                 $subtotal = 0;
                 $totalQty = 0;
-                foreach ($cart['items'] as $item) {
-                    $subtotal += $item['cost_price'] * $item['quantity'];
+                foreach ($allAuditItems as $item) {
+                    $subtotal += ($item['cost_price'] ?? 0) * $item['quantity'];
                     $totalQty += $item['quantity'];
                 }
 
                 $receiving = PhpposReceiving::create([
                     'receiving_time' => now(),
                     'closed_at' => now(),
-                    'supplier_id' => null, // Not bound to supplier
+                    'supplier_id' => null,
                     'employee_id' => auth('employee')->id(),
-                    'comment' => 'Transfer Out #' . $transferOutId . ($request->comment ? ' - ' . $request->comment : ''),
+                    'comment' => 'Transfer Out #'.$transferOutId.($request->comment ? ' - '.$request->comment : ''),
                     'location_id' => $cart['from_location_id'],
                     'subtotal' => $subtotal,
                     'total' => $subtotal,
                     'total_quantity_purchased' => $totalQty,
-                    'total_quantity_received' => 0, // Mode is return
+                    'total_quantity_received' => 0,
                     'mode' => 'return',
                     'type' => 'return',
                     'source' => 'transfer',
@@ -572,22 +613,38 @@ class TransferController extends Controller
                 ]);
                 $receiving->syncDocumentIdentity();
 
-                foreach ($cart['items'] as $index => $item) {
-                    $isKit = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
-                    
+                $index = 0;
+                foreach ($realItems as $item) {
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
-                        'item_id' => $isKit ? null : $item['item_id'],
-                        'item_kit_id' => $isKit ? (int) str_replace('KIT_', '', $item['item_id']) : null,
+                        'item_id' => $item['item_id'],
+                        'item_kit_id' => null,
                         'line' => $index,
                         'quantity_purchased' => $item['quantity'],
                         'quantity_received' => 0,
                         'item_cost_price' => $item['cost_price'],
                         'item_unit_price' => $item['cost_price'],
                         'discount_percent' => 0,
-                        'subtotal' => $item['cost_price'] * $item['quantity'],
-                        'total' => $item['cost_price'] * $item['quantity'],
+                        'subtotal' => ($item['cost_price'] ?? 0) * $item['quantity'],
+                        'total' => ($item['cost_price'] ?? 0) * $item['quantity'],
                     ]);
+                    $index++;
+                }
+                foreach ($kitAuditLines as $item) {
+                    PhpposReceivingItem::create([
+                        'receiving_id' => $receiving->receiving_id,
+                        'item_id' => null,
+                        'item_kit_id' => (int) $item['item_kit_id'],
+                        'line' => $index,
+                        'quantity_purchased' => $item['quantity'],
+                        'quantity_received' => 0,
+                        'item_cost_price' => $item['cost_price'],
+                        'item_unit_price' => $item['cost_price'],
+                        'discount_percent' => 0,
+                        'subtotal' => ($item['cost_price'] ?? 0) * $item['quantity'],
+                        'total' => ($item['cost_price'] ?? 0) * $item['quantity'],
+                    ]);
+                    $index++;
                 }
 
                 $this->inventoryFlowService->syncTransferEvent($transferOutId);
@@ -604,6 +661,7 @@ class TransferController extends Controller
     public function cancel(): RedirectResponse
     {
         Session::forget('transfer_cart');
+
         return redirect()->route('transfers.out');
     }
 }
