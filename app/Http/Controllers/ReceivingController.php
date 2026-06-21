@@ -510,8 +510,6 @@ class ReceivingController extends Controller
 
         $itemIdStr = $request->item_id;
         $cart = $this->getCart();
-        $countBefore = count($cart['items']);
-        $totalQtyBefore = array_sum(array_column($cart['items'], 'quantity'));
 
         if (str_starts_with($itemIdStr, 'VAR ')) {
             $variationId = (int) str_replace('VAR ', '', $itemIdStr);
@@ -520,14 +518,8 @@ class ReceivingController extends Controller
             $this->addSingleItemToCart($parentItem, 1, $cart, $variation);
         } elseif (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
-            $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->findOrFail($kitId);
-            $this->addKitItemsToCart($kit, 1, $cart);
-
-            $countAfter = count($cart['items']);
-            $totalQtyAfter = array_sum(array_column($cart['items'], 'quantity'));
-            if ($countAfter === $countBefore && $totalQtyAfter === $totalQtyBefore) {
-                $this->addKitAsLineItem($kit, 1, $cart);
-            }
+            $kit = PhpposItemKit::findOrFail($kitId);
+            $this->addKitToCart($kit, 1, $cart);
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
             $this->addSingleItemToCart($item, 1, $cart);
@@ -538,29 +530,12 @@ class ReceivingController extends Controller
         return redirect()->route('purchases.create');
     }
 
-    private function addKitItemsToCart($kit, $quantity, &$cart): void
+    private function addKitToCart($kit, $quantity, &$cart): void
     {
-        foreach ($kit->items as $kitItem) {
-            $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
-            if ($item) {
-                $this->addSingleItemToCart($item, $kitItem->quantity * $quantity, $cart);
-            }
-        }
-
-        foreach ($kit->nestedKits as $nestedKit) {
-            $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find($nestedKit->item_kit_item_kit);
-            if ($nKit) {
-                $this->addKitItemsToCart($nKit, $nestedKit->quantity * $quantity, $cart);
-            }
-        }
-    }
-
-    private function addKitAsLineItem($kit, $quantity, &$cart): void
-    {
-        $kitLineId = 'KIT_'.$kit->id;
+        $kitId = (int) $kit->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
-            if (($cartItem['item_id'] ?? null) === $kitLineId) {
+            if (($cartItem['type'] ?? 'item') === 'kit' && ($cartItem['item_kit_id'] ?? null) === $kitId) {
                 $existingKey = $key;
                 break;
             }
@@ -569,8 +544,9 @@ class ReceivingController extends Controller
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
             $cart['items'][] = [
-                'item_id' => $kitLineId,
-                'name' => '[KIT] '.$kit->name,
+                'type' => 'kit',
+                'item_kit_id' => $kitId,
+                'name' => $kit->name,
                 'quantity' => $quantity,
                 'cost_price' => (float) ($kit->cost_price ?? 0),
                 'discount' => 0,
@@ -584,6 +560,9 @@ class ReceivingController extends Controller
         $variationId = $variation?->id;
         $existingKey = null;
         foreach ($cart['items'] as $key => $cartItem) {
+            if (($cartItem['type'] ?? 'item') !== 'item') {
+                continue;
+            }
             if ((int) $cartItem['item_id'] === $itemId && ($cartItem['variation_id'] ?? null) === $variationId) {
                 $existingKey = $key;
                 break;
@@ -605,6 +584,36 @@ class ReceivingController extends Controller
             }
             $cart['items'][] = $entry;
         }
+    }
+
+    /**
+     * @return array<int, array{item_id: int, quantity: float}>
+     */
+    private function explodeKitComponents(int $kitId, float $kitQty): array
+    {
+        $items = [];
+
+        $kitItemRows = DB::table('phppos_item_kit_items')
+            ->where('item_kit_id', $kitId)
+            ->get();
+
+        foreach ($kitItemRows as $row) {
+            $itemId = (int) $row->item_id;
+            $qty = (float) $row->quantity * $kitQty;
+            $items[] = ['item_id' => $itemId, 'quantity' => $qty];
+        }
+
+        $nestedRows = DB::table('phppos_item_kit_item_kits')
+            ->where('item_kit_id', $kitId)
+            ->get();
+
+        foreach ($nestedRows as $row) {
+            $nestedKitQty = (float) $row->quantity * $kitQty;
+            $child = $this->explodeKitComponents((int) $row->item_kit_item_kit, $nestedKitQty);
+            $items = array_merge($items, $child);
+        }
+
+        return $items;
     }
 
     public function editItem(Request $request, int $index): RedirectResponse
@@ -666,10 +675,23 @@ class ReceivingController extends Controller
         return DB::transaction(function () use ($cart, $request) {
             $subtotal = 0;
             $totalQty = 0;
+
+            $regularItems = [];
+            $kitEntries = [];
+
             foreach ($cart['items'] as $item) {
+                if (($item['type'] ?? 'item') === 'kit') {
+                    $kitEntries[] = $item;
+                } else {
+                    $regularItems[] = $item;
+                }
                 $itemTotal = $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
                 $subtotal += $itemTotal;
                 $totalQty += $item['quantity'];
+            }
+
+            if (empty($regularItems) && empty($kitEntries)) {
+                return redirect()->back()->with('error', 'Cart is empty.');
             }
 
             $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
@@ -691,18 +713,23 @@ class ReceivingController extends Controller
             ]);
             $receiving->syncDocumentIdentity();
 
-            $itemIds = collect($cart['items'])
-                ->filter(static fn (array $row): bool => ! str_starts_with((string) ($row['item_id'] ?? ''), 'KIT_'))
-                ->pluck('item_id')
-                ->map(static fn ($id): int => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
+            // Collect all item IDs for tax class map (regular items + exploded kit components)
+            $allItemIds = collect($regularItems)->pluck('item_id')->map(static fn ($id): int => (int) $id)->unique()->values()->all();
 
-            $itemTaxClassMap = $itemIds === []
+            // Resolve kit entries into component item IDs for tax lookup
+            $kitComponentItemIds = [];
+            foreach ($kitEntries as $kitEntry) {
+                $components = $this->explodeKitComponents((int) $kitEntry['item_kit_id'], (float) $kitEntry['quantity']);
+                foreach ($components as $comp) {
+                    $kitComponentItemIds[] = $comp['item_id'];
+                }
+            }
+            $allItemIds = array_values(array_unique([...$allItemIds, ...$kitComponentItemIds]));
+
+            $itemTaxClassMap = $allItemIds === []
                 ? []
                 : DB::table('phppos_items')
-                    ->whereIn('item_id', $itemIds)
+                    ->whereIn('item_id', $allItemIds)
                     ->pluck('tax_class_id', 'item_id')
                     ->toArray();
 
@@ -725,51 +752,23 @@ class ReceivingController extends Controller
                     ->get()
                     ->groupBy('tax_class_id');
 
-            $totalVat = 0.0; // accumulator for header-level VAT
+            $totalVat = 0.0;
+            $lineIndex = 0;
 
-            foreach ($cart['items'] as $index => $item) {
-                $isKitFallback = str_starts_with((string) ($item['item_id'] ?? ''), 'KIT_');
-
-                if ($isKitFallback) {
-                    // Store as a kit-level line item (no tax class lookup for bare kit lines)
-                    $kitId = (int) str_replace('KIT_', '', $item['item_id']);
-                    PhpposReceivingItem::create([
-                        'receiving_id' => $receiving->receiving_id,
-                        'item_id' => null,
-                        'item_kit_id' => $kitId,
-                        'line' => $index,
-                        'description' => $item['name'],
-                        'quantity_purchased' => $item['quantity'],
-                        'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
-                        'item_cost_price' => $item['cost_price'],
-                        'item_unit_price' => $item['cost_price'],
-                        'discount_percent' => $item['discount'] ?? 0,
-                        'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
-                        'total' => $item['cost_price'] * $item['quantity'] * (1 - ($item['discount'] ?? 0) / 100),
-                        'vat' => 0,
-                    ]);
-
-                    // Kits with no component items: no inventory movement (nothing to deduct)
-                    continue;
-                }
-
+            // ---- Process regular items ----
+            foreach ($regularItems as $item) {
                 $lineSubtotal = $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
 
-                // Resolve the tax class for this line
                 $lineTaxClassId = $itemTaxClassMap[$item['item_id']] ?? 0;
                 if (! is_numeric($lineTaxClassId) || (int) $lineTaxClassId <= 0) {
                     $lineTaxClassId = $defaultTaxClassId;
                 }
                 $lineTaxClassId = (int) $lineTaxClassId;
 
-                // Build combined tax rate for this line (sum of all rates in the tax class)
-                // VAT formula: vat = total * taxrate
-                // For multiple stacked rates the effective combined rate is used.
                 $lineVat = 0.0;
                 if ($lineTaxClassId > 0 && $taxClassTaxes->has($lineTaxClassId)) {
                     $rates = $taxClassTaxes->get($lineTaxClassId);
 
-                    // Compute effective combined rate (handle cumulative stacking)
                     $baseCumulative = $lineSubtotal;
                     $totalTax = 0.0;
                     foreach ($rates as $rate) {
@@ -780,9 +779,8 @@ class ReceivingController extends Controller
                             $baseCumulative += $lineTaxAmount;
                         }
                     }
-                    $lineTotal = $lineSubtotal + $totalTax; // total including all tax
+                    $lineTotal = $lineSubtotal + $totalTax;
 
-                    // We calculate combined effective TaxRate from subtotal/total relationship
                     if ($lineSubtotal > 0) {
                         $effectiveTaxRate = ($lineTotal - $lineSubtotal) / $lineSubtotal;
                         if ($effectiveTaxRate > 0) {
@@ -795,7 +793,7 @@ class ReceivingController extends Controller
                         $taxInsert[] = [
                             'receiving_id' => $receiving->receiving_id,
                             'item_id' => $item['item_id'],
-                            'line' => $index,
+                            'line' => $lineIndex,
                             'name' => $rate->name,
                             'percent' => $rate->percent,
                             'cumulative' => (bool) $rate->cumulative,
@@ -812,7 +810,7 @@ class ReceivingController extends Controller
                     'receiving_id' => $receiving->receiving_id,
                     'item_id' => $item['item_id'],
                     'item_variation_id' => $item['variation_id'] ?? null,
-                    'line' => $index,
+                    'line' => $lineIndex,
                     'quantity_purchased' => $item['quantity'],
                     'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
                     'item_cost_price' => $item['cost_price'],
@@ -823,7 +821,6 @@ class ReceivingController extends Controller
                     'vat' => round($lineVat, 10),
                 ]);
 
-                // Update inventory
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
                 $inventoryToMove = $item['quantity'] * $multiplier;
 
@@ -846,9 +843,92 @@ class ReceivingController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+                $lineIndex++;
             }
 
-            // Persist total VAT on the header record
+            // ---- Process kit entries ----
+            foreach ($kitEntries as $kitEntry) {
+                $kitId = (int) $kitEntry['item_kit_id'];
+                $kitQty = (float) $kitEntry['quantity'];
+                $kitLineTotal = $kitEntry['cost_price'] * $kitQty * (1 - ($kitEntry['discount'] ?? 0) / 100);
+
+                $multiplier = $cart['mode'] == 'return' ? -1 : 1;
+
+                // Decrement/increment the kit's own stock (default_quantity)
+                DB::table('phppos_item_kits')
+                    ->where('id', $kitId)
+                    ->decrement('default_quantity', $kitQty * $multiplier);
+
+                // Explode kit into component items
+                $components = $this->explodeKitComponents($kitId, $kitQty);
+
+                foreach ($components as $comp) {
+                    $compItemId = $comp['item_id'];
+                    $compQty = $comp['quantity'];
+
+                    // Update inventory for each component
+                    $inventoryToMove = $compQty * $multiplier;
+
+                    DB::table('phppos_location_items')
+                        ->updateOrInsert(
+                            ['item_id' => $compItemId, 'location_id' => $locationId],
+                            ['quantity' => DB::raw("quantity + $inventoryToMove")]
+                        );
+
+                    DB::table('phppos_inventory_movements')->insert([
+                        'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
+                        'item_id' => $compItemId,
+                        'from_location_id' => $cart['mode'] == 'return' ? $locationId : null,
+                        'to_location_id' => $cart['mode'] == 'receive' ? $locationId : null,
+                        'quantity' => abs($inventoryToMove),
+                        'reference_id' => $receiving->receiving_id,
+                        'reference_type' => 'kit_component_receiving',
+                        'created_by_person_id' => auth('employee')->id(),
+                        'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ').$receiving->receiving_id.' (kit #'.$kitId.' component)',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    // Write component item record
+                    PhpposReceivingItem::create([
+                        'receiving_id' => $receiving->receiving_id,
+                        'item_id' => $compItemId,
+                        'line' => $lineIndex,
+                        'description' => 'Component of kit #'.$kitId,
+                        'quantity_purchased' => $compQty,
+                        'quantity_received' => $cart['mode'] == 'receive' ? $compQty : 0,
+                        'item_cost_price' => 0,
+                        'item_unit_price' => 0,
+                        'discount_percent' => 0,
+                        'subtotal' => 0,
+                        'total' => 0,
+                        'vat' => 0,
+                    ]);
+
+                    $lineIndex++;
+                }
+
+                // Write kit header record (for receipt/report display)
+                PhpposReceivingItem::create([
+                    'receiving_id' => $receiving->receiving_id,
+                    'item_id' => null,
+                    'item_kit_id' => $kitId,
+                    'line' => $lineIndex,
+                    'description' => $kitEntry['name'],
+                    'quantity_purchased' => $kitQty,
+                    'quantity_received' => $cart['mode'] == 'receive' ? $kitQty : 0,
+                    'item_cost_price' => $kitEntry['cost_price'],
+                    'item_unit_price' => $kitEntry['cost_price'],
+                    'discount_percent' => $kitEntry['discount'] ?? 0,
+                    'subtotal' => $kitLineTotal,
+                    'total' => $kitLineTotal,
+                    'vat' => 0,
+                ]);
+
+                $lineIndex++;
+            }
+
             $receiving->vat = round($totalVat, 10);
             $receiving->saveQuietly();
 

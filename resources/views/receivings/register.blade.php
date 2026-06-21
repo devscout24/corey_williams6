@@ -99,8 +99,15 @@
                                     <tr>
                                         <td class="ps-4">{{ $index + 1 }}</td>
                                         <td>
-                                            <div class="fw-bold text-primary">{{ $item['name'] }}</div>
-                                            <small class="text-muted">ID: {{ $item['item_id'] }}</small>
+                                            <div class="fw-bold text-primary">
+                                                @if(($item['type'] ?? 'item') === 'kit')
+                                                    <span class="badge bg-purple me-1" style="background:#7c3aed">KIT</span>
+                                                @endif
+                                                {{ $item['name'] }}
+                                            </div>
+                                            <small class="text-muted">
+                                                ID: {{ ($item['type'] ?? 'item') === 'kit' ? ($item['item_kit_id'] ?? '') : ($item['item_id'] ?? '') }}
+                                            </small>
                                         </td>
                                         <td>
                                             <form action="{{ route('receivings.item.edit', $index) }}" method="POST">
