@@ -968,6 +968,8 @@ class ReceivingController extends Controller
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
                 $inventoryToMove = $item['quantity'] * $multiplier;
 
+                Log::debug('[RECV complete] mode='.$cart['mode'].' multiplier='.$multiplier.' item_id='.($item['item_id'] ?? 'null').' cart_qty='.$item['quantity'].' inventoryToMove='.$inventoryToMove.' location_id='.$locationId);
+
                 $stock = DB::table('phppos_location_items')
                     ->where('item_id', $item['item_id'])
                     ->where('location_id', $locationId)
@@ -975,6 +977,8 @@ class ReceivingController extends Controller
                     ->first();
 
                 $stockQty = $stock ? (float) $stock->quantity : 0.0;
+                Log::debug('[RECV complete] stock row: '.json_encode($stock));
+                Log::debug('[RECV complete] stockQty='.$stockQty.' computed_new_qty='.($stockQty + $inventoryToMove));
                 if (! $stock) {
                     DB::table('phppos_location_items')->insert([
                         'item_id' => $item['item_id'],
@@ -1034,6 +1038,8 @@ class ReceivingController extends Controller
                     // Update inventory for each component
                     $inventoryToMove = $compQty * $multiplier;
 
+                    Log::debug('[RECV complete KIT] mode='.$cart['mode'].' kit_id='.$kitId.' comp_item_id='.$compItemId.' comp_qty='.$compQty.' multiplier='.$multiplier.' inventoryToMove='.$inventoryToMove.' location_id='.$locationId);
+
                     $compStock = DB::table('phppos_location_items')
                         ->where('item_id', $compItemId)
                         ->where('location_id', $locationId)
@@ -1041,6 +1047,8 @@ class ReceivingController extends Controller
                         ->first();
 
                     $compStockQty = $compStock ? (float) $compStock->quantity : 0.0;
+                    Log::debug('[RECV complete KIT] comp stock row: '.json_encode($compStock));
+                    Log::debug('[RECV complete KIT] compStockQty='.$compStockQty.' computed_new_qty='.($compStockQty + $inventoryToMove));
                     if (! $compStock) {
                         DB::table('phppos_location_items')->insert([
                             'item_id' => $compItemId,
