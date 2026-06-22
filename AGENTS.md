@@ -114,7 +114,8 @@ When a transfer is sent over LAN (`SendItem` / `TransferSyncController::exportTr
 1. Look up by `item_id`
 2. Look up by `item_number`
 3. Look up by `product_id`
-4. If still not found, **auto-create** a `PhpposItem` with the provided metadata (name, item_number, product_id, cost_price, unit_price, markup, markup_type)
+4. Look up by `name` (fallback — catches items created independently with same name but different identifiers)
+5. If still not found, **auto-create** a `PhpposItem` with the provided metadata (name, item_number, product_id, cost_price, unit_price, markup, markup_type)
 5. For kit header rows, auto-create a minimal `PhpposItemKit` with the provided kit metadata and its `components` array to recreate the kit structure (`phppos_item_kit_items` records) if the component items exist locally
 
 This ensures transfers always complete successfully even when items/kits exist only on the sender. The `quantity > 0` filter prevents zero-quantity component rows from blocking delivery.

@@ -205,6 +205,9 @@ class TransferSyncController extends Controller
                                     if (! $compItem && ! empty($comp['product_id'])) {
                                         $compItem = PhpposItem::where('product_id', $comp['product_id'])->first();
                                     }
+                                    if (! $compItem && ! empty($comp['name'])) {
+                                        $compItem = PhpposItem::where('name', $comp['name'])->first();
+                                    }
                                     if ($compItem) {
                                         DB::table('phppos_item_kit_items')->insert([
                                             'item_kit_id' => $itemKitId,
@@ -242,6 +245,11 @@ class TransferSyncController extends Controller
             }
             if (! $item && ! empty($line['product_id'])) {
                 $item = PhpposItem::where('product_id', $line['product_id'])->first();
+            }
+
+            // Fallback: match by name before auto-creating
+            if (! $item && ! empty($line['name'])) {
+                $item = PhpposItem::where('name', $line['name'])->first();
             }
 
             // Auto-create item from metadata if not found
