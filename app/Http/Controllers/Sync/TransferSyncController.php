@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Sync;
 
 use App\Http\Controllers\Controller;
 use App\Models\PhpposItem;
+use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
 use App\Models\PhpposTransfer;
 use App\Models\PhpposTransferItem;
@@ -11,6 +12,7 @@ use App\Services\InventoryFlowService;
 use App\Services\LocationContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransferSyncController extends Controller
@@ -47,11 +49,48 @@ class TransferSyncController extends Controller
         })->map(function ($item) {
             $itemModel = $item->item_id ? PhpposItem::find($item->item_id) : null;
 
+            $kitModel = null;
+            $components = [];
+            if ($item->item_kit_id && ! $item->item_id) {
+                $kitModel = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item->item_kit_id);
+                if ($kitModel) {
+                    foreach ($kitModel->items as $kitItem) {
+                        $compItem = $kitItem->item;
+                        $components[] = [
+                            'item_id' => (int) $kitItem->item_id,
+                            'item_number' => $compItem?->item_number,
+                            'product_id' => $compItem?->product_id,
+                            'name' => $compItem?->name ?? 'Item #'.$kitItem->item_id,
+                            'quantity' => (float) $kitItem->quantity,
+                        ];
+                    }
+                    foreach ($kitModel->nestedKits as $nestedKit) {
+                        $nestedKitModel = PhpposItemKit::find((int) $nestedKit->item_kit_item_kit);
+                        $components[] = [
+                            'item_kit_id' => (int) $nestedKit->item_kit_item_kit,
+                            'item_kit_name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'quantity' => (float) $nestedKit->quantity,
+                        ];
+                    }
+                }
+            }
+
             return [
                 'item_id' => $item->item_id,
                 'item_number' => $itemModel?->item_number,
+                'product_id' => $itemModel?->product_id,
+                'name' => $itemModel?->name ?? $item->item_kit_name,
+                'cost_price' => $itemModel?->cost_price,
+                'unit_price' => $itemModel?->unit_price,
+                'markup' => $itemModel?->markup,
+                'markup_type' => $itemModel?->markup_type,
                 'item_kit_id' => $item->item_kit_id,
                 'item_kit_name' => $item->item_kit_name,
+                'item_kit_cost_price' => $kitModel?->cost_price,
+                'item_kit_unit_price' => $kitModel?->unit_price,
+                'item_kit_default_quantity' => $kitModel?->default_quantity,
+                'components' => $components,
                 'quantity' => (float) $item->quantity,
             ];
         })->values();
@@ -82,8 +121,25 @@ class TransferSyncController extends Controller
             'lines' => 'required|array|min:1',
             'lines.*.item_id' => 'nullable|integer',
             'lines.*.item_number' => 'nullable|string|max:255',
+            'lines.*.product_id' => 'nullable|string|max:255',
+            'lines.*.name' => 'nullable|string|max:255',
+            'lines.*.cost_price' => 'nullable|numeric',
+            'lines.*.unit_price' => 'nullable|numeric',
+            'lines.*.markup' => 'nullable|numeric',
+            'lines.*.markup_type' => 'nullable|string|max:50',
             'lines.*.item_kit_id' => 'nullable|integer',
             'lines.*.item_kit_name' => 'nullable|string|max:255',
+            'lines.*.item_kit_cost_price' => 'nullable|numeric',
+            'lines.*.item_kit_unit_price' => 'nullable|numeric',
+            'lines.*.item_kit_default_quantity' => 'nullable|numeric',
+            'lines.*.components' => 'nullable|array',
+            'lines.*.components.*.item_id' => 'nullable|integer',
+            'lines.*.components.*.item_number' => 'nullable|string|max:255',
+            'lines.*.components.*.product_id' => 'nullable|string|max:255',
+            'lines.*.components.*.name' => 'nullable|string|max:255',
+            'lines.*.components.*.item_kit_id' => 'nullable|integer',
+            'lines.*.components.*.item_kit_name' => 'nullable|string|max:255',
+            'lines.*.components.*.quantity' => 'required|numeric|gt:0',
             'lines.*.quantity' => 'required|numeric|gt:0',
         ]);
 
@@ -125,6 +181,48 @@ class TransferSyncController extends Controller
                     ]);
                 }
 
+                // Auto-create kit if missing
+                $kit = PhpposItemKit::find($itemKitId);
+                if (! $kit && ! empty($itemKitName)) {
+                    try {
+                        $kit = PhpposItemKit::create([
+                            'name' => $itemKitName,
+                            'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
+                            'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
+                            'default_quantity' => $line['item_kit_default_quantity'] ?? null,
+                        ]);
+                        $itemKitId = (int) $kit->id;
+
+                        // Create kit component records from metadata
+                        if (! empty($line['components'])) {
+                            foreach ($line['components'] as $comp) {
+                                $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
+                                if ($compItemId) {
+                                    $compItem = PhpposItem::find($compItemId);
+                                    if (! $compItem && ! empty($comp['item_number'])) {
+                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->first();
+                                    }
+                                    if (! $compItem && ! empty($comp['product_id'])) {
+                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->first();
+                                    }
+                                    if ($compItem) {
+                                        DB::table('phppos_item_kit_items')->insert([
+                                            'item_kit_id' => $itemKitId,
+                                            'item_id' => $compItem->item_id,
+                                            'quantity' => (float) $comp['quantity'],
+                                            'created_at' => now(),
+                                            'updated_at' => now(),
+                                        ]);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (\Throwable) {
+                    }
+                } elseif (! $kit) {
+                    continue;
+                }
+
                 $lines[] = [
                     'item_id' => null,
                     'item_kit_id' => $itemKitId,
@@ -134,6 +232,7 @@ class TransferSyncController extends Controller
                 continue;
             }
 
+            // Resolve item by id, item_number, or product_id
             $item = null;
             if (! empty($line['item_id'])) {
                 $item = PhpposItem::find($line['item_id']);
@@ -141,11 +240,34 @@ class TransferSyncController extends Controller
             if (! $item && ! empty($line['item_number'])) {
                 $item = PhpposItem::where('item_number', $line['item_number'])->first();
             }
+            if (! $item && ! empty($line['product_id'])) {
+                $item = PhpposItem::where('product_id', $line['product_id'])->first();
+            }
+
+            // Auto-create item from metadata if not found
+            if (! $item && ! empty($line['name'])) {
+                try {
+                    $data = [
+                        'name' => $line['name'],
+                        'item_number' => $line['item_number'] ?? null,
+                        'product_id' => $line['product_id'] ?? null,
+                        'cost_price' => (float) ($line['cost_price'] ?? 0),
+                        'unit_price' => (float) ($line['unit_price'] ?? 0),
+                    ];
+                    if (isset($line['markup'])) {
+                        $data['markup'] = (float) $line['markup'];
+                    }
+                    if (isset($line['markup_type'])) {
+                        $data['markup_type'] = $line['markup_type'];
+                    }
+                    $item = PhpposItem::create($data);
+                } catch (\Throwable) {
+                    continue;
+                }
+            }
 
             if (! $item) {
-                throw ValidationException::withMessages([
-                    "lines.$index.item_id" => 'Item not found for this transfer line.',
-                ]);
+                continue;
             }
 
             $lines[] = [

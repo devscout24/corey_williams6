@@ -89,6 +89,36 @@ Purchases, returns, sales, and transfers all use a **two-layer approach** for ha
 - The `InventoryFlowService` methods (`createTransferOut`, `completeTransferOut`, `importTransferIn`, etc.) carry through `item_kit_id` and `item_kit_name` so kit metadata is preserved across the full transfer lifecycle (out → sync → in → receive).
 - `TransferController::edit()` restores the cart from saved `phppos_transfer_items`, reconstructing both individual items and kit entries.
 
+### LAN transfer exchange — item/kit metadata & auto-creation
+
+When a transfer is sent over LAN (`SendItem` / `TransferSyncController::exportTransferOut`), each line carries full metadata so the receiver can work with items that don't exist locally:
+
+| Field | Source | Purpose |
+|---|---|---|
+| `item_id` | `phppos_transfer_items` | Primary lookup |
+| `item_number` | `PhpposItem::item_number` | Fallback lookup |
+| `product_id` | `PhpposItem::product_id` | Fallback lookup |
+| `name` | `PhpposItem::name` / `item_kit_name` | Display + auto-creation |
+| `cost_price` | `PhpposItem::cost_price` | Auto-creation |
+| `unit_price` | `PhpposItem::unit_price` | Auto-creation |
+| `markup` | `PhpposItem::markup` | Auto-creation |
+| `markup_type` | `PhpposItem::markup_type` | Auto-creation |
+| `item_kit_id` | `phppos_transfer_items` | Kit reference |
+| `item_kit_name` | `phppos_transfer_items` | Kit display + auto-creation |
+| `item_kit_cost_price` | `PhpposItemKit::cost_price` | Kit auto-creation |
+| `item_kit_unit_price` | `PhpposItemKit::unit_price` | Kit auto-creation |
+| `item_kit_default_quantity` | `PhpposItemKit::default_quantity` | Kit auto-creation |
+| `components` | `phppos_item_kit_items` / `phppos_item_kit_item_kits` | Kit structure recreation |
+
+**On the receiver** (`LanController::receive`, `TransferSyncController::receiveTransferOut`), item resolution order:
+1. Look up by `item_id`
+2. Look up by `item_number`
+3. Look up by `product_id`
+4. If still not found, **auto-create** a `PhpposItem` with the provided metadata (name, item_number, product_id, cost_price, unit_price, markup, markup_type)
+5. For kit header rows, auto-create a minimal `PhpposItemKit` with the provided kit metadata and its `components` array to recreate the kit structure (`phppos_item_kit_items` records) if the component items exist locally
+
+This ensures transfers always complete successfully even when items/kits exist only on the sender. The `quantity > 0` filter prevents zero-quantity component rows from blocking delivery.
+
 ## Code style
 
 - Laravel Pint (`./vendor/bin/pint`) — no local config, uses defaults. Run before committing.

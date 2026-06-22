@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Location;
 use App\Models\Notification;
 use App\Models\PhpposItem;
+use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
 use App\Models\PhpposTransfer;
 use App\Models\PhpposTransferItem;
@@ -168,11 +169,49 @@ class SendItem implements ShouldQueue
         })->map(function ($item) {
             $itemModel = $item->item_id ? PhpposItem::find($item->item_id) : null;
 
+            // Kit header row — include full kit metadata and its components
+            $kitModel = null;
+            $components = [];
+            if ($item->item_kit_id && ! $item->item_id) {
+                $kitModel = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item->item_kit_id);
+                if ($kitModel) {
+                    foreach ($kitModel->items as $kitItem) {
+                        $compItem = $kitItem->item;
+                        $components[] = [
+                            'item_id' => (int) $kitItem->item_id,
+                            'item_number' => $compItem?->item_number,
+                            'product_id' => $compItem?->product_id,
+                            'name' => $compItem?->name ?? 'Item #'.$kitItem->item_id,
+                            'quantity' => (float) $kitItem->quantity,
+                        ];
+                    }
+                    foreach ($kitModel->nestedKits as $nestedKit) {
+                        $nestedKitModel = PhpposItemKit::find((int) $nestedKit->item_kit_item_kit);
+                        $components[] = [
+                            'item_kit_id' => (int) $nestedKit->item_kit_item_kit,
+                            'item_kit_name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'quantity' => (float) $nestedKit->quantity,
+                        ];
+                    }
+                }
+            }
+
             return [
                 'item_id' => $item->item_id,
                 'item_number' => $itemModel?->item_number,
+                'product_id' => $itemModel?->product_id,
+                'name' => $itemModel?->name ?? $item->item_kit_name,
+                'cost_price' => $itemModel?->cost_price,
+                'unit_price' => $itemModel?->unit_price,
+                'markup' => $itemModel?->markup,
+                'markup_type' => $itemModel?->markup_type,
                 'item_kit_id' => $item->item_kit_id,
                 'item_kit_name' => $item->item_kit_name,
+                'item_kit_cost_price' => $kitModel?->cost_price,
+                'item_kit_unit_price' => $kitModel?->unit_price,
+                'item_kit_default_quantity' => $kitModel?->default_quantity,
+                'components' => $components,
                 'quantity' => (float) $item->quantity,
             ];
         })->values()->toArray();

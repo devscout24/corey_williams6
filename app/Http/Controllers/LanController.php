@@ -121,8 +121,25 @@ class LanController extends Controller
                 'payload.lines' => ['required', 'array', 'min:1'],
                 'payload.lines.*.item_id' => ['nullable', 'integer'],
                 'payload.lines.*.item_number' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.product_id' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.name' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.cost_price' => ['nullable', 'numeric'],
+                'payload.lines.*.unit_price' => ['nullable', 'numeric'],
+                'payload.lines.*.markup' => ['nullable', 'numeric'],
+                'payload.lines.*.markup_type' => ['nullable', 'string', 'max:50'],
                 'payload.lines.*.item_kit_id' => ['nullable', 'integer'],
                 'payload.lines.*.item_kit_name' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.item_kit_cost_price' => ['nullable', 'numeric'],
+                'payload.lines.*.item_kit_unit_price' => ['nullable', 'numeric'],
+                'payload.lines.*.item_kit_default_quantity' => ['nullable', 'numeric'],
+                'payload.lines.*.components' => ['nullable', 'array'],
+                'payload.lines.*.components.*.item_id' => ['nullable', 'integer'],
+                'payload.lines.*.components.*.item_number' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.components.*.product_id' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.components.*.name' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.components.*.item_kit_id' => ['nullable', 'integer'],
+                'payload.lines.*.components.*.item_kit_name' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.components.*.quantity' => ['required', 'numeric', 'gt:0'],
                 'payload.lines.*.quantity' => ['required', 'numeric', 'gt:0'],
             ]);
 
@@ -187,13 +204,57 @@ class LanController extends Controller
                 $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
                 $itemKitName = $line['item_kit_name'] ?? null;
 
-                // Kit header row — no item_id, just carry kit metadata
+                // Kit header row — no item, just kit metadata
                 if (empty($line['item_id']) && empty($line['item_number'])) {
                     if (! $itemKitId) {
                         $this->log('FAIL: line '.$index.' has no item_id, item_number, or item_kit_id');
                         throw ValidationException::withMessages([
                             "payload.lines.$index.item_id" => 'Item identifier or kit ID is required.',
                         ]);
+                    }
+
+                    // Auto-create kit if it doesn't exist locally
+                    $kit = PhpposItemKit::find($itemKitId);
+                    if (! $kit && ! empty($itemKitName)) {
+                        try {
+                            $kit = PhpposItemKit::create([
+                                'name' => $itemKitName,
+                                'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
+                                'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
+                                'default_quantity' => $line['item_kit_default_quantity'] ?? null,
+                            ]);
+                            $itemKitId = (int) $kit->id;
+
+                            // Create kit component records from metadata
+                            if (! empty($line['components'])) {
+                                foreach ($line['components'] as $comp) {
+                                    $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
+                                    if ($compItemId) {
+                                        $compItem = PhpposItem::find($compItemId);
+                                        if (! $compItem && ! empty($comp['item_number'])) {
+                                            $compItem = PhpposItem::where('item_number', $comp['item_number'])->first();
+                                        }
+                                        if (! $compItem && ! empty($comp['product_id'])) {
+                                            $compItem = PhpposItem::where('product_id', $comp['product_id'])->first();
+                                        }
+                                        if ($compItem) {
+                                            DB::table('phppos_item_kit_items')->insert([
+                                                'item_kit_id' => $itemKitId,
+                                                'item_id' => $compItem->item_id,
+                                                'quantity' => (float) $comp['quantity'],
+                                                'created_at' => now(),
+                                                'updated_at' => now(),
+                                            ]);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            $this->log('FAIL: could not auto-create kit — '.$e->getMessage());
+                        }
+                    } elseif (! $kit) {
+                        $this->log('FAIL: line '.$index.' kit not found — item_kit_id='.$itemKitId);
+                        continue;
                     }
 
                     $lines[] = [
@@ -205,6 +266,7 @@ class LanController extends Controller
                     continue;
                 }
 
+                // Resolve item by id, item_number, or product_id
                 $item = null;
                 if (! empty($line['item_id'])) {
                     $item = PhpposItem::find($line['item_id']);
@@ -212,12 +274,37 @@ class LanController extends Controller
                 if (! $item && ! empty($line['item_number'])) {
                     $item = PhpposItem::where('item_number', $line['item_number'])->first();
                 }
+                if (! $item && ! empty($line['product_id'])) {
+                    $item = PhpposItem::where('product_id', $line['product_id'])->first();
+                }
+
+                // Auto-create item from metadata if not found
+                if (! $item && ! empty($line['name'])) {
+                    try {
+                        $data = [
+                            'name' => $line['name'],
+                            'item_number' => $line['item_number'] ?? null,
+                            'product_id' => $line['product_id'] ?? null,
+                            'cost_price' => (float) ($line['cost_price'] ?? 0),
+                            'unit_price' => (float) ($line['unit_price'] ?? 0),
+                        ];
+                        if (isset($line['markup'])) {
+                            $data['markup'] = (float) $line['markup'];
+                        }
+                        if (isset($line['markup_type'])) {
+                            $data['markup_type'] = $line['markup_type'];
+                        }
+                        $item = PhpposItem::create($data);
+                        $this->log('Auto-created item #'.$item->item_id.' ('.$line['name'].') from transfer');
+                    } catch (\Throwable $e) {
+                        $this->log('FAIL: could not auto-create item — '.$e->getMessage());
+                        continue;
+                    }
+                }
 
                 if (! $item) {
-                    $this->log('FAIL: line '.$index.' item not found — item_id='.($line['item_id'] ?? 'null').' item_number='.($line['item_number'] ?? 'null'));
-                    throw ValidationException::withMessages([
-                        "payload.lines.$index.item_id" => 'Item not found for this transfer line.',
-                    ]);
+                    $this->log('FAIL: line '.$index.' item not found and could not be created — item_id='.($line['item_id'] ?? 'null').' item_number='.($line['item_number'] ?? 'null'));
+                    continue;
                 }
 
                 $lines[] = [
