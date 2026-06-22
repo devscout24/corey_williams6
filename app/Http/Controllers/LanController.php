@@ -315,6 +315,8 @@ class LanController extends Controller
                     continue;
                 }
 
+                $this->log('Line '.$index.': resolved item #'.$item->item_id.' ('.$item->name.') item_number='.($item->item_number ?? 'null').' qty='.$qty);
+
                 $lines[] = [
                     'item_id' => $item->item_id,
                     'item_kit_id' => $itemKitId,

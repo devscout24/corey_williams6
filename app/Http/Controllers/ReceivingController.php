@@ -18,6 +18,7 @@ use App\Services\LocationContextService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -1176,6 +1177,12 @@ class ReceivingController extends Controller
                     $item->update(['quantity_received' => $item->quantity_purchased]);
                     continue;
                 }
+                $currentQty = (float) DB::table('phppos_location_items')
+                    ->where('location_id', $receiving->location_id)
+                    ->where('item_id', $item->item_id)
+                    ->value('quantity') ?? 0;
+                Log::debug('[closeTransferReceiving] item_id='.$item->item_id.' location_id='.$receiving->location_id.' current_qty='.$currentQty.' adding='.(float) $item->quantity_purchased);
+
                 $inventoryFlowService->receive(
                     $receiving->location_id,
                     $item->item_id,
