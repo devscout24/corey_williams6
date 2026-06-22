@@ -200,13 +200,13 @@ class TransferSyncController extends Controller
                                 if ($compItemId) {
                                     $compItem = PhpposItem::find($compItemId);
                                     if (! $compItem && ! empty($comp['item_number'])) {
-                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->first();
+                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
                                     }
                                     if (! $compItem && ! empty($comp['product_id'])) {
-                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->first();
+                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
                                     }
                                     if (! $compItem && ! empty($comp['name'])) {
-                                        $compItem = PhpposItem::where('name', $comp['name'])->first();
+                                        $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
                                     }
                                     if ($compItem) {
                                         DB::table('phppos_item_kit_items')->insert([
@@ -241,15 +241,15 @@ class TransferSyncController extends Controller
                 $item = PhpposItem::find($line['item_id']);
             }
             if (! $item && ! empty($line['item_number'])) {
-                $item = PhpposItem::where('item_number', $line['item_number'])->first();
+                $item = PhpposItem::where('item_number', $line['item_number'])->orderBy('item_id')->first();
             }
             if (! $item && ! empty($line['product_id'])) {
-                $item = PhpposItem::where('product_id', $line['product_id'])->first();
+                $item = PhpposItem::where('product_id', $line['product_id'])->orderBy('item_id')->first();
             }
 
             // Fallback: match by name before auto-creating
             if (! $item && ! empty($line['name'])) {
-                $item = PhpposItem::where('name', $line['name'])->first();
+                $item = PhpposItem::where('name', $line['name'])->orderBy('item_id')->first();
             }
 
             // Auto-create item from metadata if not found
