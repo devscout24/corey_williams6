@@ -160,6 +160,7 @@ class ReceivingController extends Controller
             'supplier' => $r->supplier?->company_name ?? '—',
             'items' => $r->items->count(),
             'total' => '$'.number_format((float) $r->total, 2),
+            'suspended' => (bool) $r->suspended,
             'status_label' => $st['label'],
             'status_tone' => $st['tone'],
             'source' => $r->source,
@@ -665,6 +666,126 @@ class ReceivingController extends Controller
         return redirect()->route('purchases.create');
     }
 
+    public function suspend(Request $request): RedirectResponse
+    {
+        $cart = $this->getCart();
+        if (empty($cart['items'])) {
+            return redirect()->back()->with('error', 'Cart is empty.');
+        }
+
+        $subtotal = 0;
+        $totalQty = 0;
+        foreach ($cart['items'] as $item) {
+            $itemTotal = $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
+            $subtotal += $itemTotal;
+            $totalQty += $item['quantity'];
+        }
+
+        $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
+
+        $receiving = PhpposReceiving::create([
+            'receiving_time' => now(),
+            'supplier_id' => $cart['supplier_id'],
+            'employee_id' => auth('employee')->id(),
+            'comment' => $request->comment,
+            'location_id' => $locationId,
+            'subtotal' => $subtotal,
+            'total' => $subtotal,
+            'total_quantity_purchased' => $totalQty,
+            'total_quantity_received' => 0,
+            'mode' => $cart['mode'],
+            'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
+            'source' => 'manual',
+            'suspended' => 1,
+        ]);
+        $receiving->syncDocumentIdentity();
+
+        foreach ($cart['items'] as $item) {
+            if (($item['type'] ?? 'item') === 'kit') {
+                PhpposReceivingItem::create([
+                    'receiving_id' => $receiving->receiving_id,
+                    'item_kit_id' => $item['item_kit_id'],
+                    'line' => 0,
+                    'description' => $item['name'],
+                    'quantity_purchased' => $item['quantity'],
+                    'quantity_received' => 0,
+                    'item_cost_price' => $item['cost_price'],
+                    'item_unit_price' => $item['cost_price'],
+                    'discount_percent' => $item['discount'],
+                    'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
+                    'total' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
+                ]);
+            } else {
+                PhpposReceivingItem::create([
+                    'receiving_id' => $receiving->receiving_id,
+                    'item_id' => $item['item_id'],
+                    'item_variation_id' => $item['variation_id'] ?? null,
+                    'line' => 0,
+                    'quantity_purchased' => $item['quantity'],
+                    'quantity_received' => 0,
+                    'item_cost_price' => $item['cost_price'],
+                    'item_unit_price' => $item['cost_price'],
+                    'discount_percent' => $item['discount'],
+                    'subtotal' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
+                    'total' => $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100),
+                ]);
+            }
+        }
+
+        Session::forget('receiving_cart');
+
+        return redirect()->route('purchases.index')
+            ->with('status', 'Purchase suspended successfully. You can resume it later.');
+    }
+
+    public function resume(int $receivingId): RedirectResponse
+    {
+        $receiving = PhpposReceiving::with('items')->findOrFail($receivingId);
+
+        if (! $receiving->suspended) {
+            return redirect()->route('purchases.show', $receivingId)
+                ->with('error', 'This purchase is not suspended.');
+        }
+
+        $cart = $this->getCart();
+        $cart['items'] = [];
+        $cart['supplier_id'] = $receiving->supplier_id;
+        $cart['mode'] = $receiving->mode ?? 'receive';
+        $cart['location_id'] = $receiving->location_id;
+        $cart['suspended_receiving_id'] = $receivingId;
+
+        foreach ($receiving->items as $line) {
+            if ($line->item_kit_id) {
+                $kit = PhpposItemKit::find($line->item_kit_id);
+                $cart['items'][] = [
+                    'type' => 'kit',
+                    'item_kit_id' => $line->item_kit_id,
+                    'name' => $kit?->name ?? $line->description ?? 'Kit',
+                    'quantity' => (float) $line->quantity_purchased,
+                    'cost_price' => (float) $line->item_cost_price,
+                    'discount' => (float) $line->discount_percent,
+                ];
+            } elseif ($line->item_id) {
+                $entry = [
+                    'item_id' => (int) $line->item_id,
+                    'name' => $line->item?->name ?? $line->description ?? 'Item',
+                    'quantity' => (float) $line->quantity_purchased,
+                    'cost_price' => (float) $line->item_cost_price,
+                    'discount' => (float) $line->discount_percent,
+                ];
+                if ($line->item_variation_id) {
+                    $entry['variation_id'] = (int) $line->item_variation_id;
+                }
+                $cart['items'][] = $entry;
+            }
+        }
+
+        Session::put('receiving_cart', $cart);
+
+        return redirect()->route('purchases.create')
+            ->with('status', 'Suspended purchase loaded. Complete it when ready.');
+    }
+
     public function complete(Request $request): RedirectResponse
     {
         $cart = $this->getCart();
@@ -696,22 +817,44 @@ class ReceivingController extends Controller
 
             $locationId = $this->locationContextService->resolveLocationId($cart['location_id'] ?? null);
 
-            $receiving = PhpposReceiving::create([
-                'receiving_time' => now(),
-                'closed_at' => now(),
-                'supplier_id' => $cart['supplier_id'],
-                'employee_id' => auth('employee')->id(),
-                'comment' => $request->comment,
-                'location_id' => $locationId,
-                'subtotal' => $subtotal,
-                'total' => $subtotal,
-                'total_quantity_purchased' => $totalQty,
-                'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
-                'mode' => $cart['mode'],
-                'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
-                'source' => 'manual',
-            ]);
-            $receiving->syncDocumentIdentity();
+            if ($cart['suspended_receiving_id'] ?? null) {
+                $receiving = PhpposReceiving::findOrFail($cart['suspended_receiving_id']);
+                $receiving->update([
+                    'closed_at' => now(),
+                    'suspended' => 0,
+                    'supplier_id' => $cart['supplier_id'],
+                    'employee_id' => auth('employee')->id(),
+                    'comment' => $request->comment,
+                    'location_id' => $locationId,
+                    'subtotal' => $subtotal,
+                    'total' => $subtotal,
+                    'total_quantity_purchased' => $totalQty,
+                    'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
+                    'mode' => $cart['mode'],
+                    'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
+                ]);
+                $receiving->items()->delete();
+                DB::table('phppos_receivings_items_taxes')
+                    ->where('receiving_id', $receiving->receiving_id)
+                    ->delete();
+            } else {
+                $receiving = PhpposReceiving::create([
+                    'receiving_time' => now(),
+                    'closed_at' => now(),
+                    'supplier_id' => $cart['supplier_id'],
+                    'employee_id' => auth('employee')->id(),
+                    'comment' => $request->comment,
+                    'location_id' => $locationId,
+                    'subtotal' => $subtotal,
+                    'total' => $subtotal,
+                    'total_quantity_purchased' => $totalQty,
+                    'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
+                    'mode' => $cart['mode'],
+                    'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
+                    'source' => 'manual',
+                ]);
+                $receiving->syncDocumentIdentity();
+            }
 
             // Collect all item IDs for tax class map (regular items + exploded kit components)
             $allItemIds = collect($regularItems)->pluck('item_id')->map(static fn ($id): int => (int) $id)->unique()->values()->all();
@@ -824,11 +967,30 @@ class ReceivingController extends Controller
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
                 $inventoryToMove = $item['quantity'] * $multiplier;
 
+                $stock = DB::table('phppos_location_items')
+                    ->where('item_id', $item['item_id'])
+                    ->where('location_id', $locationId)
+                    ->lockForUpdate()
+                    ->first();
+
+                $stockQty = $stock ? (float) $stock->quantity : 0.0;
+                if (! $stock) {
+                    DB::table('phppos_location_items')->insert([
+                        'item_id' => $item['item_id'],
+                        'location_id' => $locationId,
+                        'quantity' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
                 DB::table('phppos_location_items')
-                    ->updateOrInsert(
-                        ['item_id' => $item['item_id'], 'location_id' => $locationId],
-                        ['quantity' => DB::raw("quantity + $inventoryToMove")]
-                    );
+                    ->where('item_id', $item['item_id'])
+                    ->where('location_id', $locationId)
+                    ->update([
+                        'quantity' => $stockQty + $inventoryToMove,
+                        'updated_at' => now(),
+                    ]);
 
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
@@ -855,10 +1017,10 @@ class ReceivingController extends Controller
 
                 $multiplier = $cart['mode'] == 'return' ? -1 : 1;
 
-                // Decrement/increment the kit's own stock (default_quantity)
+                // Increment/decrement the kit's own stock (default_quantity)
                 DB::table('phppos_item_kits')
                     ->where('id', $kitId)
-                    ->decrement('default_quantity', $kitQty * $multiplier);
+                    ->increment('default_quantity', $kitQty * $multiplier);
 
                 // Explode kit into component items
                 $components = $this->explodeKitComponents($kitId, $kitQty);
@@ -870,11 +1032,30 @@ class ReceivingController extends Controller
                     // Update inventory for each component
                     $inventoryToMove = $compQty * $multiplier;
 
+                    $compStock = DB::table('phppos_location_items')
+                        ->where('item_id', $compItemId)
+                        ->where('location_id', $locationId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    $compStockQty = $compStock ? (float) $compStock->quantity : 0.0;
+                    if (! $compStock) {
+                        DB::table('phppos_location_items')->insert([
+                            'item_id' => $compItemId,
+                            'location_id' => $locationId,
+                            'quantity' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+
                     DB::table('phppos_location_items')
-                        ->updateOrInsert(
-                            ['item_id' => $compItemId, 'location_id' => $locationId],
-                            ['quantity' => DB::raw("quantity + $inventoryToMove")]
-                        );
+                        ->where('item_id', $compItemId)
+                        ->where('location_id', $locationId)
+                        ->update([
+                            'quantity' => $compStockQty + $inventoryToMove,
+                            'updated_at' => now(),
+                        ]);
 
                     DB::table('phppos_inventory_movements')->insert([
                         'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',

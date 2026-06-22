@@ -104,6 +104,7 @@
           '</span></td>' +
           '<td style="text-align:right;">' +
           '<div class="d-flex justify-content-end gap-1">' +
+          (r.suspended ? '<a href="/receivings/' + rid + '/resume" class="btn btn-sm btn-warning" style="padding:2px 8px;" title="Resume"><i class="bi bi-play-fill"></i></a>' : '') +
           '<a href="/purchases/' + rid + '" class="btn btn-sm btn-light" style="padding:2px 8px;color:var(--primary);" title="View Details"><i class="bi bi-eye"></i></a>' +
           '<a href="/purchases/' + rid + '/print" target="_blank" class="btn btn-sm btn-light" style="padding:2px 8px;color:#0dcaf0;" title="Print"><i class="bi bi-printer"></i></a>' +
           '</div></td>' +

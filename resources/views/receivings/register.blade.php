@@ -37,7 +37,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    
+
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
@@ -193,7 +193,7 @@
                             @endif
                         </div>
                     </form>
-                    
+
                     @if($cart['supplier_id'])
                         @php $selectedSupplier = $suppliers->firstWhere('person_id', $cart['supplier_id']); @endphp
                         <div class="mt-3 p-3 bg-light rounded small">
@@ -218,16 +218,27 @@
                         <span class="fw-bold">${{ number_format($total, 2) }}</span>
                     </div>
 
+                    <div class="mb-3">
+                        <textarea name="comment" id="recv-comment" class="form-control form-control-sm bg-primary border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
+                    </div>
+
+                    <form action="{{ route('receivings.suspend') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="comment" id="suspend-comment">
+                        <button type="submit" class="btn btn-light btn-lg w-100 text-primary fw-bold mb-2" {{ empty($cart['items']) ? 'disabled' : '' }} onclick="document.getElementById('suspend-comment').value=document.getElementById('recv-comment').value">
+                            <i class="bi bi-pause-circle me-2"></i> Suspend
+                        </button>
+                    </form>
+
                     <form action="{{ route('receivings.complete') }}" method="POST">
                         @csrf
-                        <div class="mb-3">
-                            <textarea name="comment" class="form-control form-control-sm bg-primary border-white border-opacity-25 text-white placeholder-white" placeholder="Add notes/comments..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-primary mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
+                        <input type="hidden" name="comment" id="complete-comment">
+                        <button type="submit" class="btn btn-outline-light btn-lg w-100 fw-bold  mb-2" {{ empty($cart['items']) ? 'disabled' : '' }} onclick="document.getElementById('complete-comment').value=document.getElementById('recv-comment').value">
                             <i class="bi bi-check2-circle me-2"></i> Finish purchase
                         </button>
                     </form>
-                    
+
+
                     <form action="{{ route('receivings.cancel') }}" method="POST">
                         @csrf
                         <button type="submit" class="btn btn-link btn-sm w-100 text-white opacity-75 text-decoration-none mt-2" onclick="return confirm('Clear cart?')">
@@ -419,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const searchInput = document.getElementById('item_search');
     const resultsDiv = document.getElementById('search_results');
-    
+
     let timer;
     searchInput.addEventListener('input', function() {
         clearTimeout(timer);
@@ -453,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             div.onclick = () => addItem(item.item_id);
                             resultsDiv.appendChild(div);
                         });
-                        
+
                         const rect = searchInput.getBoundingClientRect();
                         resultsDiv.style.top = (rect.bottom + window.scrollY) + 'px';
                         resultsDiv.style.left = rect.left + 'px';

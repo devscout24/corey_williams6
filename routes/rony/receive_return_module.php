@@ -22,6 +22,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/receivings/supplier', [ReceivingController::class, 'setSupplier'])->name('receivings.supplier.set');
     Route::post('/receivings/mode', [ReceivingController::class, 'setMode'])->name('receivings.mode.set');
     Route::post('/receivings/complete', [ReceivingController::class, 'complete'])->name('receivings.complete');
+    Route::post('/receivings/suspend', [ReceivingController::class, 'suspend'])->name('receivings.suspend');
+    Route::get('/receivings/{receivingId}/resume', [ReceivingController::class, 'resume'])->name('receivings.resume');
     Route::post('/receivings/cancel', [ReceivingController::class, 'cancel'])->name('receivings.cancel');
 
     // returns

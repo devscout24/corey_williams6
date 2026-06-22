@@ -110,11 +110,16 @@
         <a href="javascript:history.back()" class="btn btn-light border">
             <i class="bi bi-arrow-left"></i> Back
         </a>
-        <div>
-            <a href="{{ route($receiving->is_po ? 'orders.print' : 'purchases.print', $receiving->receiving_id) }}" target="_blank" class="btn btn-primary">
-                <i class="bi bi-printer"></i> Print
-            </a>
-        </div>
+            <div>
+                @if($receiving->suspended && !$receiving->is_po)
+                    <a href="{{ route('receivings.resume', $receiving->receiving_id) }}" class="btn btn-warning">
+                        <i class="bi bi-play-fill me-1"></i> Resume
+                    </a>
+                @endif
+                <a href="{{ route($receiving->is_po ? 'orders.print' : 'purchases.print', $receiving->receiving_id) }}" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+            </div>
     </div>
 
     <div class="doc-card">
