@@ -830,7 +830,7 @@ class ReceivingController extends Controller
                     'subtotal' => $subtotal,
                     'total' => $subtotal,
                     'total_quantity_purchased' => $totalQty,
-                    'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
+                    'total_quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $totalQty : 0,
                     'mode' => $cart['mode'],
                     'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
                 ]);
@@ -849,7 +849,7 @@ class ReceivingController extends Controller
                     'subtotal' => $subtotal,
                     'total' => $subtotal,
                     'total_quantity_purchased' => $totalQty,
-                    'total_quantity_received' => $cart['mode'] == 'receive' ? $totalQty : 0,
+                    'total_quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $totalQty : 0,
                     'mode' => $cart['mode'],
                     'type' => PhpposReceiving::documentTypeFromMode($cart['mode']),
                     'source' => 'manual',
@@ -956,7 +956,7 @@ class ReceivingController extends Controller
                     'item_variation_id' => $item['variation_id'] ?? null,
                     'line' => $lineIndex,
                     'quantity_purchased' => $item['quantity'],
-                    'quantity_received' => $cart['mode'] == 'receive' ? $item['quantity'] : 0,
+                    'quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $item['quantity'] : 0,
                     'item_cost_price' => $item['cost_price'],
                     'item_unit_price' => $item['cost_price'],
                     'discount_percent' => $item['discount'],
@@ -993,16 +993,17 @@ class ReceivingController extends Controller
                         'updated_at' => now(),
                     ]);
 
+                $isReceive = in_array($cart['mode'], ['receive', 'transfer']);
                 DB::table('phppos_inventory_movements')->insert([
-                    'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
+                    'movement_type' => $isReceive ? 'receiving' : 'return',
                     'item_id' => $item['item_id'],
                     'from_location_id' => $cart['mode'] == 'return' ? $locationId : null,
-                    'to_location_id' => $cart['mode'] == 'receive' ? $locationId : null,
+                    'to_location_id' => $isReceive ? $locationId : null,
                     'quantity' => abs($inventoryToMove),
                     'reference_id' => $receiving->receiving_id,
                     'reference_type' => 'receiving',
                     'created_by_person_id' => auth('employee')->id(),
-                    'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ').$receiving->receiving_id,
+                    'notes' => ($isReceive ? 'RECV ' : 'RET ').$receiving->receiving_id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -1058,16 +1059,17 @@ class ReceivingController extends Controller
                             'updated_at' => now(),
                         ]);
 
+                    $isReceiveKit = in_array($cart['mode'], ['receive', 'transfer']);
                     DB::table('phppos_inventory_movements')->insert([
-                        'movement_type' => $cart['mode'] == 'receive' ? 'receiving' : 'return',
+                        'movement_type' => $isReceiveKit ? 'receiving' : 'return',
                         'item_id' => $compItemId,
                         'from_location_id' => $cart['mode'] == 'return' ? $locationId : null,
-                        'to_location_id' => $cart['mode'] == 'receive' ? $locationId : null,
+                        'to_location_id' => $isReceiveKit ? $locationId : null,
                         'quantity' => abs($inventoryToMove),
                         'reference_id' => $receiving->receiving_id,
                         'reference_type' => 'kit_component_receiving',
                         'created_by_person_id' => auth('employee')->id(),
-                        'notes' => ($cart['mode'] == 'receive' ? 'RECV ' : 'RET ').$receiving->receiving_id.' (kit #'.$kitId.' component)',
+                        'notes' => ($isReceiveKit ? 'RECV ' : 'RET ').$receiving->receiving_id.' (kit #'.$kitId.' component)',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
@@ -1079,7 +1081,7 @@ class ReceivingController extends Controller
                         'line' => $lineIndex,
                         'description' => 'Component of kit #'.$kitId,
                         'quantity_purchased' => $compQty,
-                        'quantity_received' => $cart['mode'] == 'receive' ? $compQty : 0,
+                        'quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $compQty : 0,
                         'item_cost_price' => 0,
                         'item_unit_price' => 0,
                         'discount_percent' => 0,
@@ -1099,7 +1101,7 @@ class ReceivingController extends Controller
                     'line' => $lineIndex,
                     'description' => $kitEntry['name'],
                     'quantity_purchased' => $kitQty,
-                    'quantity_received' => $cart['mode'] == 'receive' ? $kitQty : 0,
+                    'quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $kitQty : 0,
                     'item_cost_price' => $kitEntry['cost_price'],
                     'item_unit_price' => $kitEntry['cost_price'],
                     'discount_percent' => $kitEntry['discount'] ?? 0,
