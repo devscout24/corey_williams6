@@ -121,6 +121,8 @@ class LanController extends Controller
                 'payload.lines' => ['required', 'array', 'min:1'],
                 'payload.lines.*.item_id' => ['nullable', 'integer'],
                 'payload.lines.*.item_number' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.item_kit_id' => ['nullable', 'integer'],
+                'payload.lines.*.item_kit_name' => ['nullable', 'string', 'max:255'],
                 'payload.lines.*.quantity' => ['required', 'numeric', 'gt:0'],
             ]);
 
@@ -177,11 +179,25 @@ class LanController extends Controller
 
             $lines = [];
             foreach ($payload['lines'] as $index => $line) {
+                $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+                $itemKitName = $line['item_kit_name'] ?? null;
+
+                // Kit header row — no item_id, just carry kit metadata
                 if (empty($line['item_id']) && empty($line['item_number'])) {
-                    $this->log('FAIL: line '.$index.' has no item_id or item_number');
-                    throw ValidationException::withMessages([
-                        "payload.lines.$index.item_id" => 'Item identifier is required.',
-                    ]);
+                    if (! $itemKitId) {
+                        $this->log('FAIL: line '.$index.' has no item_id, item_number, or item_kit_id');
+                        throw ValidationException::withMessages([
+                            "payload.lines.$index.item_id" => 'Item identifier or kit ID is required.',
+                        ]);
+                    }
+
+                    $lines[] = [
+                        'item_id' => null,
+                        'item_kit_id' => $itemKitId,
+                        'item_kit_name' => $itemKitName,
+                        'quantity' => (float) $line['quantity'],
+                    ];
+                    continue;
                 }
 
                 $item = null;
@@ -201,6 +217,8 @@ class LanController extends Controller
 
                 $lines[] = [
                     'item_id' => $item->item_id,
+                    'item_kit_id' => $itemKitId,
+                    'item_kit_name' => $itemKitName,
                     'quantity' => (float) $line['quantity'],
                 ];
             }
@@ -215,6 +233,10 @@ class LanController extends Controller
             $subtotal = 0.0;
             $totalQty = 0.0;
             foreach ($lines as $line) {
+                if (! $line['item_id']) {
+                    $totalQty += $line['quantity'];
+                    continue;
+                }
                 $itemCost = (float) (PhpposItem::find($line['item_id'])?->cost_price ?? 0);
                 $subtotal += $itemCost * $line['quantity'];
                 $totalQty += $line['quantity'];
@@ -270,11 +292,15 @@ class LanController extends Controller
 
                 $lineNumber = 0;
                 foreach ($lines as $line) {
-                    $itemCost = (float) (PhpposItem::find($line['item_id'])?->cost_price ?? 0);
+                    $itemId = $line['item_id'];
+                    $itemKitId = $line['item_kit_id'] ?? null;
+                    $itemKitName = $line['item_kit_name'] ?? null;
+                    $itemCost = $itemId ? (float) (PhpposItem::find($itemId)?->cost_price ?? 0) : 0;
 
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
-                        'item_id' => $line['item_id'],
+                        'item_id' => $itemId,
+                        'item_kit_id' => $itemKitId,
                         'line' => $lineNumber,
                         'quantity_purchased' => $line['quantity'],
                         'quantity_received' => 0,
@@ -287,7 +313,9 @@ class LanController extends Controller
 
                     PhpposTransferItem::create([
                         'transfer_id' => $transferIn->id,
-                        'item_id' => $line['item_id'],
+                        'item_id' => $itemId,
+                        'item_kit_id' => $itemKitId,
+                        'item_kit_name' => $itemKitName,
                         'quantity' => $line['quantity'],
                     ]);
 

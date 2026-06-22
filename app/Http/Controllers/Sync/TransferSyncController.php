@@ -43,11 +43,13 @@ class TransferSyncController extends Controller
 
         $items = PhpposTransferItem::where('transfer_id', $transfer->id)->get();
         $lines = $items->map(function ($item) {
-            $itemModel = PhpposItem::find($item->item_id);
+            $itemModel = $item->item_id ? PhpposItem::find($item->item_id) : null;
 
             return [
                 'item_id' => $item->item_id,
                 'item_number' => $itemModel?->item_number,
+                'item_kit_id' => $item->item_kit_id,
+                'item_kit_name' => $item->item_kit_name,
                 'quantity' => (float) $item->quantity,
             ];
         })->values();
@@ -78,6 +80,8 @@ class TransferSyncController extends Controller
             'lines' => 'required|array|min:1',
             'lines.*.item_id' => 'nullable|integer',
             'lines.*.item_number' => 'nullable|string|max:255',
+            'lines.*.item_kit_id' => 'nullable|integer',
+            'lines.*.item_kit_name' => 'nullable|string|max:255',
             'lines.*.quantity' => 'required|numeric|gt:0',
         ]);
 
@@ -103,10 +107,24 @@ class TransferSyncController extends Controller
 
         $lines = [];
         foreach ($data['lines'] as $index => $line) {
+            $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+            $itemKitName = $line['item_kit_name'] ?? null;
+
+            // Kit header row — no item lookup needed
             if (empty($line['item_id']) && empty($line['item_number'])) {
-                throw ValidationException::withMessages([
-                    "lines.$index.item_id" => 'Item identifier is required.',
-                ]);
+                if (! $itemKitId) {
+                    throw ValidationException::withMessages([
+                        "lines.$index.item_id" => 'Item identifier or kit ID is required.',
+                    ]);
+                }
+
+                $lines[] = [
+                    'item_id' => null,
+                    'item_kit_id' => $itemKitId,
+                    'item_kit_name' => $itemKitName,
+                    'quantity' => (float) $line['quantity'],
+                ];
+                continue;
             }
 
             $item = null;
@@ -125,6 +143,8 @@ class TransferSyncController extends Controller
 
             $lines[] = [
                 'item_id' => $item->item_id,
+                'item_kit_id' => $itemKitId,
+                'item_kit_name' => $itemKitName,
                 'quantity' => (float) $line['quantity'],
             ];
         }

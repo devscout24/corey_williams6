@@ -12,12 +12,12 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
 ## Dev commands
 
-| Command | Runs |
-|---|---|
-| `composer run dev` | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3 --timeout=0` + `pail --timeout=0` + Vite (concurrently) |
-| `npm run dev` | Vite only |
-| `composer run test` | `config:clear` then `php artisan test` |
-| `composer run setup` | `composer install`, copy `.env`, key:generate, `migrate --force`, `npm install && npm run build` |
+| Command              | Runs                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `composer run dev`   | `php artisan serve --host=0.0.0.0 --port=8000` + `app:register-self --port=8000` + `queue:listen --tries=3 --timeout=0` + `pail --timeout=0` + Vite (concurrently) |
+| `npm run dev`        | Vite only                                                                                                                                                          |
+| `composer run test`  | `config:clear` then `php artisan test`                                                                                                                             |
+| `composer run setup` | `composer install`, copy `.env`, key:generate, `migrate --force`, `npm install && npm run build`                                                                   |
 
 ## Testing
 
@@ -61,6 +61,33 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 - **Frontend:** Blade + jQuery, Tailwind CSS v4, custom assets in `public/assets/`.
 - **Key deps:** `barryvdh/laravel-dompdf` (PDF), `picqer/php-barcode-generator` (SVG barcodes), `rats/zkteco` (biometric SDK), `nativephp-laravel` (desktop app).
 - **LAN sync apps:** `announce:presence` (`app/Jobs/AnnouncePresence.php`), `send:item` (`app/Jobs/SendItem.php`). Only console command: `RegisterSelf` (`app:register-self`).
+
+## Two-layer inventory mechanism (Purchases, Returns, Transfers)
+
+Purchases, returns, sales, and transfers all use a **two-layer approach** for handling item kits:
+
+### Layer 1 — Top layer (Display / Audit trail)
+
+- Kits are shown as-is in the cart UI and in `PhpposReceivingItem` / `PhpposTransferItem` records.
+- Kit header rows have `item_id = null, item_kit_id = <kitId>` so reporting shows which kits were involved.
+- Individual items have `item_id` set and no `item_kit_id`.
+
+### Layer 2 — Deeper layer (Inventory movement)
+
+- Kits are **exploded** into their component items before inventory quantities are adjusted.
+- `ReceivingController::explodeKitComponents()` / `TransferController::explodeKitForTransfer()` recursively flatten a kit (including nested sub-kits) into individual component items.
+- Inventory is adjusted on `phppos_location_items` for each component item.
+- Kit `default_quantity` on `phppos_item_kits` is incremented/decremented to track kit stock levels.
+
+### Transfer-specific rules
+
+- `phppos_transfer_items` stores both individual items (`item_id` set) and kit header references (`item_kit_id` set, `item_id` null) — same pattern as `phppos_receivings_items`.
+- When a kit is added to a transfer cart, it creates two types of `phppos_transfer_item` rows on save/complete:
+    1. **Kit header row** — `item_kit_id` = kit ID, `item_id` = null, `quantity` = kit qty (for display/audit).
+    2. **Component rows** — `item_id` = component item ID, `item_kit_id` = parent kit ID, `quantity` = exploded qty (for inventory movement).
+- `default_quantity` on `phppos_item_kits` is **decremented on transfer out** and **incremented on transfer in / receiving** (mirrors return/purchase behaviour).
+- The `InventoryFlowService` methods (`createTransferOut`, `completeTransferOut`, `importTransferIn`, etc.) carry through `item_kit_id` and `item_kit_name` so kit metadata is preserved across the full transfer lifecycle (out → sync → in → receive).
+- `TransferController::edit()` restores the cart from saved `phppos_transfer_items`, reconstructing both individual items and kit entries.
 
 ## Code style
 

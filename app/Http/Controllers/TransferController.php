@@ -444,13 +444,36 @@ class TransferController extends Controller
         ];
 
         foreach ($transfer->items as $tItem) {
+            // Kit header row — reconstruct the kit entry in cart
+            if ($tItem->item_kit_id && ! $tItem->item_id) {
+                $kitName = $tItem->item_kit_name;
+                if (! $kitName) {
+                    $kit = PhpposItemKit::find($tItem->item_kit_id);
+                    $kitName = $kit?->name ?? 'Kit #'.$tItem->item_kit_id;
+                }
+                $cart['items'][] = [
+                    'type' => 'kit',
+                    'item_kit_id' => (int) $tItem->item_kit_id,
+                    'name' => $kitName,
+                    'quantity' => (float) $tItem->quantity,
+                    'cost_price' => 0,
+                ];
+                continue;
+            }
+
+            // Component items (belonging to a kit) — skip, they'll be regenerated from the kit header
+            if ($tItem->item_kit_id && $tItem->item_id) {
+                continue;
+            }
+
+            // Individual item
             $item = PhpposItem::find($tItem->item_id);
             if ($item) {
                 $cart['items'][] = [
                     'item_id' => $item->item_id,
                     'name' => $item->name,
-                    'quantity' => $tItem->quantity,
-                    'cost_price' => $item->cost_price,
+                    'quantity' => (float) $tItem->quantity,
+                    'cost_price' => (float) $item->cost_price,
                 ];
             }
         }
@@ -461,11 +484,13 @@ class TransferController extends Controller
     }
 
     /**
-     * @return array<int, array{item_id:int, quantity:float, cost_price:float}>
+     * @return array<int, array{item_id:int, quantity:float, cost_price:float, item_kit_id:int, item_kit_name:string}>
      */
     private function explodeKitForTransfer($kit, float $kitQty): array
     {
         $items = [];
+        $kitId = (int) $kit->id;
+        $kitName = $kit->name;
         foreach ($kit->items as $kitItem) {
             $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
             if (! $item) {
@@ -475,6 +500,8 @@ class TransferController extends Controller
                 'item_id' => (int) $item->item_id,
                 'quantity' => (float) $kitItem->quantity * $kitQty,
                 'cost_price' => (float) ($item->cost_price ?? 0),
+                'item_kit_id' => $kitId,
+                'item_kit_name' => $kitName,
             ];
         }
         foreach ($kit->nestedKits as $nestedKit) {
@@ -505,7 +532,18 @@ class TransferController extends Controller
                 if (($item['type'] ?? 'item') === 'kit') {
                     $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
                     if ($kit) {
-                        $exploded = $this->explodeKitForTransfer($kit, (float) $item['quantity']);
+                        $kitId = (int) $item['item_kit_id'];
+                        $kitName = $item['name'];
+                        $kitQty = (float) $item['quantity'];
+                        // Layer 1 — kit header row for display/audit
+                        $lines[] = [
+                            'item_id' => null,
+                            'item_kit_id' => $kitId,
+                            'item_kit_name' => $kitName,
+                            'quantity' => $kitQty,
+                        ];
+                        // Layer 2 — exploded component items for inventory
+                        $exploded = $this->explodeKitForTransfer($kit, $kitQty);
                         $lines = [...$lines, ...$exploded];
                     }
                 } else {
@@ -551,25 +589,41 @@ class TransferController extends Controller
         try {
             DB::transaction(function () use ($cart, $request) {
                 // Explode kits into component items for inventory movement
-                $realItems = [];
-                $kitAuditLines = [];
+                $lines = [];
+                $kitHeaderLines = [];
                 foreach ($cart['items'] as $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
                         $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
                         if ($kit) {
+                            $kitId = (int) $item['item_kit_id'];
+                            $kitName = $item['name'];
                             $kitQty = (float) $item['quantity'];
+                            // Layer 1 — kit header row for display/audit
+                            $kitHeader = [
+                                'item_id' => null,
+                                'item_kit_id' => $kitId,
+                                'item_kit_name' => $kitName,
+                                'quantity' => $kitQty,
+                                'cost_price' => (float) ($item['cost_price'] ?? 0),
+                            ];
+                            $lines[] = $kitHeader;
+                            $kitHeaderLines[] = $kitHeader;
+                            // Layer 2 — exploded component items for inventory
                             $exploded = $this->explodeKitForTransfer($kit, $kitQty);
-                            $realItems = [...$realItems, ...$exploded];
-                            $kitAuditLines[] = $item;
+                            $lines = [...$lines, ...$exploded];
+                            // Decrement kit default_quantity on transfer out
+                            DB::table('phppos_item_kits')
+                                ->where('id', $kitId)
+                                ->decrement('default_quantity', $kitQty);
                         }
                     } else {
-                        $realItems[] = $item;
+                        $lines[] = [
+                            'item_id' => $item['item_id'],
+                            'quantity' => $item['quantity'],
+                            'cost_price' => $item['cost_price'] ?? 0,
+                        ];
                     }
                 }
-
-                $lines = collect($realItems)
-                    ->map(fn ($i) => ['item_id' => $i['item_id'], 'quantity' => $i['quantity']])
-                    ->toArray();
 
                 if (isset($cart['transfer_id'])) {
                     $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);
@@ -587,7 +641,8 @@ class TransferController extends Controller
                 $this->inventoryFlowService->completeTransferOut($transferOutId, auth('employee')->id());
 
                 // 2. Create a "Return" record in receivings for audit/reporting purposes (as requested)
-                $allAuditItems = [...$realItems, ...$kitAuditLines];
+                $realItems = array_filter($lines, fn ($l) => isset($l['item_id']));
+                $allAuditItems = $lines;
                 $subtotal = 0;
                 $totalQty = 0;
                 foreach ($allAuditItems as $item) {
@@ -614,32 +669,16 @@ class TransferController extends Controller
                 $receiving->syncDocumentIdentity();
 
                 $index = 0;
-                foreach ($realItems as $item) {
+                foreach ($lines as $item) {
                     PhpposReceivingItem::create([
                         'receiving_id' => $receiving->receiving_id,
-                        'item_id' => $item['item_id'],
-                        'item_kit_id' => null,
+                        'item_id' => $item['item_id'] ?? null,
+                        'item_kit_id' => $item['item_kit_id'] ?? null,
                         'line' => $index,
                         'quantity_purchased' => $item['quantity'],
                         'quantity_received' => 0,
-                        'item_cost_price' => $item['cost_price'],
-                        'item_unit_price' => $item['cost_price'],
-                        'discount_percent' => 0,
-                        'subtotal' => ($item['cost_price'] ?? 0) * $item['quantity'],
-                        'total' => ($item['cost_price'] ?? 0) * $item['quantity'],
-                    ]);
-                    $index++;
-                }
-                foreach ($kitAuditLines as $item) {
-                    PhpposReceivingItem::create([
-                        'receiving_id' => $receiving->receiving_id,
-                        'item_id' => null,
-                        'item_kit_id' => (int) $item['item_kit_id'],
-                        'line' => $index,
-                        'quantity_purchased' => $item['quantity'],
-                        'quantity_received' => 0,
-                        'item_cost_price' => $item['cost_price'],
-                        'item_unit_price' => $item['cost_price'],
+                        'item_cost_price' => $item['cost_price'] ?? 0,
+                        'item_unit_price' => $item['cost_price'] ?? 0,
                         'discount_percent' => 0,
                         'subtotal' => ($item['cost_price'] ?? 0) * $item['quantity'],
                         'total' => ($item['cost_price'] ?? 0) * $item['quantity'],

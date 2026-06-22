@@ -55,7 +55,7 @@ class InventoryFlowService
     /**
      * Transfer out closes immediately and auto-creates a closed transfer in.
      *
-     * @param  array<int, array{item_id:int, quantity:float}>  $lines
+     * @param  array<int, array{item_id:int, quantity:float, item_kit_id?:int|null, item_kit_name?:string|null}>  $lines
      */
     public function transferOutAndAutoIn(int $fromLocationId, int $toLocationId, array $lines, ?int $employeePersonId = null, ?string $notes = null): array
     {
@@ -93,10 +93,32 @@ class InventoryFlowService
             $this->setTransferInternalCode($transferInId, 'in');
 
             foreach ($lines as $line) {
-                $itemId = (int) $line['item_id'];
+                $itemId = isset($line['item_id']) ? (int) $line['item_id'] : null;
                 $qty = (float) $line['quantity'];
+                $itemKitId = isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+                $itemKitName = $line['item_kit_name'] ?? null;
 
                 if ($qty <= 0) {
+                    continue;
+                }
+
+                $common = [
+                    'transfer_id' => null, // will set per-row
+                    'item_id' => $itemId,
+                    'item_kit_id' => $itemKitId,
+                    'item_kit_name' => $itemKitName,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                $outRow = array_merge($common, ['transfer_id' => $transferOutId]);
+                $inRow = array_merge($common, ['transfer_id' => $transferInId]);
+
+                DB::table('phppos_transfer_items')->insert([$outRow, $inRow]);
+
+                // Skip inventory movement for kit-header rows (item_id is null)
+                if (! $itemId) {
                     continue;
                 }
 
@@ -105,23 +127,6 @@ class InventoryFlowService
 
                 // transfer in: add to destination (automatic)
                 $this->adjustQuantity($toLocationId, $itemId, $qty);
-
-                DB::table('phppos_transfer_items')->insert([
-                    [
-                        'transfer_id' => $transferOutId,
-                        'item_id' => $itemId,
-                        'quantity' => $qty,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ],
-                    [
-                        'transfer_id' => $transferInId,
-                        'item_id' => $itemId,
-                        'quantity' => $qty,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ],
-                ]);
 
                 DB::table('phppos_inventory_movements')->insert([
                     [
@@ -181,14 +186,15 @@ class InventoryFlowService
             $this->setTransferInternalCode($transferOutId, 'out');
 
             foreach ($lines as $line) {
-                $itemId = (int) $line['item_id'];
                 $qty = (float) $line['quantity'];
                 if ($qty <= 0) {
                     continue;
                 }
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
-                    'item_id' => $itemId,
+                    'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
+                    'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
+                    'item_kit_name' => $line['item_kit_name'] ?? null,
                     'quantity' => $qty,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -208,14 +214,15 @@ class InventoryFlowService
             ]);
             DB::table('phppos_transfer_items')->where('transfer_id', $transferOutId)->delete();
             foreach ($lines as $line) {
-                $itemId = (int) $line['item_id'];
                 $qty = (float) $line['quantity'];
                 if ($qty <= 0) {
                     continue;
                 }
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
-                    'item_id' => $itemId,
+                    'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
+                    'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
+                    'item_kit_name' => $line['item_kit_name'] ?? null,
                     'quantity' => $qty,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -255,22 +262,31 @@ class InventoryFlowService
             ]);
 
             foreach ($lines as $line) {
-                $itemId = (int) $line->item_id;
+                $itemId = $line->item_id ? (int) $line->item_id : null;
                 $qty = (float) $line->quantity;
+                $itemKitId = $line->item_kit_id ? (int) $line->item_kit_id : null;
+                $itemKitName = $line->item_kit_name ?? null;
+
+                DB::table('phppos_transfer_items')->insert([
+                    'transfer_id' => $transferInId,
+                    'item_id' => $itemId,
+                    'item_kit_id' => $itemKitId,
+                    'item_kit_name' => $itemKitName,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Skip inventory movement for kit-header rows (no item_id)
+                if (! $itemId) {
+                    continue;
+                }
 
                 // transfer out: subtract from source
                 $this->adjustQuantity($transfer->from_location_id, $itemId, -$qty);
 
                 // transfer in: add to destination (automatic)
                 $this->adjustQuantity($transfer->to_location_id, $itemId, $qty);
-
-                DB::table('phppos_transfer_items')->insert([
-                    'transfer_id' => $transferInId,
-                    'item_id' => $itemId,
-                    'quantity' => $qty,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
 
                 DB::table('phppos_inventory_movements')->insert([
                     [
@@ -341,7 +357,7 @@ class InventoryFlowService
     }
 
     /**
-     * @param  array<int, array{item_id:int, quantity:float}>  $lines
+     * @param  array<int, array{item_id?:int|null, quantity:float, item_kit_id?:int|null, item_kit_name?:string|null}>  $lines
      */
     public function importTransferIn(
         int $fromLocationId,
@@ -384,7 +400,9 @@ class InventoryFlowService
                     foreach ($lines as $line) {
                         DB::table('phppos_transfer_items')->insert([
                             'transfer_id' => $existing->id,
-                            'item_id' => (int) $line['item_id'],
+                            'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
+                            'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
+                            'item_kit_name' => $line['item_kit_name'] ?? null,
                             'quantity' => (float) $line['quantity'],
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -428,14 +446,15 @@ class InventoryFlowService
 
             if ($status === 'open') {
                 foreach ($lines as $line) {
-                    $itemId = (int) $line['item_id'];
                     $qty = (float) $line['quantity'];
                     if ($qty <= 0) {
                         continue;
                     }
                     DB::table('phppos_transfer_items')->insert([
                         'transfer_id' => $transferInId,
-                        'item_id' => $itemId,
+                        'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
+                        'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
+                        'item_kit_name' => $line['item_kit_name'] ?? null,
                         'quantity' => $qty,
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -458,9 +477,9 @@ class InventoryFlowService
             $subtotal = 0.0;
             $totalQty = 0.0;
             foreach ($lines as $line) {
-                $itemId = (int) $line['item_id'];
+                $itemId = isset($line['item_id']) ? (int) $line['item_id'] : null;
                 $qty = (float) $line['quantity'];
-                if ($qty <= 0) {
+                if ($qty <= 0 || ! $itemId) {
                     continue;
                 }
 
@@ -489,18 +508,21 @@ class InventoryFlowService
 
             $lineNumber = 0;
             foreach ($lines as $line) {
-                $itemId = (int) $line['item_id'];
+                $itemId = isset($line['item_id']) ? (int) $line['item_id'] : null;
                 $qty = (float) $line['quantity'];
+                $itemKitId = isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+                $itemKitName = $line['item_kit_name'] ?? null;
 
                 if ($qty <= 0) {
                     continue;
                 }
 
-                $itemCost = (float) (PhpposItem::find($itemId)?->cost_price ?? 0);
+                $itemCost = $itemId ? (float) (PhpposItem::find($itemId)?->cost_price ?? 0) : 0;
 
                 PhpposReceivingItem::create([
                     'receiving_id' => $receiving->receiving_id,
                     'item_id' => $itemId,
+                    'item_kit_id' => $itemKitId,
                     'line' => $lineNumber,
                     'quantity_purchased' => $qty,
                     'quantity_received' => $qty,
@@ -512,15 +534,28 @@ class InventoryFlowService
                 ]);
                 $lineNumber++;
 
-                $this->adjustQuantity($toLocationId, $itemId, $qty);
-
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferInId,
                     'item_id' => $itemId,
+                    'item_kit_id' => $itemKitId,
+                    'item_kit_name' => $itemKitName,
                     'quantity' => $qty,
                     'created_at' => $timestamp ?? now(),
                     'updated_at' => now(),
                 ]);
+
+                // Kit header row — increment kit default_quantity
+                if (! $itemId) {
+                    if ($itemKitId) {
+                        DB::table('phppos_item_kits')
+                            ->where('id', $itemKitId)
+                            ->increment('default_quantity', $qty);
+                    }
+                    continue;
+                }
+
+                // Actual item — adjust location inventory and record movement
+                $this->adjustQuantity($toLocationId, $itemId, $qty);
 
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type' => 'transfer_in',
