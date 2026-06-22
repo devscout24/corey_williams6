@@ -163,7 +163,9 @@ class SendItem implements ShouldQueue
         }
 
         $items = PhpposTransferItem::where('transfer_id', $transferOut->id)->get();
-        $lines = $items->map(function ($item) {
+        $lines = $items->filter(function ($item) {
+            return (float) $item->quantity > 0;
+        })->map(function ($item) {
             $itemModel = $item->item_id ? PhpposItem::find($item->item_id) : null;
 
             return [

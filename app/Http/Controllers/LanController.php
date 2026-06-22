@@ -179,6 +179,11 @@ class LanController extends Controller
 
             $lines = [];
             foreach ($payload['lines'] as $index => $line) {
+                $qty = (float) $line['quantity'];
+                if ($qty <= 0) {
+                    continue;
+                }
+
                 $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
                 $itemKitName = $line['item_kit_name'] ?? null;
 
@@ -195,7 +200,7 @@ class LanController extends Controller
                         'item_id' => null,
                         'item_kit_id' => $itemKitId,
                         'item_kit_name' => $itemKitName,
-                        'quantity' => (float) $line['quantity'],
+                        'quantity' => $qty,
                     ];
                     continue;
                 }
@@ -219,8 +224,14 @@ class LanController extends Controller
                     'item_id' => $item->item_id,
                     'item_kit_id' => $itemKitId,
                     'item_kit_name' => $itemKitName,
-                    'quantity' => (float) $line['quantity'],
+                    'quantity' => $qty,
                 ];
+            }
+
+            if (empty($lines)) {
+                throw ValidationException::withMessages([
+                    'payload.lines' => 'No valid lines with quantity > 0.',
+                ]);
             }
 
             $this->log('Creating pending receiving from='.$fromLocation->location_id.' to='.$currentLocation->location_id.' transfer_out_id='.$payload['transfer_out_id']);

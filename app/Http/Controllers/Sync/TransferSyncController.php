@@ -42,7 +42,9 @@ class TransferSyncController extends Controller
         }
 
         $items = PhpposTransferItem::where('transfer_id', $transfer->id)->get();
-        $lines = $items->map(function ($item) {
+        $lines = $items->filter(function ($item) {
+            return (float) $item->quantity > 0;
+        })->map(function ($item) {
             $itemModel = $item->item_id ? PhpposItem::find($item->item_id) : null;
 
             return [
@@ -107,6 +109,11 @@ class TransferSyncController extends Controller
 
         $lines = [];
         foreach ($data['lines'] as $index => $line) {
+            $qty = (float) $line['quantity'];
+            if ($qty <= 0) {
+                continue;
+            }
+
             $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
             $itemKitName = $line['item_kit_name'] ?? null;
 
@@ -122,7 +129,7 @@ class TransferSyncController extends Controller
                     'item_id' => null,
                     'item_kit_id' => $itemKitId,
                     'item_kit_name' => $itemKitName,
-                    'quantity' => (float) $line['quantity'],
+                    'quantity' => $qty,
                 ];
                 continue;
             }
@@ -145,8 +152,14 @@ class TransferSyncController extends Controller
                 'item_id' => $item->item_id,
                 'item_kit_id' => $itemKitId,
                 'item_kit_name' => $itemKitName,
-                'quantity' => (float) $line['quantity'],
+                'quantity' => $qty,
             ];
+        }
+
+        if (empty($lines)) {
+            throw ValidationException::withMessages([
+                'lines' => 'No valid lines with quantity > 0.',
+            ]);
         }
 
         $result = $this->inventoryFlowService->importTransferIn(

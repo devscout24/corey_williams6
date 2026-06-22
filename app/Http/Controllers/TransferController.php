@@ -590,7 +590,6 @@ class TransferController extends Controller
             DB::transaction(function () use ($cart, $request) {
                 // Explode kits into component items for inventory movement
                 $lines = [];
-                $kitHeaderLines = [];
                 foreach ($cart['items'] as $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
                         $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
@@ -599,22 +598,22 @@ class TransferController extends Controller
                             $kitName = $item['name'];
                             $kitQty = (float) $item['quantity'];
                             // Layer 1 — kit header row for display/audit
-                            $kitHeader = [
+                            $lines[] = [
                                 'item_id' => null,
                                 'item_kit_id' => $kitId,
                                 'item_kit_name' => $kitName,
                                 'quantity' => $kitQty,
                                 'cost_price' => (float) ($item['cost_price'] ?? 0),
                             ];
-                            $lines[] = $kitHeader;
-                            $kitHeaderLines[] = $kitHeader;
                             // Layer 2 — exploded component items for inventory
                             $exploded = $this->explodeKitForTransfer($kit, $kitQty);
                             $lines = [...$lines, ...$exploded];
                             // Decrement kit default_quantity on transfer out
-                            DB::table('phppos_item_kits')
-                                ->where('id', $kitId)
-                                ->decrement('default_quantity', $kitQty);
+                            if ($kitQty > 0) {
+                                DB::table('phppos_item_kits')
+                                    ->where('id', $kitId)
+                                    ->decrement('default_quantity', $kitQty);
+                            }
                         }
                     } else {
                         $lines[] = [
@@ -624,6 +623,10 @@ class TransferController extends Controller
                         ];
                     }
                 }
+
+                // Filter out zero-quantity lines
+                $lines = array_filter($lines, fn ($l) => (float) ($l['quantity'] ?? 0) > 0);
+                $lines = array_values($lines);
 
                 if (isset($cart['transfer_id'])) {
                     $this->inventoryFlowService->updateTransferOut($cart['transfer_id'], $lines, $request->comment ?? $cart['comment']);

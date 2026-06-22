@@ -95,12 +95,11 @@ class InventoryFlowService
             foreach ($lines as $line) {
                 $itemId = isset($line['item_id']) ? (int) $line['item_id'] : null;
                 $qty = (float) $line['quantity'];
-                $itemKitId = isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
-                $itemKitName = $line['item_kit_name'] ?? null;
-
                 if ($qty <= 0) {
                     continue;
                 }
+                $itemKitId = isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+                $itemKitName = $line['item_kit_name'] ?? null;
 
                 $common = [
                     'transfer_id' => null, // will set per-row
@@ -264,6 +263,9 @@ class InventoryFlowService
             foreach ($lines as $line) {
                 $itemId = $line->item_id ? (int) $line->item_id : null;
                 $qty = (float) $line->quantity;
+                if ($qty <= 0) {
+                    continue;
+                }
                 $itemKitId = $line->item_kit_id ? (int) $line->item_kit_id : null;
                 $itemKitName = $line->item_kit_name ?? null;
 
