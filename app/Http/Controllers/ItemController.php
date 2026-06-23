@@ -333,6 +333,7 @@ class ItemController extends Controller
             'verify_age' => ['nullable', 'boolean'],
             'required_age' => ['nullable', 'integer'],
             'ecommerce_shipping_class_id' => ['nullable', 'integer'],
+            'discountable' => ['nullable', 'boolean'],
 
             // Nested or array inputs
             'tags' => ['nullable', 'string'],
@@ -406,6 +407,7 @@ class ItemController extends Controller
             'is_serialized' => !empty($data['is_serialized']) ? 1 : 0,
             'disable_loyalty' => !empty($data['disable_loyalty']) ? 1 : 0,
             'verify_age' => !empty($data['verify_age']) ? 1 : 0,
+            'discountable' => !empty($data['discountable']) ? 1 : 0,
         ];
 
         $locationId = auth('employee')->user()?->location_id ?? 1;

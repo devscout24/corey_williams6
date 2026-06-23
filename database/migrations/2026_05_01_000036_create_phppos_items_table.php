@@ -54,6 +54,7 @@ return new class extends Migration
             $table->boolean('verify_age')->default(false);
             $table->integer('required_age')->nullable();
             $table->boolean('disable_from_price_rules')->default(false);
+            $table->boolean('discountable')->default(true);
             $table->text('custom_field_1_value')->nullable();
             $table->text('custom_field_2_value')->nullable();
             $table->text('custom_field_3_value')->nullable();

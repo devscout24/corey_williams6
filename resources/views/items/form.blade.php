@@ -67,21 +67,21 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
                     </li>
-                    <li class="nav-item" role="presentation">
+                    {{-- <li class="nav-item" role="presentation">
                         <button class="nav-link" id="variations-tab" data-bs-toggle="tab" data-bs-target="#variations" type="button" role="tab" aria-controls="variations" aria-selected="false">Variants</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
-                    </li>
+                    </li> --}}
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="custom-fields-tab" data-bs-toggle="tab" data-bs-target="#custom-fields" type="button" role="tab" aria-controls="custom-fields" aria-selected="false">Custom Fields</button>
                     </li>
                 </ul>
             </div>
-            
+
             <div class="card-body">
                 <div class="tab-content" id="itemFormTabsContent">
-                    
+
                     <!-- Basic Info Tab -->
                     <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
                         <div class="row g-3">
@@ -93,7 +93,7 @@
                                 <label class="form-label" for="barcode_name">Barcode Name</label>
                                 <input type="text" class="form-control" id="barcode_name" name="barcode_name" value="{{ old('barcode_name', $item?->barcode_name) }}" />
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label class="form-label" for="category_id">Category <span class="text-danger">*</span></label>
                                 <select class="form-select" id="category_id" name="category_id">
@@ -236,24 +236,24 @@
                                 <label class="form-label" for="reorder_level">Threshold</label>
                                 <input type="number" step="any" class="form-control" id="reorder_level" name="reorder_level" value="{{ old('reorder_level', $item?->reorder_level) }}" />
                             </div>
-                            
+
                             <div class="col-md-12">
                                 <label class="form-label" for="description">Short Description</label>
                                 <textarea class="form-control" id="description" name="description" rows="2">{{ old('description', $item?->description) }}</textarea>
                             </div>
-                            
+
                             <div class="col-md-12">
                                 <label class="form-label" for="long_description">Long Description</label>
                                 <textarea class="form-control" id="long_description" name="long_description" rows="4">{{ old('long_description', $item?->long_description) }}</textarea>
                             </div>
-                            
+
                             <div class="col-md-12">
                                 <label class="form-label" for="info_popup">Info Popup Notes</label>
                                 <textarea class="form-control" id="info_popup" name="info_popup" rows="2">{{ old('info_popup', $item?->info_popup) }}</textarea>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Dimensions Tab -->
                     <div class="tab-pane fade" id="dimensions" role="tabpanel" aria-labelledby="dimensions-tab">
                         <div class="row g-3">
@@ -270,7 +270,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <label class="form-label" for="length">Length</label>
                                 <input type="number" step="0.01" class="form-control" id="length" name="length" placeholder="Length" value="{{ old('length', $item?->length) }}" />
@@ -284,10 +284,10 @@
                                 <input type="number" step="0.01" class="form-control" id="height" name="height" placeholder="Height" value="{{ old('height', $item?->height) }}" />
                             </div>
 
-                            
+
                         </div>
                     </div>
-                    
+
                     <!-- Settings Tab -->
                     <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
                         <div class="row g-3">
@@ -319,7 +319,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
                                     <input class="form-check-input" type="checkbox" role="switch" id="is_barcoded" name="is_barcoded" value="1" @checked(old('is_barcoded', $item?->item_id ? $item->is_barcoded : true))>
@@ -338,7 +338,7 @@
                                     <label class="form-check-label" for="allow_alt_description">Allow Alt Description</label>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4">
                                     <input class="form-check-input" type="checkbox" role="switch" id="is_ecommerce" name="is_ecommerce" value="1" @checked(old('is_ecommerce', $item?->is_ecommerce))>
@@ -357,9 +357,17 @@
                                     <label class="form-check-label" for="is_serialized">Is Serialized</label>
                                 </div>
                             </div>
-                            
+
+                            <div class="col-md-4">
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="is_serialized" name="discountable"
+                                    value="1" @checked(old('discountable', $item?->discountable))>
+                                    <label class="form-check-label" for="discountable">Is Discountable</label>
+                                </div>
+                            </div>
+
                             <hr class="my-4">
-                            
+
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4 mb-2">
                                     <input class="form-check-input" type="checkbox" role="switch" id="verify_age" name="verify_age" value="1" @checked(old('verify_age', $item?->verify_age))>
@@ -385,7 +393,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <div class="form-check form-switch mt-4 mb-2">
                                     <input class="form-check-input" type="checkbox" role="switch" id="disable_loyalty" name="disable_loyalty" value="1" @checked(old('disable_loyalty', $item?->disable_loyalty))>
@@ -397,8 +405,8 @@
 
                         </div>
                     </div>
-                    
-                    <!-- Variants Tab -->
+
+                    {{-- <!-- Variants Tab -->
                     <div class="tab-pane fade" id="variations" role="tabpanel" aria-labelledby="variations-tab">
                         <div class="row g-4">
                             <div class="col-12">
@@ -416,8 +424,8 @@
 
                                 @if(count($attributes) === 0)
                                     <div class="alert alert-info">
-                                        No attributes defined. 
-                                        <a href="{{ route('attributes.index') }}" target="_blank">Create attributes</a> 
+                                        No attributes defined.
+                                        <a href="{{ route('attributes.index') }}" target="_blank">Create attributes</a>
                                         first (e.g., Color, Size) to set up variants.
                                     </div>
                                 @endif
@@ -473,7 +481,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Advanced Tab -->
                     <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
                         <div class="row g-4">
@@ -493,8 +501,8 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-additional-number"><i class="bi bi-plus"></i> Add Item Number</button>
                             </div>
                         </div>
-                    </div>
-                    
+                    </div> --}}
+
                     <!-- Custom Fields Tab -->
                     <div class="tab-pane fade" id="custom-fields" role="tabpanel" aria-labelledby="custom-fields-tab">
                         <div class="row g-3">
@@ -505,25 +513,25 @@
                                     $required = false;
                                     $choices = [];
                                 @endphp
-                                
+
                                 <div class="col-md-6">
                                     <label class="form-label" for="custom_field_{{ $i }}_value">
                                         {{ $fieldName }} @if($required)<span class="text-danger">*</span>@endif
                                     </label>
-                                    
+
                                     @if($fieldType == 'checkbox')
                                         <div class="form-check form-switch mt-2">
-                                            <input class="form-check-input" type="checkbox" role="switch" 
-                                                   id="custom_field_{{ $i }}_value" 
-                                                   name="custom_field_{{ $i }}_value" 
-                                                   value="1" 
+                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                   id="custom_field_{{ $i }}_value"
+                                                   name="custom_field_{{ $i }}_value"
+                                                   value="1"
                                                    @checked(old("custom_field_{$i}_value", $item?->{"custom_field_{$i}_value"}))>
                                             <label class="form-check-label" for="custom_field_{{ $i }}_value">{{ $fieldName }}</label>
                                         </div>
                                     @elseif($fieldType == 'date')
-                                        <input type="date" class="form-control" 
-                                               id="custom_field_{{ $i }}_value" 
-                                               name="custom_field_{{ $i }}_value" 
+                                        <input type="date" class="form-control"
+                                               id="custom_field_{{ $i }}_value"
+                                               name="custom_field_{{ $i }}_value"
                                                value="{{ old("custom_field_{$i}_value", $item?->{"custom_field_{$i}_value"} ? date('Y-m-d', $item->{"custom_field_{$i}_value"}) : '') }}">
                                     @elseif($fieldType == 'dropdown')
                                         <select class="form-select" id="custom_field_{{ $i }}_value" name="custom_field_{{ $i }}_value">
@@ -543,16 +551,16 @@
                                             <a href="{{ asset('storage/'.$item->{"custom_field_{$i}_value"}) }}" target="_blank">Download File</a>
                                         @endif
                                     @else
-                                        <input type="text" class="form-control" 
-                                               id="custom_field_{{ $i }}_value" 
-                                               name="custom_field_{{ $i }}_value" 
+                                        <input type="text" class="form-control"
+                                               id="custom_field_{{ $i }}_value"
+                                               name="custom_field_{{ $i }}_value"
                                                value="{{ old("custom_field_{$i}_value", $item?->{"custom_field_{$i}_value"}) }}">
                                     @endif
                                 </div>
                             @endfor
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
             <div class="card-footer bg-white border-top text-end py-3">

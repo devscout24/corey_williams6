@@ -276,6 +276,13 @@
                                 <label class="form-label" for="points">Loyalty Points</label>
                                 <input type="number" class="form-control" id="points" name="points" value="{{ old('points', $customer?->points ?? 0) }}" />
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="discount_percent">Discount %</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" min="0" max="100" class="form-control" id="discount_percent" name="discount_percent" value="{{ old('discount_percent', $customer?->discount_percent ?? 0) }}" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

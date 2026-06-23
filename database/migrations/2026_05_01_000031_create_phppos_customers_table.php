@@ -23,6 +23,7 @@ return new class extends Migration
             $table->boolean('disable_loyalty')->default(false);
             $table->decimal('current_spend_for_points', 23, 10)->default(0);
             $table->decimal('current_sales_for_discount', 23, 10)->default(0);
+            $table->decimal('discount_percent', 5, 2)->default(0);
             $table->boolean('taxable')->default(true);
             $table->string('tax_certificate', 255)->nullable();
             $table->string('cc_token', 255)->nullable();
