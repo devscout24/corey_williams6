@@ -189,7 +189,7 @@ class TransferSyncController extends Controller
                             'name' => $itemKitName,
                             'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
                             'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
-                            'default_quantity' => $line['item_kit_default_quantity'] ?? null,
+                            'default_quantity' => 0,
                         ]);
                         $itemKitId = (int) $kit->id;
 
@@ -232,6 +232,7 @@ class TransferSyncController extends Controller
                     'item_kit_name' => $itemKitName,
                     'quantity' => $qty,
                 ];
+
                 continue;
             }
 
