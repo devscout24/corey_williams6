@@ -165,8 +165,6 @@
   }
 </style>
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 @endpush
 
 @section('content')
@@ -322,6 +320,8 @@
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 <script>
   function checkSelection() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
@@ -374,8 +374,16 @@
     // Reset columns
     $("#reset_to_default").on('click', function(e) {
       e.preventDefault();
-      $.get("{{ route('items.reset_column_prefs') }}", function() {
-        location.reload();
+      $.ajax({
+        url: "{{ route('items.reset_column_prefs') }}",
+        type: 'GET',
+        success: function() {
+          location.reload();
+        },
+        error: function(xhr) {
+          console.error('Failed to reset column prefs:', xhr.responseJSON || xhr.statusText);
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to reset column preferences.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+        }
       });
     });
 
@@ -402,9 +410,12 @@
           _token: "{{ csrf_token() }}",
           columns: visibleColumns
         },
-        async: false,
         success: function() {
           location.reload();
+        },
+        error: function(xhr) {
+          console.error('Failed to save column prefs:', xhr.responseJSON || xhr.statusText);
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save column preferences. Please try again.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
         }
       });
     }

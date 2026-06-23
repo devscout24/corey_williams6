@@ -284,8 +284,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $("#reset_to_default").on('click', function(e) {
       e.preventDefault();
-      $.get("{{ route('customers.reset_column_prefs') }}", function() {
-        location.reload();
+      $.ajax({
+        url: "{{ route('customers.reset_column_prefs') }}",
+        type: 'GET',
+        success: function() {
+          location.reload();
+        },
+        error: function(xhr) {
+          console.error('Failed to reset column prefs:', xhr.responseJSON || xhr.statusText);
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to reset column preferences.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+        }
       });
     });
 });
@@ -306,7 +314,11 @@ function saveColumnPrefs() {
       _token: "{{ csrf_token() }}",
       columns: visibleColumns
     },
-    success: function() { location.reload(); }
+    success: function() { location.reload(); },
+    error: function(xhr) {
+      console.error('Failed to save column prefs:', xhr.responseJSON || xhr.statusText);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save column preferences. Please try again.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+    }
   });
 }
 

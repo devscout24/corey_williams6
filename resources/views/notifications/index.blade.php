@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = this.dataset.id;
             const row = this.closest('tr');
             try {
-                const res = await fetch('{{ route('app.notifications.read', '') }}/' + id, {
+                const res = await fetch('/app/notifications/' + id + '/read', {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
                 });
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = this.dataset.id;
             const row = this.closest('tr');
             try {
-                const res = await fetch('{{ route('app.notifications.delete', '') }}/' + id, {
+                const res = await fetch('/app/notifications/' + id, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': csrf,
