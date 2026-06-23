@@ -19,6 +19,58 @@ class SupplierController extends Controller
 {
     public function index(): View
     {
+        $employee_id = auth('employee')->id();
+
+        $column_prefs_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'suppliers_column_prefs')
+            ->value('value');
+
+        $all_columns = [
+            'person_id' => ['label' => 'ID', 'sort' => true],
+            'company_name' => ['label' => 'Company', 'sort' => true],
+            'contact_name' => ['label' => 'Contact Name', 'sort' => true],
+            'email' => ['label' => 'Email', 'sort' => true],
+            'phone_number' => ['label' => 'Phone', 'sort' => true],
+            'balance' => ['label' => 'Balance', 'sort' => true],
+            'account_number' => ['label' => 'Account #', 'sort' => true],
+        ];
+
+        $default_columns = ['company_name', 'contact_name', 'email', 'phone_number'];
+
+        if ($column_prefs_val) {
+            $selected_columns = explode(',', $column_prefs_val);
+            $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
+
+            $ordered_all_columns = [];
+            foreach ($selected_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        } else {
+            $selected_columns = $default_columns;
+
+            $ordered_all_columns = [];
+            foreach ($default_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        }
+
         $suppliers = DB::table('phppos_suppliers as s')
             ->join('phppos_people as p', 'p.person_id', '=', 's.person_id')
             ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number')
@@ -26,7 +78,7 @@ class SupplierController extends Controller
             ->orderBy('s.company_name')
             ->paginate(20);
 
-        return view('suppliers.index', compact('suppliers'));
+        return view('suppliers.index', compact('suppliers', 'all_columns', 'selected_columns'));
     }
 
     public function create(): View

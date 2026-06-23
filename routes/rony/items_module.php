@@ -18,8 +18,8 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::post('/items/labels/print', [ItemLabelController::class, 'print'])->name('labels.print');
 
     // inventory settings
-    Route::post('/items/save_column_prefs', [InventoryColumnSettingController::class, 'saveColumnPrefs'])->name('items.save_column_prefs');
-    Route::get('/items/reset_column_prefs', [InventoryColumnSettingController::class, 'resetColumnPrefs'])->name('items.reset_column_prefs');
+    Route::post('/items/columns/save', [InventoryColumnSettingController::class, 'saveColumnPrefs'])->name('items.save_column_prefs');
+    Route::get('/items/columns/reset', [InventoryColumnSettingController::class, 'resetColumnPrefs'])->name('items.reset_column_prefs');
 
     // core items
     Route::get('/items', [ItemController::class, 'index'])->name('items.index');

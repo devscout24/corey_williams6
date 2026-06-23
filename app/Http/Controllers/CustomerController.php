@@ -21,13 +21,68 @@ class CustomerController extends Controller
 {
     public function index(): View
     {
+        $employee_id = auth('employee')->id();
+
+        $column_prefs_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'customers_column_prefs')
+            ->value('value');
+
+        $all_columns = [
+            'person_id' => ['label' => 'ID', 'sort' => true],
+            'full_name' => ['label' => 'Name', 'sort' => true],
+            'company_name' => ['label' => 'Company', 'sort' => true],
+            'email' => ['label' => 'Email', 'sort' => true],
+            'phone_number' => ['label' => 'Phone', 'sort' => true],
+            'balance' => ['label' => 'Balance', 'sort' => true],
+            'credit_limit' => ['label' => 'Credit Limit', 'sort' => true],
+            'points' => ['label' => 'Points', 'sort' => true],
+            'taxable' => ['label' => 'Taxable', 'sort' => true],
+        ];
+
+        $default_columns = ['full_name', 'company_name', 'email', 'phone_number', 'balance'];
+
+        if ($column_prefs_val) {
+            $selected_columns = explode(',', $column_prefs_val);
+            $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
+
+            $ordered_all_columns = [];
+            foreach ($selected_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        } else {
+            $selected_columns = $default_columns;
+
+            $ordered_all_columns = [];
+            foreach ($default_columns as $col) {
+                if (isset($all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+            foreach ($all_columns as $col => $info) {
+                if (!isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $info;
+                }
+            }
+            $all_columns = $ordered_all_columns;
+        }
+
         $customers = PhpposCustomer::query()
             ->join('phppos_people', 'phppos_people.person_id', '=', 'phppos_customers.person_id')
+            ->select('phppos_people.*', 'phppos_customers.*')
             ->where('phppos_customers.deleted', 0)
             ->orderBy('phppos_people.last_name', 'asc')
             ->paginate(20);
 
-        return view('customers.index', compact('customers'));
+        return view('customers.index', compact('customers', 'all_columns', 'selected_columns'));
     }
 
     public function create(): View

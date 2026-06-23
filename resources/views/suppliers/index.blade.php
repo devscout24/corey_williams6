@@ -5,21 +5,12 @@
 
 @push('styles')
 <style>
-  /* Supplier Page Styles */
   .customers-toolbar {
-    background: #fff;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--gray-200);
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow-xs);
+    background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--gray-200);
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; box-shadow: var(--shadow-xs);
   }
-  .search-wrap {
-    display: flex; gap: 12px; flex: 1; max-width: 400px;
-  }
+  .search-wrap { display: flex; gap: 12px; flex: 1; max-width: 400px; }
   .search-input {
     flex: 1; background: var(--gray-50); border: 1px solid var(--gray-200);
     border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13.5px;
@@ -29,40 +20,33 @@
   .btn-search {
     background: var(--primary); color: #fff; border: none;
     border-radius: var(--radius-sm); padding: 8px 20px;
-    font-size: 13.5px; font-weight: 600; display: flex;
-    align-items: center; gap: 8px; transition: var(--transition);
+    font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: var(--transition);
   }
   .btn-search:hover { background: var(--primary-dark); }
   .toolbar-actions { display: flex; gap: 12px; }
   .btn-new-customer {
     background: var(--primary); color: #fff; border: none;
     border-radius: var(--radius-sm); padding: 8px 16px;
-    font-size: 13.5px; font-weight: 600; display: flex;
-    align-items: center; gap: 8px; transition: var(--transition);
+    font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: var(--transition);
   }
   .btn-new-customer:hover { background: var(--primary-dark); }
   .btn-icon-outline {
     background: #fff; border: 1px solid var(--primary); color: var(--primary);
     border-radius: var(--radius-sm); width: 38px; height: 38px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; transition: var(--transition);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; transition: var(--transition);
   }
   .btn-icon-outline:hover { background: var(--primary-soft); }
 
-  /* Table Card */
   .table-card {
     background: #fff; border-radius: var(--radius-lg);
-    border: 1px solid var(--gray-200); box-shadow: var(--shadow-xs);
-    overflow: hidden;
+    border: 1px solid var(--gray-200); box-shadow: var(--shadow-xs); overflow: hidden;
   }
   .table-actions {
-    padding: 16px 20px; border-bottom: 1px solid var(--gray-100);
-    display: flex; gap: 12px;
+    padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; gap: 12px;
   }
   .btn-action-sm {
-    font-size: 12.5px; font-weight: 600; padding: 6px 14px;
-    border-radius: var(--radius-sm); display: inline-flex;
-    align-items: center; gap: 6px; border: none; color: #fff;
+    font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: var(--radius-sm);
+    display: inline-flex; align-items: center; gap: 6px; border: none; color: #fff;
     transition: var(--transition); cursor: pointer;
   }
   .btn-delete { background: var(--danger); }
@@ -70,34 +54,28 @@
   .btn-clear { background: var(--orange); }
   .btn-clear:hover { background: #EA580C; }
 
-  /* Table */
   .custom-table { width: 100%; border-collapse: collapse; min-width: 800px; }
   .custom-table th {
-    background: #fff; color: var(--gray-700);
-    font-size: 12px; font-weight: 700; padding: 12px 20px;
-    text-align: left; white-space: nowrap;
+    background: #fff; color: var(--gray-700); font-size: 12px; font-weight: 700;
+    padding: 12px 20px; text-align: left; white-space: nowrap;
     border-bottom: 2px solid var(--gray-100);
   }
   .custom-table td {
     padding: 14px 20px; border-bottom: 1px solid var(--gray-100);
-    font-size: 13.5px; color: var(--gray-700); vertical-align: middle;
-    font-weight: 500;
+    font-size: 13.5px; color: var(--gray-700); vertical-align: middle; font-weight: 500;
   }
   .custom-table tr:last-child td { border-bottom: none; }
   .custom-table tr:hover { background: var(--gray-50); }
 
   .custom-checkbox {
-    width: 18px; height: 18px; border-radius: 4px;
-    border: 1.5px solid var(--gray-300); appearance: none;
-    outline: none; cursor: pointer; position: relative;
+    width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--gray-300);
+    appearance: none; outline: none; cursor: pointer; position: relative;
     transition: var(--transition); background: #fff;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0;
+    display: inline-flex; align-items: center; justify-content: center; margin: 0;
   }
   .custom-checkbox:checked { background: var(--primary); border-color: var(--primary); }
   .custom-checkbox:checked::after {
-    content: '\F26A'; font-family: 'bootstrap-icons';
-    color: #fff; font-size: 13px; position: absolute;
+    content: '\F26A'; font-family: 'bootstrap-icons'; color: #fff; font-size: 13px; position: absolute;
   }
 
   .user-info { display: flex; align-items: center; gap: 14px; }
@@ -111,12 +89,33 @@
 
   .table-responsive { overflow-x: auto; }
 
+  .col-config-dropdown {
+    width: 250px; padding: 0; border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200);
+  }
+  .dropdown-header-config {
+    background: var(--gray-50); padding: 10px 15px; font-weight: 700; font-size: 13px;
+    border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;
+  }
+  .dropdown-header-config #reset_to_default {
+    font-size: 12px; color: var(--primary); cursor: pointer; text-decoration: none;
+  }
+  .sort-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; }
+  .sort-item {
+    display: flex; align-items: center; padding: 8px 15px;
+    border-bottom: 1px solid var(--gray-50); transition: background 0.2s;
+  }
+  .sort-item:hover { background: var(--gray-50); }
+  .sort-item label { flex: 1; margin-left: 10px; margin-bottom: 0; font-size: 13px; cursor: pointer; }
+  .handle { cursor: move; color: var(--gray-400); font-size: 16px; }
+
   @media (max-width: 768px) {
     .customers-toolbar { flex-direction: column; align-items: stretch; gap: 16px; }
     .search-wrap { max-width: 100%; }
     .toolbar-actions { justify-content: flex-end; }
   }
 </style>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 @endpush
 
 @section('content')
@@ -125,7 +124,6 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
-    <!-- Toolbar -->
     <div class="customers-toolbar">
       <div class="search-wrap">
         <input type="text" class="search-input" placeholder="Search Suppliers" />
@@ -133,11 +131,33 @@
       </div>
       <div class="toolbar-actions">
         <a href="{{ route('suppliers.create') }}" class="btn-new-customer text-decoration-none"><i class="bi bi-plus-lg"></i> New Supplier</a>
+        <div class="dropdown d-inline-block">
+          <button class="btn-icon-outline dropdown-toggle no-caret" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="bi bi-gear"></i>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end col-config-dropdown p-0">
+            <div class="dropdown-header-config">
+              <span>Column Configuration</span>
+              <a id="reset_to_default"><i class="bi bi-arrow-clockwise"></i> Reset</a>
+            </div>
+            <form id="config_columns">
+              <ul id="sortable_columns" class="sort-list">
+                @foreach($all_columns as $col_key => $col_info)
+                  @php $checked = in_array($col_key, $selected_columns) ? 'checked' : ''; @endphp
+                  <li class="sort-item" data-id="{{ $col_key }}">
+                    <input type="checkbox" class="custom-checkbox column-checkbox" id="col_{{ $col_key }}" value="{{ $col_key }}" {{ $checked }}>
+                    <label for="col_{{ $col_key }}">{{ $col_info['label'] }}</label>
+                    <span class="handle"><i class="bi bi-list"></i></span>
+                  </li>
+                @endforeach
+              </ul>
+            </form>
+          </div>
+        </div>
         <button class="btn-icon-outline"><i class="bi bi-three-dots"></i></button>
       </div>
     </div>
 
-    <!-- Table Card -->
     <div class="table-card">
       <div class="table-actions" id="bulkActions" style="display: none;">
         <button class="btn-action-sm btn-delete"><i class="bi bi-trash3"></i> Delete</button>
@@ -151,31 +171,45 @@
               <th style="width: 50px;">
                 <input type="checkbox" class="custom-checkbox" id="selectAll" onchange="toggleAll(this)" />
               </th>
-              <th>Name / ID</th>
-              <th>E-Mail</th>
-              <th>Phone Number</th>
-              <th>Company Name</th>
+              @foreach($selected_columns as $col_key)
+                <th>{{ $all_columns[$col_key]['label'] }}</th>
+              @endforeach
               <th style="width: 80px;">Action</th>
             </tr>
           </thead>
-          <tbody id="customersTableBody">
+          <tbody>
             @forelse($suppliers as $supplier)
             <tr>
               <td><input type="checkbox" class="custom-checkbox row-checkbox" onchange="checkSelection()" /></td>
-              <td>
-                <div class="user-info">
-                  <div class="user-avatar d-flex align-items-center justify-content-center text-muted" style="background: var(--gray-100);">
-                    <i class="bi bi-person"></i>
-                  </div>
-                  <div>
-                    <div class="user-name">{{ $supplier->first_name }} {{ $supplier->last_name }}</div>
-                    <div class="user-id">ID:{{ $supplier->person_id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>{{ $supplier->email ?? '—' }}</td>
-              <td>{{ $supplier->phone_number ?? '—' }}</td>
-              <td>{{ $supplier->company_name ?? '—' }}</td>
+              @foreach($selected_columns as $col_key)
+                @if($col_key == 'person_id')
+                  <td>{{ $supplier->person_id }}</td>
+                @elseif($col_key == 'company_name')
+                  <td>{{ $supplier->company_name ?? '—' }}</td>
+                @elseif($col_key == 'contact_name')
+                  <td>
+                    <div class="user-info">
+                      <div class="user-avatar d-flex align-items-center justify-content-center text-muted" style="background: var(--gray-100);">
+                        <i class="bi bi-person"></i>
+                      </div>
+                      <div>
+                        <div class="user-name">{{ $supplier->first_name }} {{ $supplier->last_name }}</div>
+                        <div class="user-id">ID:{{ $supplier->person_id }}</div>
+                      </div>
+                    </div>
+                  </td>
+                @elseif($col_key == 'email')
+                  <td>{{ $supplier->email ?? '—' }}</td>
+                @elseif($col_key == 'phone_number')
+                  <td>{{ $supplier->phone_number ?? '—' }}</td>
+                @elseif($col_key == 'balance')
+                  <td class="fw-bold {{ $supplier->balance > 0 ? 'text-danger' : 'text-success' }}">
+                    ${{ number_format((float) $supplier->balance, 2) }}
+                  </td>
+                @elseif($col_key == 'account_number')
+                  <td>{{ $supplier->account_number ?? '—' }}</td>
+                @endif
+              @endforeach
               <td>
                 <div class="row-actions">
                   <a href="{{ route('suppliers.edit', $supplier->person_id) }}" class="text-decoration-none"><i class="bi bi-pencil-square action-icon"></i></a>
@@ -189,7 +223,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="6" class="text-center py-4 text-muted">No suppliers found.</td>
+              <td colspan="{{ count($selected_columns) + 2 }}" class="text-center py-4 text-muted">No suppliers found.</td>
             </tr>
             @endforelse
           </tbody>
@@ -204,37 +238,67 @@
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 <script>
+  $(document).ready(function() {
+    $("#sortable_columns").sortable({
+      handle: ".handle",
+      update: function() { saveColumnPrefs(); }
+    });
+
+    $(".column-checkbox").on('click', function() {
+      saveColumnPrefs();
+    });
+
+    $("#reset_to_default").on('click', function(e) {
+      e.preventDefault();
+      $.get("{{ route('suppliers.reset_column_prefs') }}", function() {
+        location.reload();
+      });
+    });
+  });
+
+  function saveColumnPrefs() {
+    let visibleColumns = [];
+    $("#sortable_columns li").each(function() {
+      let checkbox = $(this).find('input[type="checkbox"]');
+      if (checkbox.is(':checked')) {
+        visibleColumns.push(checkbox.val());
+      }
+    });
+
+    $.ajax({
+      url: "{{ route('suppliers.save_column_prefs') }}",
+      type: 'POST',
+      data: {
+        _token: "{{ csrf_token() }}",
+        columns: visibleColumns
+      },
+      success: function() { location.reload(); }
+    });
+  }
+
   function checkSelection() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
     const bulkActions = document.getElementById('bulkActions');
     const selectAll = document.getElementById('selectAll');
     
     let checkedCount = 0;
-    checkboxes.forEach(cb => {
-      if (cb.checked) checkedCount++;
-    });
+    checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
 
-    if (checkedCount > 0) {
-      bulkActions.style.display = 'flex';
-    } else {
-      bulkActions.style.display = 'none';
-    }
-
+    bulkActions.style.display = checkedCount > 0 ? 'flex' : 'none';
     selectAll.checked = (checkedCount === checkboxes.length && checkboxes.length > 0);
   }
 
   function toggleAll(source) {
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(cb => cb.checked = source.checked);
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
     checkSelection();
   }
 
   function clearSelection() {
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    const selectAll = document.getElementById('selectAll');
-    checkboxes.forEach(cb => cb.checked = false);
-    selectAll.checked = false;
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
     checkSelection();
   }
 </script>

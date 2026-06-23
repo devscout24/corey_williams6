@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:employee')->group(function (): void {
     
+    // column prefs
+    Route::post('/customers/columns/save', [\App\Http\Controllers\InventoryColumnSettingController::class, 'saveColumnPrefs'])->name('customers.save_column_prefs');
+    Route::get('/customers/columns/reset', [\App\Http\Controllers\InventoryColumnSettingController::class, 'resetColumnPrefs'])->name('customers.reset_column_prefs');
+    Route::post('/suppliers/columns/save', [\App\Http\Controllers\InventoryColumnSettingController::class, 'saveColumnPrefs'])->name('suppliers.save_column_prefs');
+    Route::get('/suppliers/columns/reset', [\App\Http\Controllers\InventoryColumnSettingController::class, 'resetColumnPrefs'])->name('suppliers.reset_column_prefs');
+
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
     Route::post('/messages/{receiverRowId}/read', [MessageController::class, 'markRead'])->name('messages.read');

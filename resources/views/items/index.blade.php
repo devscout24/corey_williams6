@@ -384,15 +384,9 @@
       $("#sortable_columns li").each(function() {
         let checkbox = $(this).find('input[type="checkbox"]');
         let colValue = checkbox.val();
-        // Always include the column in the list to maintain order, 
-        // regardless of whether it is checked or not.
-        // The check state determines if it's "selected" for display.
         columns.push(colValue);
       });
 
-      // We need to send which ones are checked separately or filter them in the backend.
-      // However, the current backend logic expects just the visible columns.
-      // Let's filter here to match current backend logic but keep the order.
       let visibleColumns = [];
       $("#sortable_columns li").each(function() {
         let checkbox = $(this).find('input[type="checkbox"]');
