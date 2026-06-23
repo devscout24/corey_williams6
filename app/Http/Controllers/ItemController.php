@@ -46,7 +46,7 @@ class ItemController extends Controller
         if ($column_prefs_val) {
             $selected_columns = explode(',', $column_prefs_val);
             $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
-            
+
             $ordered_all_columns = [];
             foreach ($selected_columns as $col) {
                 if (isset($all_columns[$col])) {
@@ -61,7 +61,7 @@ class ItemController extends Controller
             $all_columns = $ordered_all_columns;
         } else {
             $selected_columns = $default_columns;
-            
+
             $ordered_all_columns = [];
             foreach ($default_columns as $col) {
                 if (isset($all_columns[$col])) {
@@ -100,6 +100,8 @@ class ItemController extends Controller
             ->where('phppos_items.deleted', 0)
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
+
+        // dd($items[0]->default_quantity, $items[0]->location_quantity, $items[0]->quantity);
         return view('items.index', compact('items', 'all_columns', 'selected_columns'));
     }
 
@@ -115,7 +117,7 @@ class ItemController extends Controller
             : null;
 
         $attributes = Attribute::with('values')->where('deleted', 0)->whereNull('item_id')->orderBy('name')->get();
-        
+
         $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
 
@@ -184,7 +186,7 @@ class ItemController extends Controller
             ->where('deleted', 0)
             ->get()
             ->all();
-        
+
         $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
 
@@ -276,6 +278,8 @@ class ItemController extends Controller
             }
 
             if ($request->has('quantity')) {
+                PhpposItem::query()->where('item_id', $itemId)->update(['default_quantity' => $data['quantity']]);
+
                 DB::table('phppos_location_items')->updateOrInsert(
                     ['location_id' => $locationId, 'item_id' => $itemId],
                     ['quantity' => $data['quantity'] ?? 0, 'updated_at' => now(), 'created_at' => now()]
@@ -404,12 +408,21 @@ class ItemController extends Controller
             'verify_age' => !empty($data['verify_age']) ? 1 : 0,
         ];
 
-        DB::transaction(function () use ($payload, $itemId, $data): void {
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+
+        DB::transaction(function () use ($payload, $itemId, $data, $locationId): void {
             if ($itemId) {
                 PhpposItem::query()->where('item_id', $itemId)->update($payload);
             } else {
                 $item = PhpposItem::query()->create($payload);
                 $itemId = $item->item_id;
+            }
+
+            if (array_key_exists('default_quantity', $data)) {
+                DB::table('phppos_location_items')->updateOrInsert(
+                    ['location_id' => $locationId, 'item_id' => $itemId],
+                    ['quantity' => $data['default_quantity'] ?? 0, 'updated_at' => now(), 'created_at' => now()]
+                );
             }
 
             if (!empty($data['images'])) {
