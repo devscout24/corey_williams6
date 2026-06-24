@@ -251,42 +251,30 @@
                 @elseif($col_key == 'name')
                   <td>
                     <div class="item-info">
-                      @if($item->image_file_id)
-                        <img src="{{ route('app_files.view', $item->image_file_id) }}" alt="{{ $item->name }}" class="item-img" />
-                      @else
-                        <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
-                      @endif
-                      <div>
-                        <div class="item-name">{{ $item->name }}</div>
-                      </div>
+                        {{-- @if($item->image_file_id)
+                            <img src="{{ route('app_files.view', $item->image_file_id) }}" alt="{{ $item->name }}" class="item-img" />
+                        @else
+                            <div class="item-img d-flex align-items-center justify-content-center text-muted" style="font-size: 10px; background: var(--gray-100);">IMG</div>
+                        @endif --}}
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-flower2"></i>
+                            {{-- <i class="bi bi-leaf-fill"></i> --}}
+                        </div>
+                        <div>
+                            <div class="item-name">{{ $item->name }}</div>
+                        </div>
                     </div>
                   </td>
                 @elseif($col_key == 'category')
                   <td>{{ $item->category_name ?? '—' }}</td>
                 @elseif($col_key == 'cost_price')
-                  <td>
-                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                           data-item-id="{{ $item->item_id }}" data-field="cost_price"
-                           value="{{ $item->cost_price }}" />
-                  </td>
+                  <td class="text-center"><span class="fw-medium">{{ $item->cost_price ?? '—' }}</span></td>
                 @elseif($col_key == 'unit_price')
-                  <td>
-                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                           data-item-id="{{ $item->item_id }}" data-field="unit_price"
-                           value="{{ $item->unit_price }}" />
-                  </td>
+                  <td class="text-center"><span class="fw-medium">{{ $item->unit_price ?? '—' }}</span></td>
                 @elseif($col_key == 'quantity')
-                  <td>
-                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                           data-item-id="{{ $item->item_id }}" data-field="quantity"
-                           value="{{ $item->location_quantity ?? $item->default_quantity ?? 0 }}" />
-                  </td>
+                  <td class="text-center"><span class="fw-medium">{{ $item->location_quantity ?? $item->default_quantity ?? '—' }}</span></td>
                 @elseif($col_key == 'reorder_level')
-                  <td>
-                    <input type="number" step="0.001" class="form-control form-control-sm inline-item-input"
-                           data-item-id="{{ $item->item_id }}" data-field="reorder_level"
-                           value="{{ $item->reorder_level ?? '' }}" />
-                  </td>
+                  <td class="text-center"><span class="fw-medium">{{ $item->reorder_level ?? '—' }}</span></td>
                 @elseif($col_key == 'item_number')
                   <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
                 @endif
@@ -442,90 +430,6 @@
     }
   });
 
-  const quickUpdateBase = "{{ url('/items') }}";
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  function parseValue(value) {
-    if (value === '' || value === null || typeof value === 'undefined') {
-      return null;
-    }
-    const parsed = Number(value);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-
-  async function saveInlineItem(input) {
-    console.log('Save triggered for:', input.dataset.field);
-    const itemId = input.dataset.itemId;
-    const field = input.dataset.field;
-    if (!itemId || !field) {
-      return;
-    }
-
-    const newValue = input.value;
-    const oldValue = input.defaultValue;
-
-    console.log('Values:', { newValue, oldValue });
-
-    if (newValue == oldValue) {
-      console.log('Value unchanged, exiting');
-      return;
-    }
-
-    let confirmResult = { isConfirmed: false };
-    if (window.Swal) {
-      confirmResult = await Swal.fire({
-        title: 'Confirm update',
-        text: `Update ${field.replace('_', ' ')} to ${newValue}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Update',
-        cancelButtonText: 'Cancel',
-        reverseButtons: true
-      });
-    } else {
-      confirmResult.isConfirmed = confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`);
-    }
-
-    if (!confirmResult.isConfirmed) {
-      console.log('Update cancelled by user');
-      input.value = oldValue;
-      return;
-    }
-
-    console.log('Proceeding with update...');
-    const payload = { [field]: parseValue(newValue) };
-
-    try {
-      const response = await fetch(`${quickUpdateBase}/${itemId}/quick-update`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Save failed');
-      }
-
-      input.defaultValue = newValue;
-      input.classList.add('is-valid');
-      setTimeout(() => input.classList.remove('is-valid'), 1000);
-      console.log('Update successful');
-    } catch (error) {
-      console.error('Update failed:', error);
-      input.classList.add('is-invalid');
-      input.value = oldValue;
-      setTimeout(() => input.classList.remove('is-invalid'), 1200);
-    }
-  }
-
-  document.querySelectorAll('.inline-item-input').forEach((input) => {
-    input.addEventListener('change', () => {
-      saveInlineItem(input);
-    });
-  });
 </script>
 @endpush

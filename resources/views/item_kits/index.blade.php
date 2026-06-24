@@ -56,26 +56,10 @@
                                     <span class="badge bg-light text-dark border">{{ $kit->category->name ?? 'None' }}</span>
                                 </td>
                                 <td>{{ $kit->supplier->company_name ?? '—' }}</td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="cost_price"
-                                           value="{{ $kit->cost_price }}" />
-                                </td>
-                                <td class="text-end fw-bold text-dark">
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="unit_price"
-                                           value="{{ $kit->unit_price }}" />
-                                </td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="quantity"
-                                           value="{{ $kit->default_quantity ?? 0 }}" />
-                                </td>
-                                <td>
-                                    <input type="number" step="0.001" class="form-control form-control-sm inline-kit-input"
-                                           data-kit-id="{{ $kit->id }}" data-field="reorder_level"
-                                           value="{{ $kit->reorder_level ?? '' }}" />
-                                </td>
+                                <td class="text-center"><span class="fw-medium">{{ $kit->cost_price ?? '—' }}</span></td>
+                                <td class="text-center fw-bold text-dark"><span class="fw-medium">{{ $kit->unit_price ?? '—' }}</span></td>
+                                <td class="text-center"><span class="fw-medium">{{ $kit->default_quantity ?? '—' }}</span></td>
+                                <td class="text-center"><span class="fw-medium">{{ $kit->reorder_level ?? '—' }}</span></td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('item-kits.edit', $kit->id) }}" data-bs-toggle="tooltip" title="Edit">
@@ -150,83 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    const quickUpdateBase = "{{ url('/item-kits') }}";
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    function parseValue(value) {
-        if (value === '' || value === null || typeof value === 'undefined') {
-            return null;
-        }
-        const parsed = Number(value);
-        return Number.isNaN(parsed) ? null : parsed;
-    }
-
-    async function saveInlineKit(input) {
-        const kitId = input.dataset.kitId;
-        const field = input.dataset.field;
-        if (!kitId || !field) {
-            return;
-        }
-
-        const newValue = input.value;
-        const oldValue = input.defaultValue;
-
-        if (newValue == oldValue) {
-            return;
-        }
-
-        let confirmResult = { isConfirmed: false };
-        if (window.Swal) {
-            confirmResult = await Swal.fire({
-                title: 'Confirm update',
-                text: `Update ${field.replace('_', ' ')} to ${newValue}?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Update',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            });
-        } else {
-            confirmResult.isConfirmed = confirm(`Are you sure you want to update this ${field.replace('_', ' ')}?`);
-        }
-
-        if (!confirmResult.isConfirmed) {
-            input.value = oldValue;
-            return;
-        }
-
-        const payload = { [field]: parseValue(newValue) };
-
-        try {
-            const response = await fetch(`${quickUpdateBase}/${kitId}/quick-update`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                throw new Error('Save failed');
-            }
-
-            input.defaultValue = newValue;
-            input.classList.add('is-valid');
-            setTimeout(() => input.classList.remove('is-valid'), 1000);
-        } catch (error) {
-            input.classList.add('is-invalid');
-            input.value = oldValue;
-            setTimeout(() => input.classList.remove('is-invalid'), 1200);
-        }
-    }
-
-    document.querySelectorAll('.inline-kit-input').forEach((input) => {
-        input.addEventListener('change', () => {
-            saveInlineKit(input);
-        });
-    });
 });
 </script>
 @endpush
