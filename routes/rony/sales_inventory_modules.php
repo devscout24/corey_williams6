@@ -32,10 +32,10 @@ Route::middleware('auth:employee')->group(function (): void {
         Route::post('/sales/complete', [SalesController::class, 'complete'])->name('sales.complete');
         Route::post('/sales/cancel', [SalesController::class, 'cancel'])->name('sales.cancel');
         Route::post('/sales', [SalesController::class, 'complete'])->name('sales.store');
-        Route::get('/sales/{sale}/receipt', [SalesController::class, 'receipt'])->name('sales.receipt');
-        Route::post('/sales/{sale}/return', [SalesController::class, 'returnItems'])->name('sales.return');
         Route::get('/sales/settings/receipt', [SalesController::class, 'settings'])->name('sales.settings');
         Route::post('/sales/settings/receipt', [SalesController::class, 'saveSettings'])->name('sales.settings.save');
+        Route::get('/sales/{sale}/receipt', [SalesController::class, 'receipt'])->name('sales.receipt');
+        Route::post('/sales/{sale}/return', [SalesController::class, 'returnItems'])->name('sales.return');
         
         Route::get('/sales/register/close', [SalesController::class, 'showRegisterCloseForm'])->name('sales.register.close');
         Route::post('/sales/register/close', [SalesController::class, 'closeRegister'])->name('sales.register.close.post');
