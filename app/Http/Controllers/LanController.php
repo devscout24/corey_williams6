@@ -429,34 +429,6 @@ class LanController extends Controller
                         'quantity' => $line['quantity'],
                     ]);
 
-                    // Adjust inventory
-                    if (! $itemId && $itemKitId) {
-                        DB::table('phppos_item_kits')
-                            ->where('id', $itemKitId)
-                            ->increment('default_quantity', (float) $line['quantity']);
-                    } elseif ($itemId) {
-                        $locItem = DB::table('phppos_location_items')
-                            ->where('location_id', $currentLocationId)
-                            ->where('item_id', $itemId)
-                            ->lockForUpdate()
-                            ->first();
-
-                        if ($locItem) {
-                            DB::table('phppos_location_items')
-                                ->where('location_id', $currentLocationId)
-                                ->where('item_id', $itemId)
-                                ->increment('quantity', (float) $line['quantity']);
-                        } else {
-                            DB::table('phppos_location_items')->insert([
-                                'location_id' => $currentLocationId,
-                                'item_id' => $itemId,
-                                'quantity' => (float) $line['quantity'],
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ]);
-                        }
-                    }
-
                     $lineNumber++;
                 }
 

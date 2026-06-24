@@ -1199,7 +1199,12 @@ class ReceivingController extends Controller
         DB::transaction(function () use ($receiving, $inventoryFlowService, $employeeId): void {
             foreach ($receiving->items as $item) {
                 if (! $item->item_id) {
-                    // Kit header row — no inventory movement (already handled in LanController::receive)
+                    // Kit header row — increment kit default_quantity on completion
+                    if ($item->item_kit_id) {
+                        DB::table('phppos_item_kits')
+                            ->where('id', $item->item_kit_id)
+                            ->increment('default_quantity', (float) $item->quantity_purchased);
+                    }
                     $item->update(['quantity_received' => $item->quantity_purchased]);
                     continue;
                 }
