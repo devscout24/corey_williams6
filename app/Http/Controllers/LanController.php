@@ -222,7 +222,8 @@ class LanController extends Controller
                                 'name' => $itemKitName,
                                 'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
                                 'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
-                                'default_quantity' => $line['item_kit_default_quantity'] ?? null,
+                                'default_quantity' => 0,
+                                // 'default_quantity' => $line['item_kit_default_quantity'] ?? null,
                             ]);
                             $itemKitId = (int) $kit->id;
 
@@ -427,6 +428,34 @@ class LanController extends Controller
                         'item_kit_name' => $itemKitName,
                         'quantity' => $line['quantity'],
                     ]);
+
+                    // Adjust inventory
+                    if (! $itemId && $itemKitId) {
+                        DB::table('phppos_item_kits')
+                            ->where('id', $itemKitId)
+                            ->increment('default_quantity', (float) $line['quantity']);
+                    } elseif ($itemId) {
+                        $locItem = DB::table('phppos_location_items')
+                            ->where('location_id', $currentLocationId)
+                            ->where('item_id', $itemId)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($locItem) {
+                            DB::table('phppos_location_items')
+                                ->where('location_id', $currentLocationId)
+                                ->where('item_id', $itemId)
+                                ->increment('quantity', (float) $line['quantity']);
+                        } else {
+                            DB::table('phppos_location_items')->insert([
+                                'location_id' => $currentLocationId,
+                                'item_id' => $itemId,
+                                'quantity' => (float) $line['quantity'],
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
 
                     $lineNumber++;
                 }
