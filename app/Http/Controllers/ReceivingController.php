@@ -802,16 +802,22 @@ class ReceivingController extends Controller
 
             $regularItems = [];
             $kitEntries = [];
+            $preExplodedKits = [];
 
             foreach ($cart['items'] as $item) {
                 if (($item['type'] ?? 'item') === 'kit') {
                     $kitEntries[] = $item;
+                    $components = $this->explodeKitComponents((int) $item['item_kit_id'], (float) $item['quantity']);
+                    $preExplodedKits[(int) $item['item_kit_id']] = $components;
+                    foreach ($components as $comp) {
+                        $totalQty += $comp['quantity'];
+                    }
                 } else {
                     $regularItems[] = $item;
+                    $totalQty += $item['quantity'];
                 }
                 $itemTotal = $item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
                 $subtotal += $itemTotal;
-                $totalQty += $item['quantity'];
             }
 
             if (empty($regularItems) && empty($kitEntries)) {
@@ -1030,8 +1036,8 @@ class ReceivingController extends Controller
                     ->where('id', $kitId)
                     ->increment('default_quantity', $kitQty * $multiplier);
 
-                // Explode kit into component items
-                $components = $this->explodeKitComponents($kitId, $kitQty);
+                // Explode kit into component items (use pre-computed to avoid double query)
+                $components = $preExplodedKits[$kitId] ?? $this->explodeKitComponents($kitId, $kitQty);
 
                 foreach ($components as $comp) {
                     $compItemId = $comp['item_id'];
@@ -1084,23 +1090,6 @@ class ReceivingController extends Controller
                         'updated_at' => now(),
                     ]);
 
-                    // Write component item record
-                    PhpposReceivingItem::create([
-                        'receiving_id' => $receiving->receiving_id,
-                        'item_id' => $compItemId,
-                        'line' => $lineIndex,
-                        'description' => 'Component of kit #'.$kitId,
-                        'quantity_purchased' => $compQty,
-                        'quantity_received' => in_array($cart['mode'], ['receive', 'transfer']) ? $compQty : 0,
-                        'item_cost_price' => 0,
-                        'item_unit_price' => 0,
-                        'discount_percent' => 0,
-                        'subtotal' => 0,
-                        'total' => 0,
-                        'vat' => 0,
-                    ]);
-
-                    $lineIndex++;
                 }
 
                 // Write kit header record (for receipt/report display)
@@ -1148,14 +1137,44 @@ class ReceivingController extends Controller
     {
         $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
 
-        return view('receivings.show', compact('receiving'));
+        $qtyOnHand = $this->getQtyOnHand($receiving);
+
+        return view('receivings.show', compact('receiving', 'qtyOnHand'));
     }
 
     public function print($receivingId): View
     {
         $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
 
-        return view('receivings.print', compact('receiving'));
+        $qtyOnHand = $this->getQtyOnHand($receiving);
+
+        return view('receivings.print', compact('receiving', 'qtyOnHand'));
+    }
+
+    private function getQtyOnHand(PhpposReceiving $receiving): array
+    {
+        $locationId = $receiving->location_id;
+        $itemIds = $receiving->items->pluck('item_id')->filter()->values()->toArray();
+
+        $locationQtys = [];
+        if (! empty($itemIds)) {
+            $locationQtys = DB::table('phppos_location_items')
+                ->where('location_id', $locationId)
+                ->whereIn('item_id', $itemIds)
+                ->pluck('quantity', 'item_id')
+                ->toArray();
+        }
+
+        $qtyOnHand = [];
+        foreach ($receiving->items as $item) {
+            if ($item->item_id) {
+                $qtyOnHand[$item->item_id] = (float) ($locationQtys[$item->item_id] ?? $item->item?->default_quantity ?? 0);
+            } elseif ($item->item_kit_id) {
+                $qtyOnHand['kit_'.$item->item_kit_id] = (float) ($item->kit?->default_quantity ?? 0);
+            }
+        }
+
+        return $qtyOnHand;
     }
 
     public function closeTransferReceiving(int $receivingId, InventoryFlowService $inventoryFlowService): RedirectResponse
@@ -1180,12 +1199,7 @@ class ReceivingController extends Controller
         DB::transaction(function () use ($receiving, $inventoryFlowService, $employeeId): void {
             foreach ($receiving->items as $item) {
                 if (! $item->item_id) {
-                    // Kit header row — increment kit default_quantity, no inventory movement
-                    if ($item->item_kit_id) {
-                        DB::table('phppos_item_kits')
-                            ->where('id', $item->item_kit_id)
-                            ->increment('default_quantity', (float) $item->quantity_purchased);
-                    }
+                    // Kit header row — no inventory movement (already handled in LanController::receive)
                     $item->update(['quantity_received' => $item->quantity_purchased]);
                     continue;
                 }

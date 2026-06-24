@@ -26,7 +26,7 @@ class PhpposTransferItem extends Model
 
     public function displayName(): string
     {
-        if ($this->item_kit_id && $this->kit) {
+        if ($this->item_kit_id && ! $this->item_id && $this->kit) {
             return '[KIT] ' . $this->kit->name;
         }
         if ($this->item_kit_name && ! $this->item_id) {

@@ -152,7 +152,7 @@
             <tr>
                 <td>
                     {{ $item->displayName() }}
-                    @if($item->item_kit_id) <small style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-size:11px;margin-left:4px;">Kit</small> @endif
+                    @if($item->item_kit_id && ! $item->item_id) <small style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-size:11px;margin-left:4px;">Kit</small> @endif
                 </td>
                 @if($receiving->is_po)
                 <td class="text-center">{{ $qtyOnHand[$item->item_id] ?? $qtyOnHand['kit_' . $item->item_kit_id] ?? 0 }}</td>

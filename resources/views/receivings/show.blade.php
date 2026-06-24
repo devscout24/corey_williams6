@@ -196,7 +196,7 @@
                             <div class="fw-semibold">
                                 {{ $item->displayName() }}
                             </div>
-                            @if($item->item_kit_id)
+                            @if($item->item_kit_id && ! $item->item_id)
                                 <small class="badge bg-primary-subtle text-primary ms-1">Kit</small>
                             @endif
                         </td>
