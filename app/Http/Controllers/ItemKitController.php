@@ -20,15 +20,34 @@ use Illuminate\View\View;
 
 class ItemKitController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search   = $request->input('search');
+        $category = $request->input('category');
+        $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
+
         $kits = PhpposItemKit::query()
             ->with(['category', 'supplier'])
             ->where('deleted', 0)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('phppos_item_kits.name', 'like', "%{$search}%")
+                      ->orWhere('phppos_item_kits.item_kit_number', 'like', "%{$search}%")
+                      ->orWhereHas('category', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('supplier', function ($q) use ($search) {
+                          $q->where('company_name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->when($category && $category !== 'all', function ($q) use ($category) {
+                $q->where('phppos_item_kits.category_id', $category);
+            })
             ->orderBy('id', 'desc')
             ->paginate(20);
 
-        return view('item_kits.index', compact('kits'));
+        return view('item_kits.index', compact('kits', 'search', 'category', 'categories'));
     }
 
     public function create(): View

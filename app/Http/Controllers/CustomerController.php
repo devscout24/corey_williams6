@@ -19,9 +19,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
+        $search      = $request->input('search');
 
         $all_columns = [
             'person_id' => ['label' => 'ID', 'sort' => true],
@@ -83,6 +84,15 @@ class CustomerController extends Controller
             ->join('phppos_people', 'phppos_people.person_id', '=', 'phppos_customers.person_id')
             ->select('phppos_people.*', 'phppos_customers.*')
             ->where('phppos_customers.deleted', 0)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('phppos_people.first_name', 'like', "%{$search}%")
+                      ->orWhere('phppos_people.last_name', 'like', "%{$search}%")
+                      ->orWhere('phppos_people.email', 'like', "%{$search}%")
+                      ->orWhere('phppos_people.phone_number', 'like', "%{$search}%")
+                      ->orWhere('phppos_customers.company_name', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('phppos_people.last_name', 'asc')
             ->paginate(20);
 

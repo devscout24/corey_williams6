@@ -177,14 +177,19 @@
     <!-- Toolbar -->
     <div class="customers-toolbar">
       <div class="search-wrap">
-        <input type="text" class="search-input" placeholder="Search Items" />
-        <button class="btn-search"><i class="bi bi-search"></i> Search</button>
-        <select class="toolbar-select">
-          <option>Fields:</option>
-        </select>
-        <select class="toolbar-select">
-          <option>Category:</option>
-        </select>
+        <form method="get" action="{{ route('items.index') }}" class="d-flex gap-2 flex-grow-1">
+          <input type="text" name="search" class="search-input" placeholder="Search Items" value="{{ request('search') }}" />
+          <select name="category" class="search-input" style="max-width:180px;flex:none;" onchange="this.form.submit()">
+            <option value="all">All Categories</option>
+            @foreach($categories as $cat)
+              <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+            @endforeach
+          </select>
+          <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
+          @if(request('search') || request('category'))
+            <a href="{{ route('items.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center text-decoration-none" style="border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13.5px;">Clear</a>
+          @endif
+        </form>
       </div>
       <div class="toolbar-actions">
         <a class="btn-new-customer text-decoration-none" href="{{ route('items.create') }}"><i class="bi bi-plus-lg"></i> New Item</a>
@@ -261,20 +266,20 @@
                             {{-- <i class="bi bi-leaf-fill"></i> --}}
                         </div>
                         <div>
-                            <div class="item-name">{{ $item->name }}</div>
+                            <div class="item-name"><a href="{{ route('items.edit', $item->item_id) }}" class="text-primary text-decoration-underline">{{ $item->name }}</a></div>
                         </div>
                     </div>
                   </td>
                 @elseif($col_key == 'category')
                   <td>{{ $item->category_name ?? '—' }}</td>
                 @elseif($col_key == 'cost_price')
-                  <td class="text-center"><span class="fw-medium">{{ $item->cost_price ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->cost_price ?? '—' }}</span></td>
                 @elseif($col_key == 'unit_price')
-                  <td class="text-center"><span class="fw-medium">{{ $item->unit_price ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->unit_price ?? '—' }}</span></td>
                 @elseif($col_key == 'quantity')
-                  <td class="text-center"><span class="fw-medium">{{ $item->location_quantity ?? $item->default_quantity ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->location_quantity ?? $item->default_quantity ?? '—' }}</span></td>
                 @elseif($col_key == 'reorder_level')
-                  <td class="text-center"><span class="fw-medium">{{ $item->reorder_level ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->reorder_level ?? '—' }}</span></td>
                 @elseif($col_key == 'item_number')
                   <td>{{ $item->item_number ?: ($item->product_id ?: '—') }}</td>
                 @endif

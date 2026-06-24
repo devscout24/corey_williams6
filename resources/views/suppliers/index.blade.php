@@ -126,8 +126,13 @@
 
     <div class="customers-toolbar">
       <div class="search-wrap">
-        <input type="text" class="search-input" placeholder="Search Suppliers" />
-        <button class="btn-search"><i class="bi bi-search"></i> Search</button>
+        <form method="get" action="{{ route('suppliers.index') }}" class="d-flex gap-2 flex-grow-1">
+          <input type="text" name="search" class="search-input" placeholder="Search Suppliers" value="{{ request('search') }}" />
+          <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
+          @if(request('search'))
+            <a href="{{ route('suppliers.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center text-decoration-none" style="border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13.5px;">Clear</a>
+          @endif
+        </form>
       </div>
       <div class="toolbar-actions">
         <a href="{{ route('suppliers.create') }}" class="btn-new-customer text-decoration-none"><i class="bi bi-plus-lg"></i> New Supplier</a>
@@ -202,6 +207,8 @@
                   <td>{{ $supplier->email ?? '—' }}</td>
                 @elseif($col_key == 'phone_number')
                   <td>{{ $supplier->phone_number ?? '—' }}</td>
+                @elseif($col_key == 'fax_number')
+                  <td>{{ $supplier->fax_number ?? '—' }}</td>
                 @elseif($col_key == 'balance')
                   <td class="fw-bold {{ $supplier->balance > 0 ? 'text-danger' : 'text-success' }}">
                     ${{ number_format((float) $supplier->balance, 2) }}

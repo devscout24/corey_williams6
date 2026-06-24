@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('last_name')->default('');
             $table->string('full_name')->nullable();
             $table->string('phone_number')->default('');
+            $table->string('fax_number')->default('');
             $table->string('email')->default('');
             $table->string('address_1')->default('');
             $table->string('address_2')->default('');

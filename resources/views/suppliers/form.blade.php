@@ -143,6 +143,11 @@
                                         value="{{ old('phone_number', $person?->phone_number) }}" />
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label" for="fax_number">Fax Number</label>
+                                    <input type="text" class="form-control" id="fax_number" name="fax_number"
+                                        value="{{ old('fax_number', $person?->fax_number) }}" />
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label" for="address_1">Address 1</label>
                                     <input type="text" class="form-control" id="address_1" name="address_1"
                                         value="{{ old('address_1', $person?->address_1) }}" />

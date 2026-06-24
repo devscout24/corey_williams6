@@ -17,9 +17,10 @@ use Illuminate\Support\Facades\Response;
 
 class SupplierController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
+        $search      = $request->input('search');
 
         $all_columns = [
             'person_id' => ['label' => 'ID', 'sort' => true],
@@ -27,11 +28,12 @@ class SupplierController extends Controller
             'contact_name' => ['label' => 'Contact Name', 'sort' => true],
             'email' => ['label' => 'Email', 'sort' => true],
             'phone_number' => ['label' => 'Phone', 'sort' => true],
+            'fax_number' => ['label' => 'Fax', 'sort' => true],
             'balance' => ['label' => 'Balance', 'sort' => true],
             'account_number' => ['label' => 'Account #', 'sort' => true],
         ];
 
-        $default_columns = ['company_name', 'contact_name', 'email', 'phone_number'];
+        $default_columns = ['company_name', 'contact_name', 'email', 'phone_number', 'fax_number'];
 
         $column_prefs_val = DB::table('phppos_employees_app_config')
             ->where('employee_id', $employee_id)
@@ -77,8 +79,18 @@ class SupplierController extends Controller
 
         $suppliers = DB::table('phppos_suppliers as s')
             ->join('phppos_people as p', 'p.person_id', '=', 's.person_id')
-            ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number')
+            ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number', 'p.fax_number')
             ->where('s.deleted', 0)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('s.company_name', 'like', "%{$search}%")
+                      ->orWhere('p.first_name', 'like', "%{$search}%")
+                      ->orWhere('p.last_name', 'like', "%{$search}%")
+                      ->orWhere('p.email', 'like', "%{$search}%")
+                      ->orWhere('p.phone_number', 'like', "%{$search}%")
+                      ->orWhere('p.fax_number', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('s.company_name')
             ->paginate(20);
 
@@ -162,6 +174,7 @@ class SupplierController extends Controller
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:255'],
+            'fax_number' => ['nullable', 'string', 'max:255'],
             'address_1' => ['nullable', 'string', 'max:255'],
             'address_2' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
@@ -193,6 +206,7 @@ class SupplierController extends Controller
                 'last_name' => $data['last_name'] ?? '',
                 'email' => $data['email'] ?? '',
                 'phone_number' => $data['phone_number'] ?? '',
+                'fax_number' => $data['fax_number'] ?? '',
                 'address_1' => $data['address_1'] ?? '',
                 'address_2' => $data['address_2'] ?? '',
                 'city' => $data['city'] ?? '',

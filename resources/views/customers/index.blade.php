@@ -129,8 +129,13 @@
 
     <div class="customers-toolbar">
       <div class="search-wrap">
-        <input type="text" class="search-input" placeholder="Search Customers" />
-        <button class="btn-search"><i class="bi bi-search"></i> Search</button>
+        <form method="get" action="{{ route('customers.index') }}" class="d-flex gap-2 flex-grow-1">
+          <input type="text" name="search" class="search-input" placeholder="Search Customers" value="{{ request('search') }}" />
+          <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
+          @if(request('search'))
+            <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center text-decoration-none" style="border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13.5px;">Clear</a>
+          @endif
+        </form>
       </div>
       <div class="toolbar-actions">
         <a href="{{ route('customers.create') }}" class="btn-new-customer text-decoration-none"><i class="bi bi-plus-lg"></i> New Customer</a>

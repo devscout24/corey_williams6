@@ -22,6 +22,21 @@
             </div>
         </div>
         <div class="card-body p-0">
+            <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 bg-light">
+                <form method="get" action="{{ route('item-kits.index') }}" class="d-flex gap-2 flex-grow-1 m-0">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search item kits..." value="{{ request('search') }}" style="max-width: 300px;" />
+                    <select name="category" class="form-control form-control-sm" style="max-width:180px;" onchange="this.form.submit()">
+                        <option value="all">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Search</button>
+                    @if(request('search') || request('category'))
+                        <a href="{{ route('item-kits.index') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    @endif
+                </form>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-white">
@@ -31,7 +46,7 @@
                             <th class="border-bottom">Category</th>
                             <th class="border-bottom">Supplier</th>
                             <th class="border-bottom">Cost</th>
-                            <th class="text-end border-bottom">Price</th>
+                            <th class="border-bottom">Price</th>
                             <th class="border-bottom">Quantity</th>
                             <th class="border-bottom">Threshold</th>
                             <th class="text-end pe-4 border-bottom">Actions</th>
@@ -46,7 +61,7 @@
                                             <i class="bi bi-box-seam"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-bold">{{ $kit->name }}</div>
+                                            <div class="fw-bold"><a href="{{ route('item-kits.edit', $kit->id) }}" class="text-primary text-decoration-underline">{{ $kit->name }}</a></div>
                                             <small class="text-muted">ID: #{{ $kit->id }}</small>
                                         </div>
                                     </div>
@@ -56,10 +71,10 @@
                                     <span class="badge bg-light text-dark border">{{ $kit->category->name ?? 'None' }}</span>
                                 </td>
                                 <td>{{ $kit->supplier->company_name ?? '—' }}</td>
-                                <td class="text-center"><span class="fw-medium">{{ $kit->cost_price ?? '—' }}</span></td>
-                                <td class="text-center fw-bold text-dark"><span class="fw-medium">{{ $kit->unit_price ?? '—' }}</span></td>
-                                <td class="text-center"><span class="fw-medium">{{ $kit->default_quantity ?? '—' }}</span></td>
-                                <td class="text-center"><span class="fw-medium">{{ $kit->reorder_level ?? '—' }}</span></td>
+                                <td class=""><span class="fw-medium">{{ $kit->cost_price ?? '—' }}</span></td>
+                                <td class=" fw-bold text-dark"><span class="fw-medium">{{ $kit->unit_price ?? '—' }}</span></td>
+                                <td class=""><span class="fw-medium">{{ $kit->default_quantity ?? '—' }}</span></td>
+                                <td class=""><span class="fw-medium">{{ $kit->reorder_level ?? '—' }}</span></td>
                                 <td class="text-end pe-4">
                                     <div class="btn-group">
                                         <a class="btn btn-sm btn-outline-secondary" href="{{ route('item-kits.edit', $kit->id) }}" data-bs-toggle="tooltip" title="Edit">

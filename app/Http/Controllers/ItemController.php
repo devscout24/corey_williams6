@@ -20,10 +20,13 @@ class ItemController extends Controller
     public function __construct(protected AppConfigService $configService)
     {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
         $locationId  = auth('employee')->user()?->location_id ?? 1;
+        $search    = $request->input('search');
+        $category  = $request->input('category');
+        $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
 
         $all_columns = [
             'item_id' => ['label' => 'Item Id', 'sort' => true],
@@ -104,11 +107,22 @@ class ItemController extends Controller
                 'item_files.file_id as image_file_id'
             )
             ->where('phppos_items.deleted', 0)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('phppos_items.name', 'like', "%{$search}%")
+                      ->orWhere('phppos_items.item_number', 'like', "%{$search}%")
+                      ->orWhere('phppos_items.product_id', 'like', "%{$search}%")
+                      ->orWhere('c.name', 'like', "%{$search}%")
+                      ->orWhere('s.company_name', 'like', "%{$search}%");
+                });
+            })
+            ->when($category && $category !== 'all', function ($q) use ($category) {
+                $q->where('phppos_items.category_id', $category);
+            })
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
 
-        // dd($items[0]->default_quantity, $items[0]->location_quantity, $items[0]->quantity);
-        return view('items.index', compact('items', 'all_columns', 'selected_columns'));
+        return view('items.index', compact('items', 'all_columns', 'selected_columns', 'categories'));
     }
 
     public function create(): View
