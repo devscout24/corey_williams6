@@ -83,6 +83,7 @@ Route::middleware('installed')->group(function (): void {
         Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
         Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
         Route::put('/orders/{receivingId}', [OrderController::class, 'update'])->name('orders.update');
+        Route::get('/orders/export/csv', [OrderController::class, 'export'])->name('orders.export');
         Route::post('/orders/{receivingId}/close', [OrderController::class, 'close'])->name('orders.close');
         Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
         Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');

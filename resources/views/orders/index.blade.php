@@ -171,9 +171,14 @@
             <input type="text" name="q" class="search-input" value="{{ request('q') }}" placeholder="Search orders by supplier / order #" />
             <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
         </form>
-        <button class="btn-new-order" data-bs-toggle="modal" data-bs-target="#newOrderModal">
-            <i class="bi bi-plus-lg"></i> New Order
-        </button>
+        <div class="d-flex gap-2">
+            <a href="{{ route('orders.export', ['status' => $currentStatus, 'q' => request('q')]) }}" class="btn-new-order" style="background: #059669;">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            <button class="btn-new-order" data-bs-toggle="modal" data-bs-target="#newOrderModal">
+                <i class="bi bi-plus-lg"></i> New Order
+            </button>
+        </div>
     </div>
 
     <div class="order-tabs">
@@ -703,7 +708,7 @@
     window.closeOrder = async (id, code) => {
         const { value: confirmClose } = await Swal.fire({
             title: 'Close Order?',
-            text: `Are you sure you want to close order ${code}? This will generate a receiving and update inventory based on received quantities.`,
+            text: `Are you sure you want to close order ${code}?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',

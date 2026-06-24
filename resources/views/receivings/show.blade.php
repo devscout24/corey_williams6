@@ -177,11 +177,16 @@
                 <thead>
                     <tr>
                         <th>Item</th>
+                        @if($receiving->is_po)
+                        <th class="text-center">Qty on Hand</th>
+                        <th class="text-center">Qty Ordered</th>
+                        @else
                         <th class="text-center">Qty Purchased</th>
                         <th class="text-center">Qty Received</th>
                         <th class="text-end">Cost Price</th>
                         <th class="text-end">Discount</th>
                         <th class="text-end">Total</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -195,17 +200,23 @@
                                 <small class="badge bg-primary-subtle text-primary ms-1">Kit</small>
                             @endif
                         </td>
+                        @if($receiving->is_po)
+                        <td class="text-center">{{ $qtyOnHand[$item->item_id] ?? $qtyOnHand['kit_' . $item->item_kit_id] ?? 0 }}</td>
+                        <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
+                        @else
                         <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
                         <td class="text-center">{{ (float) $item->quantity_received }}</td>
                         <td class="text-end">${{ number_format($item->item_cost_price, 2) }}</td>
                         <td class="text-end">{{ (float) $item->discount_percent }}%</td>
                         <td class="text-end">${{ number_format($item->total, 2) }}</td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
 
+        @unless($receiving->is_po)
         <div class="totals-area">
             <table class="totals-table">
                 <tr>
@@ -224,6 +235,7 @@
                 </tr>
             </table>
         </div>
+        @endunless
         
         @if($receiving->comment)
         <div class="mt-4 pt-3 border-top">
