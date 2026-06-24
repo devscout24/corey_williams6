@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($settings->title ?? 'Receipt') . ' #' . $sale->sale_id)
+@section('title', ($sale->location_name ?? 'Store') . ' - Sale #' . $sale->sale_id . ' - ' . \Carbon\Carbon::parse($sale->created_at)->format('D, M j, Y g:i A') . ' - Receipt')
 @section('page-title', 'Receipt')
 
 @push('styles')
@@ -34,8 +34,39 @@
     }
 
     @media print {
-        .toolbar { display: none; }
-        .sidebar, .topbar, .page-header, .sidebar-overlay { display: none; }
+        @page { margin: 5mm; }
+        * { box-shadow: none !important; background: #fff !important; }
+        html { height: auto !important; overflow: visible !important; }
+        body { padding: 0 !important; margin: 0 !important; height: auto !important; overflow: visible !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .toolbar { display: none !important; }
+        .sidebar, .topbar, .page-header, .sidebar-overlay { display: none !important; }
+        .app-wrapper { display: block !important; height: auto !important; overflow: visible !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+        .page-content { display: block !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
+        .page-content > .container-fluid { padding: 0 !important; max-width: 100% !important; }
+
+        .receipt-page {
+            max-width: 100%;
+            margin: 0;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .receipt-header { gap: 8px; }
+        .receipt-section { margin-top: 8px; }
+        .receipt-title { font-size: 0.95rem; }
+        .company-logo { max-width: 100px; max-height: 40px; }
+        .receipt-muted { font-size: 0.78rem; }
+        .receipt-table th, .receipt-table td { padding: 3px 4px; font-size: 0.8rem; }
+        .receipt-table th { font-size: 0.65rem; }
+        .totals { gap: 2px 6px; }
+        .barcode-container { margin-top: 4px; }
+        .barcode { max-height: 24px; }
+        .border-top { margin-top: 6px; padding-top: 4px; }
+        .receipt-footer { margin-top: 6px; font-size: 0.8rem; }
+
+        #receipt-return-section { display: none !important; }
     }
 </style>
 @endpush
@@ -221,7 +252,7 @@
         </section>
     @endif
 
-    <section class="receipt-section border-top">
+    <section class="receipt-section border-top" id="receipt-return-section">
         <div class="receipt-title" style="font-size:1rem;">Process Return (Against This Sale)</div>
         <form method="post" action="{{ route('sales.return', ['sale' => $sale->sale_id]) }}">
             @csrf
@@ -252,6 +283,56 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         JsBarcode(".barcode").init();
+
+        const backUrl = "{{ route('sales.index') }}";
+
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement?.tagName || '';
+            const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+            if (e.key === 'Escape' && !isInput) {
+                e.preventDefault();
+                if (window.Swal) {
+                    Swal.fire({
+                        title: 'Leave this page?',
+                        text: 'Return to sales register?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Leave',
+                        cancelButtonText: 'Stay',
+                        confirmButtonColor: '#0f766e',
+                        reverseButtons: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = backUrl;
+                        }
+                    });
+                } else {
+                    window.location.href = backUrl;
+                }
+            }
+
+            if ((e.key === 'p' || e.key === 'P') && !isInput && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                if (window.Swal) {
+                    Swal.fire({
+                        title: 'Print Receipt?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Print',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#0f766e',
+                        reverseButtons: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            setTimeout(() => window.print(), 200);
+                        }
+                    });
+                } else {
+                    window.print();
+                }
+            }
+        });
     });
 </script>
 @endpush

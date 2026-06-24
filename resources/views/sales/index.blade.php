@@ -488,7 +488,7 @@
                             <span class="fw-bold">{{ $formatCurrency($amountDue) }}</span>
                         </div>
 
-                        <form action="{{ route('sales.complete') }}" method="POST">
+                        <form action="{{ route('sales.complete') }}" method="POST" id="complete-sale-form">
                             @csrf
                             <div class="mb-3">
                                 <textarea name="comment"
@@ -646,8 +646,9 @@
             };
 
             const renderProductTile = (product) => {
+                const encodedName = encodeURIComponent(product.name);
                 return `
-                <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
+                <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}" data-product-name-enc="${encodedName}">
                     <div class="category-name">${product.name}</div>
                 </button>
             `;
@@ -837,7 +838,8 @@
                         const productId = productTile.getAttribute('data-product-id');
                         const productType = productTile.getAttribute('data-product-type');
                         const itemId = productType === 'kit' ? `KIT ${productId}` : productId;
-                        addItem(itemId);
+                        const productName = decodeURIComponent(productTile.getAttribute('data-product-name-enc') || '');
+                        addItem(itemId, productName);
                     }
                 });
             }
@@ -898,9 +900,13 @@
             const searchInput = document.getElementById('item_search');
             const resultsDiv = document.getElementById('search_results');
             let timer;
+            let highlightedIndex = -1;
+
+            searchInput.focus();
 
             searchInput.addEventListener('input', function () {
                 clearTimeout(timer);
+                highlightedIndex = -1;
                 const term = this.value;
                 if (term.length < 2) {
                     resultsDiv.style.display = 'none';
@@ -912,6 +918,7 @@
                         .then(res => res.json())
                         .then(data => {
                             resultsDiv.innerHTML = '';
+                            highlightedIndex = -1;
                             if (data.length > 0) {
                                 data.forEach(item => {
                                     const div = document.createElement('div');
@@ -926,7 +933,7 @@
                                         </div>
                                         <div class="search-result-price">${price}</div>
                                     `;
-                                    div.onclick = () => addItem(item.item_id);
+                                    div.onclick = () => addItem(item.item_id, displayName);
                                     resultsDiv.appendChild(div);
                                 });
 
@@ -942,31 +949,82 @@
                 }, 300);
             });
 
-            function addItem(itemId) {
+            searchInput.addEventListener('keydown', function (e) {
+                const items = resultsDiv.querySelectorAll('.search-result-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    highlightedIndex = Math.min(highlightedIndex + 1, items.length - 1);
+                    updateHighlight(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                    updateHighlight(items);
+                } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                    e.preventDefault();
+                    items[highlightedIndex].click();
+                } else if (e.key === 'Escape') {
+                    resultsDiv.style.display = 'none';
+                    searchInput.blur();
+                }
+            });
+
+            function updateHighlight(items) {
+                items.forEach((el, i) => {
+                    el.classList.toggle('highlighted', i === highlightedIndex);
+                });
+            }
+
+            function addItem(itemId, itemName) {
+                const name = itemName || 'this item';
                 if (window.Swal) {
                     Swal.fire({
+                        title: name,
+                        html: `<div class="mb-2 text-muted">Enter quantity to add:</div>
+                               <input type="number" id="swal-qty" class="form-control text-center" value="1" min="1" step="1" autofocus>`,
                         icon: 'question',
-                        title: 'Add item?',
-                        text: 'Do you want to add this item to the sales cart?',
                         showCancelButton: true,
                         confirmButtonText: 'Add',
                         cancelButtonText: 'Cancel',
                         confirmButtonColor: 'var(--primary)',
+                        didOpen: () => {
+                            const input = document.getElementById('swal-qty');
+                            if (input) {
+                                input.focus();
+                                input.select();
+                                input.addEventListener('keydown', (e) => {
+                                    if (e.key === 'Enter') {
+                                        Swal.clickConfirm();
+                                    }
+                                });
+                            }
+                        },
+                        preConfirm: () => {
+                            const qty = parseInt(document.getElementById('swal-qty')?.value || '1', 10);
+                            if (!qty || qty < 1) {
+                                Swal.showValidationMessage('Quantity must be at least 1');
+                                return false;
+                            }
+                            return qty;
+                        }
                     }).then((result) => {
-                        if (result.isConfirmed) {
-                            submitAddItem(itemId);
+                        if (result.isConfirmed && result.value) {
+                            submitAddItem(itemId, result.value);
                         }
                     });
                 } else {
-                    submitAddItem(itemId);
+                    submitAddItem(itemId, 1);
                 }
             }
 
-            function submitAddItem(itemId) {
+            function submitAddItem(itemId, qty) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = "{{ route('sales.item.add') }}";
-                form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="item_id" value="${itemId}">`;
+                form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                  <input type="hidden" name="item_id" value="${itemId}">
+                                  <input type="hidden" name="quantity" value="${qty}">`;
                 document.body.appendChild(form);
                 form.submit();
             }
@@ -1011,6 +1069,64 @@
                     resultsDiv.style.display = 'none';
                 }
             });
+
+            @php
+                $cartHasItems = count($cart['items']) > 0;
+                $hasPayments = count($cart['payments']) > 0;
+                $isPaid = $amountDue <= 0;
+            @endphp
+
+            @if($cartHasItems && $amountDue > 0)
+                const paymentInput = document.getElementById('payment_amount');
+                if (paymentInput) paymentInput.focus();
+            @endif
+
+            const completeForm = document.getElementById('complete-sale-form');
+
+            @if($cartHasItems && $hasPayments && $isPaid)
+                if (completeForm && window.Swal) {
+                    Swal.fire({
+                        title: 'Complete Sale?',
+                        html: `<div class="text-start">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Subtotal:</span>
+                                    <span class="fw-bold">{{ $formatCurrency($subtotal) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Payments:</span>
+                                    <span class="fw-bold">{{ $formatCurrency($paymentTotal) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between fs-5 border-top pt-2 mt-2">
+                                    <span class="fw-bold">{{ $amountDue < 0 ? 'Change Due:' : 'Amount Due:' }}</span>
+                                    <span class="fw-bold {{ $amountDue < 0 ? 'text-success' : 'text-muted' }}">{{ $formatCurrency($amountDue < 0 ? abs($amountDue) : 0) }}</span>
+                                </div>
+                            </div>`,
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Complete Sale',
+                        cancelButtonText: 'Continue',
+                        confirmButtonColor: '#059669',
+                        reverseButtons: true,
+                        allowEnterKey: true,
+                        allowEscapeKey: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            completeForm.submit();
+                        }
+                    });
+                }
+            @endif
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    const activeTag = document.activeElement?.tagName || '';
+                    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+                    if (completeForm && {{ $cartHasItems ? 'true' : 'false' }} && {{ $isPaid ? 'true' : 'false' }}) {
+                        e.preventDefault();
+                        completeForm.submit();
+                    }
+                }
+            });
         });
     </script>
     <style>
@@ -1038,6 +1154,9 @@
         }
         #search_results .search-result-item:hover {
             background: #f0f4ff;
+        }
+        #search_results .search-result-item.highlighted {
+            background: #dbeafe;
         }
         .search-type-badge {
             display: inline-flex;
