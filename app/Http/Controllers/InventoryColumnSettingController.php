@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PhpposEmployeeAppConfig;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InventoryColumnSettingController extends Controller
 {
@@ -22,11 +22,21 @@ class InventoryColumnSettingController extends Controller
     public function saveColumnPrefs(Request $request)
     {
         $employee_id = auth('employee')->id();
-        $columns = $request->input('columns', []);
         $key = $this->getConfigKey($request);
+        $orderKey = str_replace('_prefs', '_order', $key);
 
-        PhpposEmployeeAppConfig::updateOrCreate(
+        $columns = $request->input('columns', []);
+        $visibleColumns = $request->input('visible_columns', $columns);
+
+        // Store visible columns (backward compatible)
+        DB::table('phppos_employees_app_config')->updateOrInsert(
             ['employee_id' => $employee_id, 'key' => $key],
+            ['value' => implode(',', $visibleColumns)]
+        );
+
+        // Store full column order
+        DB::table('phppos_employees_app_config')->updateOrInsert(
+            ['employee_id' => $employee_id, 'key' => $orderKey],
             ['value' => implode(',', $columns)]
         );
 
@@ -37,9 +47,11 @@ class InventoryColumnSettingController extends Controller
     {
         $employee_id = auth('employee')->id();
         $key = $this->getConfigKey($request);
+        $orderKey = str_replace('_prefs', '_order', $key);
 
-        PhpposEmployeeAppConfig::where('employee_id', $employee_id)
-            ->where('key', $key)
+        DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->whereIn('key', [$key, $orderKey])
             ->delete();
 
         return response()->json(['success' => true]);

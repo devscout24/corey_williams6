@@ -273,12 +273,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    $("#sortable_columns").sortable({
-      handle: ".handle",
-      update: function() { saveColumnPrefs(); }
+    var sortableInitialized = false;
+    var $gearBtn = $('.btn-icon-outline.dropdown-toggle.no-caret');
+
+    $gearBtn.closest('.dropdown').on('shown.bs.dropdown', function() {
+      console.log('[ColumnConfig] Dropdown shown');
+      if (!sortableInitialized) {
+        try {
+          $("#sortable_columns").sortable({
+            handle: ".handle",
+            update: function() { saveColumnPrefs(); }
+          });
+          sortableInitialized = true;
+          console.log('[ColumnConfig] Sortable initialized');
+        } catch (e) {
+          console.error('[ColumnConfig] Sortable init error:', e);
+        }
+      }
     });
 
-    $(".column-checkbox").on('click', function() {
+    $(".column-checkbox").on('change', function() {
+      console.log('[ColumnConfig] Checkbox changed:', $(this).val(), 'checked:', $(this).is(':checked'));
       saveColumnPrefs();
     });
 
@@ -299,20 +314,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function saveColumnPrefs() {
+  let columns = [];
   let visibleColumns = [];
+
   $("#sortable_columns li").each(function() {
     let checkbox = $(this).find('input[type="checkbox"]');
+    let colValue = checkbox.val();
+    columns.push(colValue);
     if (checkbox.is(':checked')) {
-      visibleColumns.push(checkbox.val());
+      visibleColumns.push(colValue);
     }
   });
+
+  console.log('[ColumnConfig] Saving prefs - order:', columns, 'visible:', visibleColumns);
 
   $.ajax({
     url: "{{ route('customers.save_column_prefs') }}",
     type: 'POST',
     data: {
       _token: "{{ csrf_token() }}",
-      columns: visibleColumns
+      columns: columns,
+      visible_columns: visibleColumns
     },
     success: function() { location.reload(); },
     error: function(xhr) {

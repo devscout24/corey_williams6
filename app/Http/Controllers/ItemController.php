@@ -25,11 +25,6 @@ class ItemController extends Controller
         $employee_id = auth('employee')->id();
         $locationId  = auth('employee')->user()?->location_id ?? 1;
 
-        $column_prefs_val = DB::table('phppos_employees_app_config')
-            ->where('employee_id', $employee_id)
-            ->where('key', 'items_column_prefs')
-            ->value('value');
-
         $all_columns = [
             'item_id' => ['label' => 'Item Id', 'sort' => true],
             'item_number' => ['label' => 'UPC/EAN/ISBN', 'sort' => true],
@@ -43,38 +38,49 @@ class ItemController extends Controller
 
         $default_columns = ['name', 'category', 'cost_price', 'unit_price', 'quantity', 'reorder_level', 'item_number'];
 
+        $column_prefs_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'items_column_prefs')
+            ->value('value');
+
+        $column_order_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'items_column_order')
+            ->value('value');
+
         if ($column_prefs_val) {
             $selected_columns = explode(',', $column_prefs_val);
             $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
-
-            $ordered_all_columns = [];
-            foreach ($selected_columns as $col) {
-                if (isset($all_columns[$col])) {
-                    $ordered_all_columns[$col] = $all_columns[$col];
-                }
-            }
-            foreach ($all_columns as $col => $info) {
-                if (!isset($ordered_all_columns[$col])) {
-                    $ordered_all_columns[$col] = $info;
-                }
-            }
-            $all_columns = $ordered_all_columns;
         } else {
             $selected_columns = $default_columns;
+        }
 
-            $ordered_all_columns = [];
-            foreach ($default_columns as $col) {
+        // Determine full display order from saved column_order, or fall back
+        $ordered_all_columns = [];
+
+        if ($column_order_val) {
+            $order = explode(',', $column_order_val);
+            foreach ($order as $col) {
+                if (isset($all_columns[$col]) && !isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+        } else {
+            $sourceOrder = $column_prefs_val ? $selected_columns : $default_columns;
+            foreach ($sourceOrder as $col) {
                 if (isset($all_columns[$col])) {
                     $ordered_all_columns[$col] = $all_columns[$col];
                 }
             }
-            foreach ($all_columns as $col => $info) {
-                if (!isset($ordered_all_columns[$col])) {
-                    $ordered_all_columns[$col] = $info;
-                }
-            }
-            $all_columns = $ordered_all_columns;
         }
+
+        // Append any remaining columns not in the saved order
+        foreach ($all_columns as $col => $info) {
+            if (!isset($ordered_all_columns[$col])) {
+                $ordered_all_columns[$col] = $info;
+            }
+        }
+        $all_columns = $ordered_all_columns;
 
         $thumbs = DB::table('phppos_item_files')
             ->select('item_id', DB::raw('MIN(file_id) as file_id'))

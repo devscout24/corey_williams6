@@ -89,10 +89,10 @@
                     </li>
                 </ul>
             </div>
-            
+
             <div class="card-body">
                 <div class="tab-content" id="customerFormTabsContent">
-                    
+
                     <!-- Basic Info Tab -->
                     <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
                         <div class="row g-3">
@@ -273,10 +273,6 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="points">Loyalty Points</label>
-                                <input type="number" class="form-control" id="points" name="points" value="{{ old('points', $customer?->points ?? 0) }}" />
-                            </div>
-                            <div class="col-md-6">
                                 <label class="form-label" for="discount_percent">Discount %</label>
                                 <div class="input-group">
                                     <input type="number" step="0.01" min="0" max="100" class="form-control" id="discount_percent" name="discount_percent" value="{{ old('discount_percent', $customer?->discount_percent ?? 0) }}" />
@@ -333,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tax Override Toggle
     const overrideTaxSwitch = document.getElementById('override_default_tax');
     const taxOverridesContainer = document.getElementById('tax_overrides_container');
-    
+
     if (overrideTaxSwitch) {
         overrideTaxSwitch.addEventListener('change', function() {
             if (this.checked) {

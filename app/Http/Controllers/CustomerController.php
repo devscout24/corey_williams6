@@ -23,11 +23,6 @@ class CustomerController extends Controller
     {
         $employee_id = auth('employee')->id();
 
-        $column_prefs_val = DB::table('phppos_employees_app_config')
-            ->where('employee_id', $employee_id)
-            ->where('key', 'customers_column_prefs')
-            ->value('value');
-
         $all_columns = [
             'person_id' => ['label' => 'ID', 'sort' => true],
             'full_name' => ['label' => 'Name', 'sort' => true],
@@ -42,38 +37,47 @@ class CustomerController extends Controller
 
         $default_columns = ['full_name', 'company_name', 'email', 'phone_number', 'balance'];
 
+        $column_prefs_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'customers_column_prefs')
+            ->value('value');
+
+        $column_order_val = DB::table('phppos_employees_app_config')
+            ->where('employee_id', $employee_id)
+            ->where('key', 'customers_column_order')
+            ->value('value');
+
         if ($column_prefs_val) {
             $selected_columns = explode(',', $column_prefs_val);
             $selected_columns = array_values(array_intersect($selected_columns, array_keys($all_columns)));
-
-            $ordered_all_columns = [];
-            foreach ($selected_columns as $col) {
-                if (isset($all_columns[$col])) {
-                    $ordered_all_columns[$col] = $all_columns[$col];
-                }
-            }
-            foreach ($all_columns as $col => $info) {
-                if (!isset($ordered_all_columns[$col])) {
-                    $ordered_all_columns[$col] = $info;
-                }
-            }
-            $all_columns = $ordered_all_columns;
         } else {
             $selected_columns = $default_columns;
+        }
 
-            $ordered_all_columns = [];
-            foreach ($default_columns as $col) {
+        $ordered_all_columns = [];
+
+        if ($column_order_val) {
+            $order = explode(',', $column_order_val);
+            foreach ($order as $col) {
+                if (isset($all_columns[$col]) && !isset($ordered_all_columns[$col])) {
+                    $ordered_all_columns[$col] = $all_columns[$col];
+                }
+            }
+        } else {
+            $sourceOrder = $column_prefs_val ? $selected_columns : $default_columns;
+            foreach ($sourceOrder as $col) {
                 if (isset($all_columns[$col])) {
                     $ordered_all_columns[$col] = $all_columns[$col];
                 }
             }
-            foreach ($all_columns as $col => $info) {
-                if (!isset($ordered_all_columns[$col])) {
-                    $ordered_all_columns[$col] = $info;
-                }
-            }
-            $all_columns = $ordered_all_columns;
         }
+
+        foreach ($all_columns as $col => $info) {
+            if (!isset($ordered_all_columns[$col])) {
+                $ordered_all_columns[$col] = $info;
+            }
+        }
+        $all_columns = $ordered_all_columns;
 
         $customers = PhpposCustomer::query()
             ->join('phppos_people', 'phppos_people.person_id', '=', 'phppos_customers.person_id')

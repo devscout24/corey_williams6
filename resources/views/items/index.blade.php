@@ -4,6 +4,8 @@
 @section('page-title', 'Inventory / Items')
 
 @push('styles')
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
 <style>
   /* Items Page Styles */
   .customers-toolbar {
@@ -24,7 +26,7 @@
     transition: var(--transition);
   }
   .btn-search:hover { background: var(--primary-dark); }
-  
+
   .toolbar-select {
     background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
     padding: 8px 30px 8px 16px; font-size: 13.5px; outline: none; transition: var(--transition); appearance: none;
@@ -164,7 +166,6 @@
     font-size: 16px;
   }
 </style>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 @endpush
 
 @section('content')
@@ -187,7 +188,7 @@
       </div>
       <div class="toolbar-actions">
         <a class="btn-new-customer text-decoration-none" href="{{ route('items.create') }}"><i class="bi bi-plus-lg"></i> New Item</a>
-        
+
         <div class="dropdown d-inline-block">
           <button class="btn-icon-outline dropdown-toggle no-caret" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
             <i class="bi bi-gear"></i>
@@ -243,7 +244,7 @@
             @forelse($items as $item)
             <tr>
               <td><input type="checkbox" class="custom-checkbox row-checkbox" onchange="checkSelection()" /></td>
-              
+
               @foreach($selected_columns as $col_key)
                 @if($col_key == 'item_id')
                   <td>{{ $item->item_id }}</td>
@@ -327,7 +328,7 @@
     const checkboxes = document.querySelectorAll('.row-checkbox');
     const bulkActions = document.getElementById('bulkActions');
     const selectAll = document.getElementById('selectAll');
-    
+
     let checkedCount = 0;
     checkboxes.forEach(cb => {
       if (cb.checked) checkedCount++;
@@ -357,31 +358,50 @@
   }
 
   $(document).ready(function() {
-    // Make columns sortable
-    $("#sortable_columns").sortable({
-      handle: ".handle",
-      update: function(event, ui) {
-        saveColumnPrefs();
+    console.log('[ColumnConfig] Document ready');
+
+    var sortableInitialized = false;
+    var $gearBtn = $('.btn-icon-outline.dropdown-toggle.no-caret');
+
+    // Init sortable when dropdown is shown (needs visible elements for jQuery UI)
+    $gearBtn.closest('.dropdown').on('shown.bs.dropdown', function() {
+      console.log('[ColumnConfig] Dropdown shown');
+      if (!sortableInitialized) {
+        try {
+          $("#sortable_columns").sortable({
+            handle: ".handle",
+            update: function(event, ui) {
+              console.log('[ColumnConfig] Sortable drag update');
+              saveColumnPrefs();
+            }
+          });
+          sortableInitialized = true;
+          console.log('[ColumnConfig] Sortable initialized');
+        } catch (e) {
+          console.error('[ColumnConfig] Sortable init error:', e);
+        }
       }
     });
 
-    // Handle column checkbox changes - specifically use 'click' or 'change' and trigger save
-    $(".column-checkbox").on('click', function(e) {
-      // Prevent dropdown from closing if needed (bootstrap 5 handles auto-close outside already)
+    // Handle column checkbox changes
+    $(".column-checkbox").on('change', function(e) {
+      console.log('[ColumnConfig] Checkbox changed:', $(this).val(), 'checked:', $(this).is(':checked'));
       saveColumnPrefs();
     });
 
     // Reset columns
     $("#reset_to_default").on('click', function(e) {
       e.preventDefault();
+      console.log('[ColumnConfig] Reset clicked');
       $.ajax({
         url: "{{ route('items.reset_column_prefs') }}",
         type: 'GET',
         success: function() {
+          console.log('[ColumnConfig] Reset OK, reloading');
           location.reload();
         },
         error: function(xhr) {
-          console.error('Failed to reset column prefs:', xhr.responseJSON || xhr.statusText);
+          console.error('[ColumnConfig] Reset failed:', xhr.responseJSON || xhr.statusText);
           Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to reset column preferences.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
         }
       });
@@ -389,32 +409,33 @@
 
     function saveColumnPrefs() {
       let columns = [];
+      let visibleColumns = [];
+
       $("#sortable_columns li").each(function() {
         let checkbox = $(this).find('input[type="checkbox"]');
         let colValue = checkbox.val();
         columns.push(colValue);
-      });
-
-      let visibleColumns = [];
-      $("#sortable_columns li").each(function() {
-        let checkbox = $(this).find('input[type="checkbox"]');
         if (checkbox.is(':checked')) {
-          visibleColumns.push(checkbox.val());
+          visibleColumns.push(colValue);
         }
       });
+
+      console.log('[ColumnConfig] Saving prefs - order:', columns, 'visible:', visibleColumns);
 
       $.ajax({
         url: "{{ route('items.save_column_prefs') }}",
         type: 'POST',
         data: {
           _token: "{{ csrf_token() }}",
-          columns: visibleColumns
+          columns: columns,
+          visible_columns: visibleColumns
         },
-        success: function() {
+        success: function(response) {
+          console.log('[ColumnConfig] Save OK, reloading');
           location.reload();
         },
         error: function(xhr) {
-          console.error('Failed to save column prefs:', xhr.responseJSON || xhr.statusText);
+          console.error('[ColumnConfig] Save failed:', xhr.responseJSON || xhr.statusText);
           Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save column preferences. Please try again.', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
         }
       });
