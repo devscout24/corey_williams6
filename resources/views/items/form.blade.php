@@ -114,7 +114,7 @@
                                         value="{{ old('barcode_name', $item?->barcode_name) }}" />
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label" for="category_id">Category <span
                                             class="text-danger">*</span></label>
                                     <select class="form-select" id="category_id" name="category_id">
@@ -130,13 +130,24 @@
                                         </div>
                                     @endif
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label" for="supplier_id">Supplier</label>
                                     <select class="form-select" id="supplier_id" name="supplier_id">
                                         <option value="">— Select Supplier —</option>
                                         @foreach($suppliers as $supplier)
                                             <option value="{{ $supplier->person_id }}" @selected(old('supplier_id', $item?->supplier_id) == $supplier->person_id)>{{ $supplier->company_name }}
                                             </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="tax_class_id">Tax Class</label>
+                                    <select class="form-select" id="tax_class_id" name="tax_class_id">
+                                        <option value="">Use Store
+                                            Default{{ $defaultTaxClass ? ' (' . $defaultTaxClass->name . ')' : '' }}
+                                        </option>
+                                        @foreach($taxClasses as $taxClass)
+                                            <option value="{{ $taxClass->id }}" @selected(old('tax_class_id', $item?->tax_class_id) == $taxClass->id)>{{ $taxClass->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -275,7 +286,7 @@
 
                                 <div class="col-md-6">
                                     <label class="form-label" for="default_quantity">Default Quantity</label>
-                                    <input type="number" step="any" class="form-control" id="default_quantity"
+                                    <input type="number" step="1" class="form-control" id="default_quantity"
                                         name="default_quantity"
                                         value="{{ old('default_quantity', $item?->default_quantity) }}" />
                                 </div>
@@ -366,18 +377,6 @@
                                             name="tax_included" value="1" @checked(true)>
                                         <label class="form-check-label" for="tax_included">Prices Include Tax</label>
                                     </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label" for="tax_class_id">Tax Class</label>
-                                    <select class="form-select" id="tax_class_id" name="tax_class_id">
-                                        <option value="">Use Store
-                                            Default{{ $defaultTaxClass ? ' (' . $defaultTaxClass->name . ')' : '' }}
-                                        </option>
-                                        @foreach($taxClasses as $taxClass)
-                                            <option value="{{ $taxClass->id }}" @selected(old('tax_class_id', $item?->tax_class_id) == $taxClass->id)>{{ $taxClass->name }}</option>
-                                        @endforeach
-                                    </select>
                                 </div>
 
                                 <div class="col-md-4">
@@ -1031,14 +1030,24 @@
             });
 
             // Markup calculation for item-level
-            $('#markup, #cost_price, #markup_type').on('input change', function () {
+            $('#markup, #cost_price, #unit_price, #markup_type').on('input change', function () {
                 var cost = parseFloat($('#cost_price').val()) || 0;
                 var markup = parseFloat($('#markup').val()) || 0;
+                var unitPrice = parseFloat($('#unit_price').val()) || 0;
                 var markupType = $('#markup_type').val();
-                if (markupType === 'flat') {
-                    $('#unit_price').val((cost + markup).toFixed(3));
-                } else if (markupType === 'percentage') {
-                    $('#unit_price').val((cost + (cost * markup / 100)).toFixed(3));
+
+                if ($(this).is('#unit_price') && cost > 0) {
+                    if (markupType === 'flat') {
+                        $('#markup').val((unitPrice - cost).toFixed(3));
+                    } else {
+                        $('#markup').val(((unitPrice - cost) / cost * 100).toFixed(3));
+                    }
+                } else {
+                    if (markupType === 'flat') {
+                        $('#unit_price').val((cost + markup).toFixed(3));
+                    } else {
+                        $('#unit_price').val((cost + (cost * markup / 100)).toFixed(3));
+                    }
                 }
             });
 

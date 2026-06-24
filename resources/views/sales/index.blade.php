@@ -282,7 +282,7 @@
                                             <td>
                                                 <form action="{{ route('sales.item.edit', $index) }}" method="POST">
                                                     @csrf
-                                                    <input type="number" step="0.001" name="quantity"
+                                                    <input type="number" step="1" name="quantity"
                                                         class="form-control form-control-sm" value="{{ $item['quantity'] }}"
                                                         onchange="this.form.submit()">
                                                 </form>

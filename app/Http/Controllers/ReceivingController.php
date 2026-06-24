@@ -419,11 +419,13 @@ class ReceivingController extends Controller
         if ($isSkuSearch) {
             $itemsQuery->where(function ($query) use ($term) {
                 $query->where('item_id', $term)
+                    ->orWhere('item_number', 'LIKE', "%$term%")
                     ->orWhere('product_id', 'LIKE', "%$term%");
             });
         } else {
             $itemsQuery->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
+                    ->orWhere('item_number', 'LIKE', "%$term%")
                     ->orWhere('item_id', $term)
                     ->orWhere('product_id', 'LIKE', "%$term%");
             });

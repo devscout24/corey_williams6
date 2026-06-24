@@ -372,6 +372,7 @@ class TransferController extends Controller
         $itemsQuery = PhpposItem::where('deleted', 0)
             ->where(function ($query) use ($term) {
                 $query->where('name', 'LIKE', "%$term%")
+                    ->orWhere('item_number', 'LIKE', "%$term%")
                     ->orWhere('item_id', $term)
                     ->orWhere('product_id', $term);
             });
