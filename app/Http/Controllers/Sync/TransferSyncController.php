@@ -87,6 +87,7 @@ class TransferSyncController extends Controller
                 'markup_type' => $itemModel?->markup_type,
                 'item_kit_id' => $item->item_kit_id,
                 'item_kit_name' => $item->item_kit_name,
+                'item_kit_product_id' => $kitModel?->product_id,
                 'item_kit_cost_price' => $kitModel?->cost_price,
                 'item_kit_unit_price' => $kitModel?->unit_price,
                 'item_kit_default_quantity' => $kitModel?->default_quantity,
@@ -129,6 +130,7 @@ class TransferSyncController extends Controller
             'lines.*.markup_type' => 'nullable|string|max:50',
             'lines.*.item_kit_id' => 'nullable|integer',
             'lines.*.item_kit_name' => 'nullable|string|max:255',
+            'lines.*.item_kit_product_id' => 'nullable|string|max:255',
             'lines.*.item_kit_cost_price' => 'nullable|numeric',
             'lines.*.item_kit_unit_price' => 'nullable|numeric',
             'lines.*.item_kit_default_quantity' => 'nullable|numeric',
@@ -172,83 +174,104 @@ class TransferSyncController extends Controller
 
             $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
             $itemKitName = $line['item_kit_name'] ?? null;
+            $itemKitProductId = $line['item_kit_product_id'] ?? null;
 
             // Kit header row — no item lookup needed
             if (empty($line['item_id']) && empty($line['item_number'])) {
-                if (! $itemKitId) {
+                if (! $itemKitId && ! $itemKitProductId && ! $itemKitName) {
                     throw ValidationException::withMessages([
                         "lines.$index.item_id" => 'Item identifier or kit ID is required.',
                     ]);
                 }
 
-                // Auto-create kit if missing
-                $kit = PhpposItemKit::find($itemKitId);
-                if (! $kit && ! empty($itemKitName)) {
+                // Resolve kit using portable identifiers first (product_id > name), then local ID
+                $kit = null;
+                if ($itemKitProductId) {
+                    $kit = PhpposItemKit::where('product_id', $itemKitProductId)->orderBy('id')->first();
+                }
+                if (! $kit && $itemKitName) {
+                    $kit = PhpposItemKit::where('name', $itemKitName)->orderBy('id')->first();
+                }
+                if (! $kit && $itemKitId) {
+                    $kit = PhpposItemKit::find($itemKitId);
+                }
+
+                // Auto-create kit if still not found and we have a name
+                if (! $kit && $itemKitName) {
                     try {
                         $kit = PhpposItemKit::create([
                             'name' => $itemKitName,
+                            'product_id' => $itemKitProductId ?? null,
                             'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
                             'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
                             'default_quantity' => 0,
                         ]);
-                        $itemKitId = (int) $kit->id;
 
                         // Create kit component records from metadata
                         if (! empty($line['components'])) {
                             foreach ($line['components'] as $comp) {
                                 $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
-                                if ($compItemId) {
+                                $compItem = null;
+                                if (! empty($comp['product_id'])) {
+                                    $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
+                                }
+                                if (! $compItem && $compItemId) {
                                     $compItem = PhpposItem::find($compItemId);
-                                    if (! $compItem && ! empty($comp['item_number'])) {
-                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
-                                    }
-                                    if (! $compItem && ! empty($comp['product_id'])) {
-                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
-                                    }
-                                    if (! $compItem && ! empty($comp['name'])) {
-                                        $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
-                                    }
-                                    if ($compItem) {
-                                        DB::table('phppos_item_kit_items')->insert([
-                                            'item_kit_id' => $itemKitId,
-                                            'item_id' => $compItem->item_id,
-                                            'quantity' => (float) $comp['quantity'],
-                                            'created_at' => now(),
-                                            'updated_at' => now(),
-                                        ]);
-                                    }
+                                }
+                                if (! $compItem && ! empty($comp['item_number'])) {
+                                    $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+                                }
+                                if (! $compItem && ! empty($comp['name'])) {
+                                    $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
+                                }
+                                if ($compItem) {
+                                    DB::table('phppos_item_kit_items')->insert([
+                                        'item_kit_id' => $kit->id,
+                                        'item_id' => $compItem->item_id,
+                                        'quantity' => (float) $comp['quantity'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
                                 }
                             }
                         }
                     } catch (\Throwable) {
                     }
-                } elseif (! $kit) {
+                }
+
+                if (! $kit) {
                     continue;
                 }
 
                 $lines[] = [
                     'item_id' => null,
-                    'item_kit_id' => $itemKitId,
-                    'item_kit_name' => $itemKitName,
+                    'item_kit_id' => (int) $kit->id,
+                    'item_kit_name' => $kit->name,
                     'quantity' => $qty,
                 ];
 
                 continue;
             }
 
-            // Resolve item by id, item_number, or product_id
+            // Resolve item: product_id is the portable cross-device identifier;
+            // only trust item_id when product_id is also present (same device) or fall through chain.
             $item = null;
-            if (! empty($line['item_id'])) {
+            if (! empty($line['item_id']) && ! empty($line['product_id'])) {
+                // Both present — try product_id first (portable), then item_id as tiebreak
+                $item = PhpposItem::where('product_id', $line['product_id'])->orderBy('item_id')->first();
+                if (! $item) {
+                    $item = PhpposItem::find($line['item_id']);
+                }
+            } elseif (! empty($line['product_id'])) {
+                $item = PhpposItem::where('product_id', $line['product_id'])->orderBy('item_id')->first();
+            } elseif (! empty($line['item_id'])) {
                 $item = PhpposItem::find($line['item_id']);
             }
+
+            // Fallback: match by item_number, then name before auto-creating
             if (! $item && ! empty($line['item_number'])) {
                 $item = PhpposItem::where('item_number', $line['item_number'])->orderBy('item_id')->first();
             }
-            if (! $item && ! empty($line['product_id'])) {
-                $item = PhpposItem::where('product_id', $line['product_id'])->orderBy('item_id')->first();
-            }
-
-            // Fallback: match by name before auto-creating
             if (! $item && ! empty($line['name'])) {
                 $item = PhpposItem::where('name', $line['name'])->orderBy('item_id')->first();
             }

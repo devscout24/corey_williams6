@@ -208,6 +208,7 @@ class SendItem implements ShouldQueue
                 'markup_type' => $itemModel?->markup_type,
                 'item_kit_id' => $item->item_kit_id,
                 'item_kit_name' => $item->item_kit_name,
+                'item_kit_product_id' => $kitModel?->product_id,
                 'item_kit_cost_price' => $kitModel?->cost_price,
                 'item_kit_unit_price' => $kitModel?->unit_price,
                 'item_kit_default_quantity' => $kitModel?->default_quantity,
