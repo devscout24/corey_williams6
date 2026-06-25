@@ -256,7 +256,7 @@
                                     <label class="form-label" for="cost_price">Cost Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="0.001" class="form-control" id="cost_price"
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="cost_price"
                                             name="cost_price" value="{{ old('cost_price', $item?->cost_price) }}" />
                                     </div>
                                 </div>
@@ -271,7 +271,7 @@
                                     <label class="form-label" for="markup">Markup</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="0.001" class="form-control" id="markup" name="markup"
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="markup" name="markup"
                                             value="{{ old('markup', $item?->markup) }}" />
                                     </div>
                                 </div>
@@ -279,7 +279,7 @@
                                     <label class="form-label" for="unit_price">Unit Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="0.001" class="form-control" id="unit_price"
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="unit_price"
                                             name="unit_price" value="{{ old('unit_price', $item?->unit_price) }}" />
                                     </div>
                                 </div>

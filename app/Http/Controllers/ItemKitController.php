@@ -12,6 +12,7 @@ use App\Models\PhpposTaxClass;
 use App\Models\PhpposAppFile;
 use App\Models\PhpposTag;
 use App\Models\PhpposSupplier;
+use App\Services\AppConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,12 @@ class ItemKitController extends Controller
             ->orderBy('id', 'desc')
             ->paginate(20);
 
-        return view('item_kits.index', compact('kits', 'search', 'category', 'categories'));
+        $configService = app(AppConfigService::class);
+        $baseDecimalsRaw = $configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseCurrencySymbol = (string) $configService->get('currency_symbol', '$');
+
+        return view('item_kits.index', compact('kits', 'search', 'category', 'categories', 'baseDecimals', 'baseCurrencySymbol'));
     }
 
     public function create(): View
@@ -86,6 +92,11 @@ class ItemKitController extends Controller
         $allItems = PhpposItem::query()->where('deleted', 0)->orderBy('name')->get();
         $allKits = PhpposItemKit::query()->where('deleted', 0)->where('id', '!=', $kitId)->orderBy('name')->get();
 
+        $configService = app(AppConfigService::class);
+        $baseDecimalsRaw = $configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseCurrencySymbol = (string) $configService->get('currency_symbol', '$');
+
         return view('item_kits.form', [
             'kit' => $kit,
             'categories' => $categories,
@@ -98,6 +109,8 @@ class ItemKitController extends Controller
             'nestedKits' => $kit ? $kit->nestedKits : [],
             'secondary_suppliers' => $secondarySuppliers,
             'secondary_categories' => $secondaryCategories,
+            'baseDecimals' => $baseDecimals,
+            'baseCurrencySymbol' => $baseCurrencySymbol,
         ]);
     }
 

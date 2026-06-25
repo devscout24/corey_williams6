@@ -122,7 +122,11 @@ class ItemController extends Controller
             ->orderBy('phppos_items.item_id', 'desc')
             ->paginate(20);
 
-        return view('items.index', compact('items', 'all_columns', 'selected_columns', 'categories'));
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+
+        return view('items.index', compact('items', 'all_columns', 'selected_columns', 'categories', 'baseDecimals', 'baseCurrencySymbol'));
     }
 
     public function create(): View
@@ -140,6 +144,8 @@ class ItemController extends Controller
 
         $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
 
         return view('items.form', [
             'item' => null,
@@ -156,6 +162,7 @@ class ItemController extends Controller
             'variations' => [],
             'baseCurrencyCode' => $baseCurrencyCode,
             'baseCurrencySymbol' => $baseCurrencySymbol,
+            'baseDecimals' => $baseDecimals,
         ]);
     }
 
@@ -209,6 +216,8 @@ class ItemController extends Controller
 
         $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
 
         return view('items.form', [
             'item' => $item,
@@ -225,6 +234,7 @@ class ItemController extends Controller
             'variations' => $variations,
             'baseCurrencyCode' => $baseCurrencyCode,
             'baseCurrencySymbol' => $baseCurrencySymbol,
+            'baseDecimals' => $baseDecimals,
         ]);
     }
 

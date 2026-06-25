@@ -10,8 +10,8 @@ class PhpposItemKit extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'cost_price' => 'decimal:2',
-        'unit_price' => 'decimal:2',
+        'cost_price' => 'float',
+        'unit_price' => 'float',
     ];
 
     public function items()

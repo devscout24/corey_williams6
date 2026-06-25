@@ -71,8 +71,8 @@
                                     <span class="badge bg-light text-dark border">{{ $kit->category->name ?? 'None' }}</span>
                                 </td>
                                 <td>{{ $kit->supplier->company_name ?? '—' }}</td>
-                                <td class=""><span class="fw-medium">{{ $kit->cost_price ?? '—' }}</span></td>
-                                <td class=" fw-bold text-dark"><span class="fw-medium">{{ $kit->unit_price ?? '—' }}</span></td>
+                                <td class=""><span class="fw-medium">{{ $kit->cost_price !== null ? $baseCurrencySymbol . number_format((float) $kit->cost_price, $baseDecimals) : '—' }}</span></td>
+                                <td class=" fw-bold text-dark"><span class="fw-medium">{{ $kit->unit_price !== null ? $baseCurrencySymbol . number_format((float) $kit->unit_price, $baseDecimals) : '—' }}</span></td>
                                 <td class=""><span class="fw-medium">{{ $kit->default_quantity ?? '—' }}</span></td>
                                 <td class=""><span class="fw-medium">{{ $kit->reorder_level ?? '—' }}</span></td>
                                 <td class="text-end pe-4">

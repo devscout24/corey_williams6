@@ -273,9 +273,9 @@
                 @elseif($col_key == 'category')
                   <td>{{ $item->category_name ?? '—' }}</td>
                 @elseif($col_key == 'cost_price')
-                  <td class=""><span class="fw-medium">{{ $item->cost_price ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->cost_price !== null ? $baseCurrencySymbol . number_format((float) $item->cost_price, $baseDecimals) : '—' }}</span></td>
                 @elseif($col_key == 'unit_price')
-                  <td class=""><span class="fw-medium">{{ $item->unit_price ?? '—' }}</span></td>
+                  <td class=""><span class="fw-medium">{{ $item->unit_price !== null ? $baseCurrencySymbol . number_format((float) $item->unit_price, $baseDecimals) : '—' }}</span></td>
                 @elseif($col_key == 'quantity')
                   <td class=""><span class="fw-medium">{{ $item->location_quantity ?? $item->default_quantity ?? '—' }}</span></td>
                 @elseif($col_key == 'reorder_level')

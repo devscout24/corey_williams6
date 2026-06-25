@@ -273,16 +273,16 @@
                                 <div class="col-md-4">
                                     <label class="form-label" for="cost_price">Cost Price</label>
                                     <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" step="0.001" class="form-control" id="cost_price"
+                                        <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="cost_price"
                                             name="cost_price" value="{{ old('cost_price', $kit?->cost_price) }}" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="unit_price">Unit Price</label>
                                     <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" step="0.001" class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $kit?->unit_price) }}" />
+                                        <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $kit?->unit_price) }}" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -669,10 +669,10 @@
                 const costInput = document.getElementById('cost_price');
                 const priceInput = document.getElementById('unit_price');
                 if (costInput) {
-                    costInput.value = totalCost.toFixed(3);
+                    costInput.value = totalCost.toFixed({{ $baseDecimals }});
                 }
                 if (priceInput) {
-                    priceInput.value = totalPrice.toFixed(3);
+                    priceInput.value = totalPrice.toFixed({{ $baseDecimals }});
                 }
 
                 const summaryHtml = `
@@ -681,8 +681,8 @@
                     <div><strong>Nested kit lines:</strong> ${nestedKits.lines}</div>
                     <div><strong>Total lines:</strong> ${totalLines}</div>
                     <hr>
-                    <div><strong>Total cost:</strong> $${totalCost.toFixed(3)}</div>
-                    <div><strong>Total unit price:</strong> $${totalPrice.toFixed(3)}</div>
+                    <div><strong>Total cost:</strong> {{ $baseCurrencySymbol }}${totalCost.toFixed({{ $baseDecimals }})}</div>
+                    <div><strong>Total unit price:</strong> {{ $baseCurrencySymbol }}${totalPrice.toFixed({{ $baseDecimals }})}</div>
                 </div>
             `;
 
@@ -698,8 +698,8 @@
                         `Item lines: ${kitItems.lines}\n` +
                         `Nested kit lines: ${nestedKits.lines}\n` +
                         `Total lines: ${totalLines}\n` +
-                        `Total cost: $${totalCost.toFixed(3)}\n` +
-                        `Total unit price: $${totalPrice.toFixed(3)}`
+                        `Total cost: {{ $baseCurrencySymbol }}${totalCost.toFixed({{ $baseDecimals }})}\n` +
+                        `Total unit price: {{ $baseCurrencySymbol }}${totalPrice.toFixed({{ $baseDecimals }})}`
                     );
                 }
             });
