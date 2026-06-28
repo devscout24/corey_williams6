@@ -9,10 +9,9 @@ use App\Http\Controllers\ItemLabelController;
 use App\Http\Controllers\PriceRuleController;
 use Illuminate\Support\Facades\Route;
 
-
 Route::middleware('auth:employee')->group(function (): void {
 
-    //labels
+    // labels
     Route::get('/items/labels', [ItemLabelController::class, 'index'])->name('labels.index');
     Route::get('/items/labels/search', [ItemLabelController::class, 'search'])->name('labels.search');
     Route::post('/items/labels/print', [ItemLabelController::class, 'print'])->name('labels.print');
@@ -39,11 +38,14 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::patch('/item-kits/{kitId}/quick-update', [ItemKitController::class, 'quickUpdate'])->name('item-kits.quick-update');
     Route::delete('/item-kits/{kitId}', [ItemKitController::class, 'destroy'])->name('item-kits.destroy');
 
-    //categories, attributes, price rules
+    // categories, attributes, price rules
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::put('/categories/{categoryId}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{categoryId}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::get('/categories/export', [CategoryController::class, 'export'])->name('categories.export');
+    Route::get('/categories/import', [CategoryController::class, 'importForm'])->name('categories.import');
+    Route::post('/categories/import', [CategoryController::class, 'import'])->name('categories.import.store');
 
     // resources routes
     Route::resource('attributes', AttributeController::class);

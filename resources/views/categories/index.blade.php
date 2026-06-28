@@ -267,6 +267,17 @@
     @endif
 
     <div class="page-content-inner">
+      <div class="dropdown" style="float: right; margin-left: 10px; margin-bottom: 20px;">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13.5px; font-weight: 600; padding: 9px 18px; border-radius: var(--radius-sm); border-color: var(--gray-300); color: var(--gray-700); background: #fff;">
+          <i class="bi bi-download"></i> Export / Import
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width: 180px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--gray-200); padding: 6px 0;">
+          <li><a class="dropdown-item" href="{{ route('categories.export', ['format' => 'csv']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-filetype-csv" style="margin-right: 8px; color: #10b981;"></i>Export CSV</a></li>
+          <li><a class="dropdown-item" href="{{ route('categories.export', ['format' => 'xls']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-file-earmark-excel" style="margin-right: 8px; color: #059669;"></i>Export XLS</a></li>
+          <li><hr class="dropdown-divider" style="margin: 4px 0; border-color: var(--gray-200);"></li>
+          <li><a class="dropdown-item" href="{{ route('categories.import') }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-upload" style="margin-right: 8px; color: #f59e0b;"></i>Import</a></li>
+        </ul>
+      </div>
       <button class="btn-add-root" data-bs-toggle="modal" data-bs-target="#addCategoryModal"><i class="bi bi-plus-lg"></i> Add root category</button>
 
       <div class="category-tree-card">

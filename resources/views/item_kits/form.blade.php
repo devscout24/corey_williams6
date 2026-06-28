@@ -161,6 +161,12 @@
                                         <div class="mt-2 text-muted small">Current image ID: {{ $kit->main_image_id }}</div>
                                     @endif
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="default_quantity">Default Quantity</label>
+                                    <input type="number" step="0.001" class="form-control" name="default_quantity"
+                                        id="default_quantity"
+                                        value="{{ old('default_quantity', $kit?->default_quantity) }}">
+                                </div>
                                 <div class="col-md-12">
                                     <label class="form-label" for="description">Description</label>
                                     <textarea class="form-control" id="description" name="description"
@@ -444,12 +450,6 @@
                                     <hr>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label" for="default_quantity">Default Quantity</label>
-                                    <input type="number" step="0.001" class="form-control" name="default_quantity"
-                                        id="default_quantity"
-                                        value="{{ old('default_quantity', $kit?->default_quantity) }}">
-                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="loyalty_multiplier">Loyalty Multiplier</label>
                                     <input type="number" step="0.01" class="form-control" name="loyalty_multiplier"

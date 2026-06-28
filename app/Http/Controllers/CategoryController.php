@@ -56,4 +56,245 @@ class CategoryController extends Controller
 
         return back()->with('status', 'Category archived.');
     }
+
+    public function export(Request $request)
+    {
+        $format = $request->query('format', 'csv');
+
+        $categories = PhpposCategory::query()
+            ->where('deleted', 0)
+            ->orderBy('name')
+            ->get();
+
+        $nameMap = $categories->pluck('name', 'id');
+
+        $rows = [];
+        foreach ($categories as $cat) {
+            $rows[] = [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'parent_name' => $cat->parent_id ? ($nameMap[$cat->parent_id] ?? '') : '',
+                'hide_from_grid' => $cat->hide_from_grid ? 1 : 0,
+            ];
+        }
+
+        $columnLabels = ['ID', 'Name', 'Parent Category', 'Hide From Grid'];
+
+        if ($format === 'xls') {
+            $html = '<html><head><meta charset="UTF-8"><title>Categories Export</title>';
+            $html .= '<style>table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}th{background:#f0f0f0;font-weight:bold;}</style>';
+            $html .= '</head><body><h2>Categories</h2>';
+            $html .= '<table><thead><tr>';
+            foreach ($columnLabels as $label) {
+                $html .= '<th>'.htmlspecialchars($label).'</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $html .= '<tr>';
+                $html .= '<td>'.htmlspecialchars((string) $row['id']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['name']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['parent_name']).'</td>';
+                $html .= '<td>'.$row['hide_from_grid'].'</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table></body></html>';
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Disposition' => 'attachment; filename="categories-export.xls"',
+            ]);
+        }
+
+        $callback = function () use ($columnLabels, $rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $columnLabels);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['id'],
+                    $row['name'],
+                    $row['parent_name'],
+                    $row['hide_from_grid'],
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="categories-export.csv"',
+        ]);
+    }
+
+    public function importForm(): View
+    {
+        return view('categories.import');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'import_file' => ['required', 'file', 'mimes:csv,txt,xls'],
+        ]);
+
+        $file = $request->file('import_file');
+        $ext = strtolower($file->getClientOriginalExtension());
+
+        if ($ext === 'xls') {
+            $rows = $this->parseXls($file->getRealPath());
+        } else {
+            $rows = $this->parseCsv($file->getRealPath());
+        }
+
+        if (empty($rows)) {
+            return back()->withErrors(['import_file' => 'The file is empty or has no valid data rows.']);
+        }
+
+        $existingCategories = PhpposCategory::query()
+            ->where('deleted', 0)
+            ->pluck('name', 'id');
+
+        $created = 0;
+        $skipped = 0;
+
+        $nameToId = $existingCategories->flip()->toArray();
+
+        $processed = [];
+        foreach ($rows as $row) {
+            $name = trim($row['name'] ?? '');
+            $parentName = trim($row['parent_name'] ?? '');
+            $hideFromGrid = isset($row['hide_from_grid']) ? (int) $row['hide_from_grid'] : 0;
+
+            if ($name === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            $parentNameKey = strtolower($parentName);
+
+            if ($parentName !== '' && ! isset($nameToId[$parentNameKey])) {
+                $skipped++;
+
+                continue;
+            }
+
+            $parentId = null;
+            if ($parentName !== '') {
+                $parentId = $nameToId[$parentNameKey];
+            }
+
+            $existingId = $nameToId[strtolower($name)] ?? null;
+
+            if ($existingId) {
+                PhpposCategory::query()->where('id', $existingId)->update([
+                    'parent_id' => $parentId,
+                    'hide_from_grid' => $hideFromGrid,
+                ]);
+                $nameToId[strtolower($name)] = $existingId;
+                $processed[] = $name;
+            } else {
+                $newCat = PhpposCategory::query()->create([
+                    'name' => $name,
+                    'parent_id' => $parentId,
+                    'deleted' => 0,
+                    'hide_from_grid' => $hideFromGrid,
+                ]);
+                $nameToId[strtolower($name)] = $newCat->id;
+                $created++;
+                $processed[] = $name;
+            }
+        }
+
+        $remainingSkipped = $skipped;
+        $unprocessed = count($rows) - $created - $skipped;
+
+        if ($unprocessed > 0) {
+            foreach ($rows as $row) {
+                $name = trim($row['name'] ?? '');
+                if ($name !== '' && ! in_array(strtolower($name), array_map('strtolower', $processed), true)) {
+                    $remainingSkipped++;
+                }
+            }
+        }
+
+        $message = "Import complete. Created: {$created}, Updated: ".count($processed).", Skipped: {$remainingSkipped}.";
+
+        return back()->with('status', $message);
+    }
+
+    private function parseCsv(string $path): array
+    {
+        $handle = fopen($path, 'r');
+        if (! $handle) {
+            return [];
+        }
+
+        $headers = fgetcsv($handle);
+        if (! $headers) {
+            fclose($handle);
+
+            return [];
+        }
+
+        $headers = array_map('strtolower', array_map('trim', $headers));
+
+        $rows = [];
+        while (($data = fgetcsv($handle)) !== false) {
+            if (count($data) === count($headers)) {
+                $rows[] = array_combine($headers, $data);
+            }
+        }
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function parseXls(string $path): array
+    {
+        $content = file_get_contents($path);
+        if (! $content) {
+            return [];
+        }
+
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($content);
+        libxml_clear_errors();
+
+        $tables = $dom->getElementsByTagName('table');
+        if ($tables->length === 0) {
+            return [];
+        }
+
+        $table = $tables->item(0);
+        $rows = [];
+
+        $trElements = $table->getElementsByTagName('tr');
+        if ($trElements->length < 2) {
+            return [];
+        }
+
+        $headerCells = $trElements->item(0)->getElementsByTagName('td');
+        if ($headerCells->length === 0) {
+            $headerCells = $trElements->item(0)->getElementsByTagName('th');
+        }
+
+        $headers = [];
+        for ($i = 0; $i < $headerCells->length; $i++) {
+            $headers[] = strtolower(trim($headerCells->item($i)->textContent));
+        }
+
+        for ($i = 1; $i < $trElements->length; $i++) {
+            $cells = $trElements->item($i)->getElementsByTagName('td');
+            if ($cells->length === count($headers)) {
+                $row = [];
+                for ($j = 0; $j < $cells->length; $j++) {
+                    $row[$headers[$j]] = trim($cells->item($j)->textContent);
+                }
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
 }
