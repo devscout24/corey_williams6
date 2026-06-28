@@ -621,5 +621,312 @@ class ItemController extends Controller
         return redirect()->route('items.index')->with('status', 'Item saved.');
     }
 
+    public function export(Request $request)
+    {
+        $format = $request->query('format', 'csv');
 
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+
+        $categories = PhpposCategory::query()->where('deleted', 0)->pluck('name', 'id');
+        $suppliers  = PhpposSupplier::query()->where('deleted', 0)->pluck('company_name', 'person_id');
+
+        $items = PhpposItem::query()
+            ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
+                $join->on('li.item_id', '=', 'phppos_items.item_id')
+                    ->where('li.location_id', '=', $locationId);
+            })
+            ->where('phppos_items.deleted', 0)
+            ->select('phppos_items.*', 'li.quantity as location_quantity')
+            ->orderBy('phppos_items.item_id')
+            ->get();
+
+        $rows = [];
+        foreach ($items as $item) {
+            $rows[] = [
+                'item_id'        => $item->item_id,
+                'name'           => $item->name,
+                'item_number'    => $item->item_number ?? '',
+                'product_id'     => $item->product_id ?? '',
+                'category'       => $item->category_id ? ($categories[$item->category_id] ?? '') : '',
+                'supplier'       => $item->supplier_id ? ($suppliers[$item->supplier_id] ?? '') : '',
+                'cost_price'     => $item->cost_price,
+                'unit_price'     => $item->unit_price,
+                'quantity'       => $item->location_quantity ?? $item->default_quantity ?? 0,
+                'reorder_level'  => $item->reorder_level ?? '',
+                'description'    => $item->description ?? '',
+                'size'           => $item->size ?? '',
+                'weight'         => $item->weight ?? '',
+                'is_service'     => $item->is_service ? 1 : 0,
+                'item_inactive'  => $item->item_inactive ? 1 : 0,
+                'is_barcoded'    => $item->is_barcoded ? 1 : 0,
+            ];
+        }
+
+        $columnLabels = [
+            'ID', 'Name', 'Item Number', 'Product ID', 'Category', 'Supplier',
+            'Cost Price', 'Unit Price', 'Quantity', 'Reorder Level',
+            'Description', 'Size', 'Weight', 'Is Service', 'Inactive', 'Is Barcoded',
+        ];
+
+        if ($format === 'xls') {
+            $html = '<html><head><meta charset="UTF-8"><title>Items Export</title>';
+            $html .= '<style>table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}th{background:#f0f0f0;font-weight:bold;}</style>';
+            $html .= '</head><body><h2>Items</h2>';
+            $html .= '<table><thead><tr>';
+            foreach ($columnLabels as $label) {
+                $html .= '<th>'.htmlspecialchars($label).'</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $html .= '<tr>';
+                $html .= '<td>'.htmlspecialchars((string) $row['item_id']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['name']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['item_number']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['product_id']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['category']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['supplier']).'</td>';
+                $html .= '<td>'.htmlspecialchars((string) $row['cost_price']).'</td>';
+                $html .= '<td>'.htmlspecialchars((string) $row['unit_price']).'</td>';
+                $html .= '<td>'.htmlspecialchars((string) $row['quantity']).'</td>';
+                $html .= '<td>'.htmlspecialchars((string) $row['reorder_level']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['description']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['size']).'</td>';
+                $html .= '<td>'.htmlspecialchars((string) $row['weight']).'</td>';
+                $html .= '<td>'.$row['is_service'].'</td>';
+                $html .= '<td>'.$row['item_inactive'].'</td>';
+                $html .= '<td>'.$row['is_barcoded'].'</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table></body></html>';
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Disposition' => 'attachment; filename="items-export.xls"',
+            ]);
+        }
+
+        $callback = function () use ($columnLabels, $rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $columnLabels);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['item_id'],
+                    $row['name'],
+                    $row['item_number'],
+                    $row['product_id'],
+                    $row['category'],
+                    $row['supplier'],
+                    $row['cost_price'],
+                    $row['unit_price'],
+                    $row['quantity'],
+                    $row['reorder_level'],
+                    $row['description'],
+                    $row['size'],
+                    $row['weight'],
+                    $row['is_service'],
+                    $row['item_inactive'],
+                    $row['is_barcoded'],
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="items-export.csv"',
+        ]);
+    }
+
+    public function importForm(): View
+    {
+        return view('items.import');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'import_file' => ['required', 'file', 'mimes:csv,txt,xls,html'],
+        ]);
+
+        $file = $request->file('import_file');
+        $ext  = strtolower($file->getClientOriginalExtension());
+
+        $rows = ($ext === 'xls' || $ext === 'html')
+            ? $this->parseXls($file->getRealPath())
+            : $this->parseCsv($file->getRealPath());
+
+        if (empty($rows)) {
+            return back()->withErrors(['import_file' => 'The file is empty or has no valid data rows.']);
+        }
+
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+
+        $categories = PhpposCategory::query()->where('deleted', 0)->get()->keyBy(fn($c) => strtolower($c->name));
+        $suppliers  = PhpposSupplier::query()->where('deleted', 0)->get()->keyBy(fn($s) => strtolower($s->company_name));
+
+        $existingItems = PhpposItem::query()->where('deleted', 0)->get();
+        $byNumber = $existingItems->filter(fn($i) => $i->item_number)->keyBy(fn($i) => strtolower($i->item_number));
+        $byProduct = $existingItems->filter(fn($i) => $i->product_id)->keyBy(fn($i) => strtolower($i->product_id));
+
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($rows as $row) {
+            $name = trim($row['name'] ?? $row['Name'] ?? '');
+            if ($name === '') {
+                $skipped++;
+                continue;
+            }
+
+            $itemNumber = trim($row['item_number'] ?? $row['Item Number'] ?? '');
+            $productId  = trim($row['product_id'] ?? $row['Product ID'] ?? '');
+
+            $existing = null;
+            if ($productId !== '' && isset($byProduct[strtolower($productId)])) {
+                $existing = $byProduct[strtolower($productId)];
+            } elseif ($itemNumber !== '' && isset($byNumber[strtolower($itemNumber)])) {
+                $existing = $byNumber[strtolower($itemNumber)];
+            }
+
+            $categoryId = null;
+            $catName = trim($row['category'] ?? $row['Category'] ?? '');
+            if ($catName !== '' && isset($categories[strtolower($catName)])) {
+                $categoryId = $categories[strtolower($catName)]->id;
+            }
+
+            $supplierId = null;
+            $supName = trim($row['supplier'] ?? $row['Supplier'] ?? '');
+            if ($supName !== '' && isset($suppliers[strtolower($supName)])) {
+                $supplierId = $suppliers[strtolower($supName)]->person_id;
+            }
+
+            $payload = [
+                'name'           => $name,
+                'item_number'    => $itemNumber ?: null,
+                'product_id'     => $productId ?: null,
+                'category_id'    => $categoryId,
+                'supplier_id'    => $supplierId,
+                'cost_price'     => (float) ($row['cost_price'] ?? $row['Cost Price'] ?? 0),
+                'unit_price'     => (float) ($row['unit_price'] ?? $row['Unit Price'] ?? 0),
+                'default_quantity' => $row['quantity'] ?? $row['Quantity'] ?? null,
+                'reorder_level'  => $row['reorder_level'] ?? $row['Reorder Level'] ?? null,
+                'description'    => $row['description'] ?? $row['Description'] ?? null,
+                'size'           => $row['size'] ?? $row['Size'] ?? null,
+                'weight'         => $row['weight'] ?? $row['Weight'] ?? null,
+                'is_service'     => (int) ($row['is_service'] ?? $row['Is Service'] ?? 0),
+                'item_inactive'  => (int) ($row['item_inactive'] ?? $row['Inactive'] ?? 0),
+                'is_barcoded'    => (int) ($row['is_barcoded'] ?? $row['Is Barcoded'] ?? 1),
+            ];
+
+            if ($existing) {
+                PhpposItem::query()->where('item_id', $existing->item_id)->update($payload);
+
+                if (array_key_exists('quantity', $payload) && $payload['quantity'] !== null) {
+                    DB::table('phppos_location_items')->updateOrInsert(
+                        ['location_id' => $locationId, 'item_id' => $existing->item_id],
+                        ['quantity' => $payload['default_quantity'] ?? 0, 'updated_at' => now(), 'created_at' => now()]
+                    );
+                }
+
+                $updated++;
+            } else {
+                $item = PhpposItem::query()->create($payload);
+
+                if ($payload['default_quantity'] !== null) {
+                    DB::table('phppos_location_items')->insert([
+                        'location_id' => $locationId,
+                        'item_id'     => $item->item_id,
+                        'quantity'    => $payload['default_quantity'] ?? 0,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
+
+                $byNumber[strtolower($item->item_number)] = $item;
+                $byProduct[strtolower($item->product_id)] = $item;
+
+                $created++;
+            }
+        }
+
+        $message = "Import complete. Created: {$created}, Updated: {$updated}, Skipped: {$skipped}.";
+
+        return back()->with('status', $message);
+    }
+
+    private function parseCsv(string $path): array
+    {
+        $handle = fopen($path, 'r');
+        if (! $handle) {
+            return [];
+        }
+
+        $headers = fgetcsv($handle);
+        if (! $headers) {
+            fclose($handle);
+            return [];
+        }
+
+        $headers = array_map('strtolower', array_map('trim', $headers));
+
+        $rows = [];
+        while (($data = fgetcsv($handle)) !== false) {
+            if (count($data) === count($headers)) {
+                $rows[] = array_combine($headers, $data);
+            }
+        }
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function parseXls(string $path): array
+    {
+        $content = file_get_contents($path);
+        if (! $content) {
+            return [];
+        }
+
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($content);
+        libxml_clear_errors();
+
+        $tables = $dom->getElementsByTagName('table');
+        if ($tables->length === 0) {
+            return [];
+        }
+
+        $table = $tables->item(0);
+        $rows = [];
+
+        $trElements = $table->getElementsByTagName('tr');
+        if ($trElements->length < 2) {
+            return [];
+        }
+
+        $headerCells = $trElements->item(0)->getElementsByTagName('td');
+        if ($headerCells->length === 0) {
+            $headerCells = $trElements->item(0)->getElementsByTagName('th');
+        }
+
+        $headers = [];
+        for ($i = 0; $i < $headerCells->length; $i++) {
+            $headers[] = strtolower(trim($headerCells->item($i)->textContent));
+        }
+
+        for ($i = 1; $i < $trElements->length; $i++) {
+            $cells = $trElements->item($i)->getElementsByTagName('td');
+            if ($cells->length === count($headers)) {
+                $row = [];
+                for ($j = 0; $j < $cells->length; $j++) {
+                    $row[$headers[$j]] = trim($cells->item($j)->textContent);
+                }
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
 }

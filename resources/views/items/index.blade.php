@@ -218,7 +218,15 @@
           </div>
         </div>
 
-        <button class="btn-icon-outline"><i class="bi bi-three-dots"></i></button>
+        <div class="dropdown" style="margin-left: 10px;">
+          <button class="btn-icon-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i></button>
+          <ul class="dropdown-menu dropdown-menu-end" style="min-width: 180px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--gray-200); padding: 6px 0;">
+            <li><a class="dropdown-item" href="{{ route('items.export', ['format' => 'csv']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-filetype-csv" style="margin-right: 8px; color: #10b981;"></i>Export CSV</a></li>
+            <li><a class="dropdown-item" href="{{ route('items.export', ['format' => 'xls']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-file-earmark-excel" style="margin-right: 8px; color: #059669;"></i>Export XLS</a></li>
+            <li><hr class="dropdown-divider" style="margin: 4px 0; border-color: var(--gray-200);"></li>
+            <li><a class="dropdown-item" href="{{ route('items.import') }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-upload" style="margin-right: 8px; color: #f59e0b;"></i>Import</a></li>
+          </ul>
+        </div>
       </div>
     </div>
 
