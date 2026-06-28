@@ -212,6 +212,7 @@ class PosCoreSeeder extends Seeder
                 ['id' => 1],
                 [
                     'name' => 'Default Category',
+                    'slug' => 'default-category',
                     'deleted' => 0,
                     'created_at' => $now,
                     'updated_at' => $now,

@@ -109,13 +109,13 @@
                         <input type="text" class="form-input-custom" id="file-name-display" placeholder="No file chosen" readonly>
                         <button type="button" class="btn-choose-file" onclick="document.getElementById('import_file').click();">Choose File</button>
                     </div>
-                    <input type="file" id="import_file" name="import_file" accept=".csv,.txt,.xls" style="display:none;" onchange="document.getElementById('file-name-display').value = this.files[0]?.name || ''">
+                    <input type="file" id="import_file" name="import_file" accept=".csv,.txt,.xls,.html" style="display:none;" onchange="document.getElementById('file-name-display').value = this.files[0]?.name || ''">
                 </div>
 
                 <div class="form-row-custom" style="margin-bottom: 25px;">
                     <label class="form-label-custom"></label>
                     <div style="flex: 1; font-size: 12.5px; color: #64748b;">
-                        Accepted formats: <strong>.csv</strong>, <strong>.txt</strong>, <strong>.xls</strong>
+                        Accepted formats: <strong>.csv</strong>, <strong>.txt</strong>, <strong>.xls</strong>, <strong>.html</strong>
                     </div>
                 </div>
 

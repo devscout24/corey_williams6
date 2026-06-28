@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('phppos_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('slug')->nullable()->unique();
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->boolean('deleted')->default(false);
             $table->boolean('hide_from_grid')->default(false);

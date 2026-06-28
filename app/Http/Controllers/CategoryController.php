@@ -73,12 +73,13 @@ class CategoryController extends Controller
             $rows[] = [
                 'id' => $cat->id,
                 'name' => $cat->name,
+                'slug' => $cat->slug ?? '',
                 'parent_name' => $cat->parent_id ? ($nameMap[$cat->parent_id] ?? '') : '',
                 'hide_from_grid' => $cat->hide_from_grid ? 1 : 0,
             ];
         }
 
-        $columnLabels = ['ID', 'Name', 'Parent Category', 'Hide From Grid'];
+        $columnLabels = ['ID', 'Name', 'Slug', 'Parent Category', 'Hide From Grid'];
 
         if ($format === 'xls') {
             $html = '<html><head><meta charset="UTF-8"><title>Categories Export</title>';
@@ -93,6 +94,7 @@ class CategoryController extends Controller
                 $html .= '<tr>';
                 $html .= '<td>'.htmlspecialchars((string) $row['id']).'</td>';
                 $html .= '<td>'.htmlspecialchars($row['name']).'</td>';
+                $html .= '<td>'.htmlspecialchars($row['slug']).'</td>';
                 $html .= '<td>'.htmlspecialchars($row['parent_name']).'</td>';
                 $html .= '<td>'.$row['hide_from_grid'].'</td>';
                 $html .= '</tr>';
@@ -112,6 +114,7 @@ class CategoryController extends Controller
                 fputcsv($handle, [
                     $row['id'],
                     $row['name'],
+                    $row['slug'],
                     $row['parent_name'],
                     $row['hide_from_grid'],
                 ]);
@@ -130,98 +133,144 @@ class CategoryController extends Controller
         return view('categories.import');
     }
 
-    public function import(Request $request): RedirectResponse
-    {
+    public function import(Request $request): RedirectResponse {
         $request->validate([
-            'import_file' => ['required', 'file', 'mimes:csv,txt,xls'],
+            'import_file' => ['required', 'file', 'mimes:csv,txt,xls,html'],
         ]);
 
         $file = $request->file('import_file');
-        $ext = strtolower($file->getClientOriginalExtension());
+        $ext  = strtolower($file->getClientOriginalExtension());
 
-        if ($ext === 'xls') {
-            $rows = $this->parseXls($file->getRealPath());
-        } else {
-            $rows = $this->parseCsv($file->getRealPath());
-        }
+        $rows = ($ext === 'xls' || $ext === 'html')
+            ? $this->parseXls($file->getRealPath())
+            : $this->parseCsv($file->getRealPath());
 
         if (empty($rows)) {
             return back()->withErrors(['import_file' => 'The file is empty or has no valid data rows.']);
         }
 
-        $existingCategories = PhpposCategory::query()
-            ->where('deleted', 0)
-            ->pluck('name', 'id');
+        $rows = $this->sortImportRows($rows);
+
+        // Load existing categories.
+        // Lookup maps:
+        // 1. $byComposite["name|parent_id"] => category data  (exact match)
+        // 2. $byName["name"][]              => [category data, ...]  (name-only)
+        // 3. $bySlug["slug"]                => category data  (slug lookup)
+        $byComposite = [];
+        $byName      = [];
+        $bySlug      = [];
+
+        $existingCategories = PhpposCategory::query()->where('deleted', 0)->get();
+
+        foreach ($existingCategories as $cat) {
+            $nameKey      = strtolower($cat->name);
+            $compositeKey = $nameKey . '|' . ($cat->parent_id ?? '');
+
+            $entry = [
+                'id'             => $cat->id,
+                'parent_id'      => $cat->parent_id,
+                'slug'           => $cat->slug ?? '',
+                'hide_from_grid' => (int) $cat->hide_from_grid,
+            ];
+
+            $byComposite[$compositeKey]  = $entry;
+            $byName[$nameKey][]          = $entry;
+            if (($cat->slug ?? '') !== '') {
+                $bySlug[strtolower($cat->slug)] = $entry;
+            }
+        }
 
         $created = 0;
+        $updated = 0;
         $skipped = 0;
 
-        $nameToId = $existingCategories->flip()->toArray();
-
-        $processed = [];
         foreach ($rows as $row) {
-            $name = trim($row['name'] ?? '');
-            $parentName = trim($row['parent_name'] ?? '');
-            $hideFromGrid = isset($row['hide_from_grid']) ? (int) $row['hide_from_grid'] : 0;
+            $name         = trim($row['name'] ?? $row['Name'] ?? '');
+            $slug         = strtolower(trim($row['slug'] ?? $row['Slug'] ?? ''));
+            $hideFromGrid = (int) ($row['hide_from_grid'] ?? $row['Hide From Grid'] ?? 0);
 
             if ($name === '') {
                 $skipped++;
-
                 continue;
             }
 
-            $parentNameKey = strtolower($parentName);
-
-            if ($parentName !== '' && ! isset($nameToId[$parentNameKey])) {
-                $skipped++;
-
-                continue;
+            // Auto-generate slug from name if not provided
+            if ($slug === '') {
+                $slug = \Illuminate\Support\Str::slug($name);
             }
 
+            // Resolve parent from slug path (everything before last /)
             $parentId = null;
-            if ($parentName !== '') {
-                $parentId = $nameToId[$parentNameKey];
+            $slugParts = explode('/', $slug);
+            if (count($slugParts) > 1) {
+                array_pop($slugParts);
+                $parentSlug = implode('/', $slugParts);
+                $parentEntry = $bySlug[$parentSlug] ?? null;
+
+                if ($parentEntry) {
+                    $parentId = $parentEntry['id'];
+                }
+                // If parent slug not found → stays null (top-level)
             }
 
-            $existingId = $nameToId[strtolower($name)] ?? null;
+            $nameKey      = strtolower($name);
+            $compositeKey = $nameKey . '|' . ($parentId ?? '');
+            $existing     = $byComposite[$compositeKey] ?? null;
 
-            if ($existingId) {
-                PhpposCategory::query()->where('id', $existingId)->update([
-                    'parent_id' => $parentId,
-                    'hide_from_grid' => $hideFromGrid,
-                ]);
-                $nameToId[strtolower($name)] = $existingId;
-                $processed[] = $name;
+            // Also try slug match for updates
+            if (!$existing && isset($bySlug[$slug])) {
+                $existing = $bySlug[$slug];
+            }
+
+            if ($existing) {
+                if ($existing['hide_from_grid'] !== $hideFromGrid) {
+                    PhpposCategory::query()->where('id', $existing['id'])->update([
+                        'hide_from_grid' => $hideFromGrid,
+                    ]);
+
+                    // Keep maps in sync
+                    $byComposite[$compositeKey]['hide_from_grid'] = $hideFromGrid;
+                    if (isset($bySlug[$slug])) {
+                        $bySlug[$slug]['hide_from_grid'] = $hideFromGrid;
+                    }
+                    foreach ($byName[$nameKey] as &$n) {
+                        if ($n['id'] === $existing['id']) {
+                            $n['hide_from_grid'] = $hideFromGrid;
+                            break;
+                        }
+                    }
+                    unset($n);
+
+                    $updated++;
+                }
             } else {
                 $newCat = PhpposCategory::query()->create([
-                    'name' => $name,
-                    'parent_id' => $parentId,
-                    'deleted' => 0,
+                    'name'           => $name,
+                    'parent_id'      => $parentId,
+                    'deleted'        => 0,
                     'hide_from_grid' => $hideFromGrid,
                 ]);
-                $nameToId[strtolower($name)] = $newCat->id;
+
+                $entry = [
+                    'id'             => $newCat->id,
+                    'parent_id'      => $parentId,
+                    'slug'           => $newCat->slug ?? '',
+                    'hide_from_grid' => $hideFromGrid,
+                ];
+
+                // Add to all maps so later rows can resolve this as a parent
+                $byComposite[$compositeKey] = $entry;
+                $byName[$nameKey][]         = $entry;
+                $bySlug[$slug]              = $entry;
+
                 $created++;
-                $processed[] = $name;
             }
         }
 
-        $remainingSkipped = $skipped;
-        $unprocessed = count($rows) - $created - $skipped;
-
-        if ($unprocessed > 0) {
-            foreach ($rows as $row) {
-                $name = trim($row['name'] ?? '');
-                if ($name !== '' && ! in_array(strtolower($name), array_map('strtolower', $processed), true)) {
-                    $remainingSkipped++;
-                }
-            }
-        }
-
-        $message = "Import complete. Created: {$created}, Updated: ".count($processed).", Skipped: {$remainingSkipped}.";
+        $message = "Import complete. Created: {$created}, Updated: {$updated}, Skipped: {$skipped}.";
 
         return back()->with('status', $message);
     }
-
     private function parseCsv(string $path): array
     {
         $handle = fopen($path, 'r');
@@ -296,5 +345,22 @@ class CategoryController extends Controller
         }
 
         return $rows;
+    }
+
+    private function sortImportRows(array $rows): array
+    {
+        $depths = [];
+        foreach ($rows as $i => $row) {
+            $slug = strtolower(trim($row['slug'] ?? $row['Slug'] ?? ''));
+            if ($slug === '') {
+                $slug = \Illuminate\Support\Str::slug(strtolower(trim($row['name'] ?? $row['Name'] ?? '')));
+            }
+            $depths[$i] = substr_count($slug, '/');
+        }
+
+        $indices = range(0, count($rows) - 1);
+        usort($indices, fn($a, $b) => $depths[$a] <=> $depths[$b]);
+
+        return array_map(fn($i) => $rows[$i], $indices);
     }
 }
