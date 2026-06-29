@@ -203,9 +203,107 @@ class LanController extends Controller
                     continue;
                 }
 
+                $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+                $itemKitName = $line['item_kit_name'] ?? null;
+                $itemKitProductId = $line['item_kit_product_id'] ?? null;
 
-                // --- Regular item rows ---
+                // -------------------------------------------------------
+                // Kit header row — no item_id, no item_number, just kit metadata.
+                // Must be checked BEFORE regular item resolution.
+                // -------------------------------------------------------
+                if (empty($line['item_id']) && empty($line['item_number']) && empty($line['product_id'])) {
+
+                    // product_id is the only globally portable key in a distributed system — required.
+                    if (! $itemKitProductId) {
+                        $this->log('FAIL: line '.$index.' kit header missing item_kit_product_id — cannot resolve cross-device');
+                        throw ValidationException::withMessages([
+                            "payload.lines.$index.item_kit_product_id" => 'item_kit_product_id is required for kit lines in a distributed transfer.',
+                        ]);
+                    }
+
+                    // Resolve by product_id only — no name/id fallbacks allowed.
+                    $kit = PhpposItemKit::where('product_id', $itemKitProductId)->orderBy('id')->first();
+
+                    // Auto-create kit if not found locally — product_id is guaranteed at this point.
+                    if (! $kit && $itemKitName) {
+                        try {
+                            $kit = PhpposItemKit::create([
+                                'name'             => $itemKitName,
+                                'product_id'       => $itemKitProductId,
+                                'cost_price'       => (float) ($line['item_kit_cost_price'] ?? 0),
+                                'unit_price'       => (float) ($line['item_kit_unit_price'] ?? 0),
+                                'default_quantity' => 0,
+                            ]);
+
+                            // Wire up kit components — resolve by product_id first, item_number second.
+                            // Auto-create component items if missing locally but product_id is present.
+                            if (! empty($line['components'])) {
+                                foreach ($line['components'] as $comp) {
+                                    $compItem = null;
+
+                                    if (! empty($comp['product_id'])) {
+                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
+                                    }
+                                    if (! $compItem && ! empty($comp['item_number'])) {
+                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+                                    }
+
+                                    // Auto-create the component item if we have enough data.
+                                    if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
+                                        try {
+                                            $compItem = PhpposItem::create([
+                                                'name'        => $comp['name'],
+                                                'item_number' => $comp['item_number'] ?? null,
+                                                'product_id'  => $comp['product_id'],
+                                                'cost_price'  => (float) ($comp['cost_price'] ?? 0),
+                                                'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                                                'default_quantity' => 0,
+                                            ]);
+                                            $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') product_id='.$comp['product_id']);
+                                        } catch (\Throwable $e) {
+                                            $this->log('FAIL: could not auto-create component item — '.$e->getMessage());
+                                        }
+                                    }
+
+                                    if (! $compItem) {
+                                        $this->log('SKIP component: could not resolve product_id='.($comp['product_id'] ?? 'null').' item_number='.($comp['item_number'] ?? 'null'));
+                                        continue;
+                                    }
+
+                                    DB::table('phppos_item_kit_items')->insert([
+                                        'item_kit_id' => $kit->id,
+                                        'item_id'     => $compItem->item_id,
+                                        'quantity'    => (float) $comp['quantity'],
+                                        'created_at'  => now(),
+                                        'updated_at'  => now(),
+                                    ]);
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            $this->log('FAIL: could not auto-create kit — '.$e->getMessage());
+                        }
+                    }
+
+                    if (! $kit) {
+                        $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id='.$itemKitProductId);
+                        continue;
+                    }
+
+                    $this->log('Line '.$index.': resolved kit #'.$kit->id.' ('.$kit->name.') qty='.$qty);
+
+                    $lines[] = [
+                        'item_id'      => null,
+                        'item_kit_id'  => (int) $kit->id,
+                        'item_kit_name'=> $kit->name,
+                        'quantity'     => $qty,
+                    ];
+                    continue;
+                }
+
+                // -------------------------------------------------------
+                // Regular item row
                 // product_id is the only portable key. item_id alone is local and cannot be trusted cross-device.
+                // -------------------------------------------------------
                 $item = null;
                 if (! empty($line['product_id'])) {
                     $item = PhpposItem::where('product_id', $line['product_id'])->orderBy('item_id')->first();
@@ -224,11 +322,11 @@ class LanController extends Controller
                 if (! $item && ! empty($line['product_id']) && ! empty($line['name'])) {
                     try {
                         $createData = [
-                            'name' => $line['name'],
+                            'name'        => $line['name'],
                             'item_number' => $line['item_number'] ?? null,
-                            'product_id' => $line['product_id'],
-                            'cost_price' => (float) ($line['cost_price'] ?? 0),
-                            'unit_price' => (float) ($line['unit_price'] ?? 0),
+                            'product_id'  => $line['product_id'],
+                            'cost_price'  => (float) ($line['cost_price'] ?? 0),
+                            'unit_price'  => (float) ($line['unit_price'] ?? 0),
                         ];
                         if (isset($line['markup'])) {
                             $createData['markup'] = (float) $line['markup'];
@@ -249,84 +347,13 @@ class LanController extends Controller
                     continue;
                 }
 
-                $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
-                $itemKitName = $line['item_kit_name'] ?? null;
-                $itemKitProductId = $line['item_kit_product_id'] ?? null;
-
-                // Kit header row — no item, just kit metadata
-                if (empty($line['item_id']) && empty($line['item_number'])) {
-                    // product_id is the only globally portable key in a distributed system — required.
-                    if (! $itemKitProductId) {
-                        $this->log('FAIL: line '.$index.' kit header missing item_kit_product_id — cannot resolve cross-device');
-                        throw ValidationException::withMessages([
-                            "payload.lines.$index.item_kit_product_id" => 'item_kit_product_id is required for kit lines in a distributed transfer.',
-                        ]);
-                    }
-
-                    // Resolve by product_id only — no name/id fallbacks allowed.
-                    $kit = PhpposItemKit::where('product_id', $itemKitProductId)->orderBy('id')->first();
-
-                    // Auto-create kit if not found locally — product_id is guaranteed at this point.
-                    if (! $kit && $itemKitName) {
-                        try {
-                            $kit = PhpposItemKit::create([
-                                'name' => $itemKitName,
-                                'product_id' => $itemKitProductId,
-                                'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
-                                'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
-                                'default_quantity' => 0,
-                                // 'default_quantity' => $qty,
-                            ]);
-
-                            // Wire up kit components — product_id → item_number only, no name/id fallbacks.
-                            if (! empty($line['components'])) {
-                                foreach ($line['components'] as $comp) {
-                                    $compItem = null;
-                                    if (! empty($comp['product_id'])) {
-                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
-                                    }
-                                    if (! $compItem && ! empty($comp['item_number'])) {
-                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
-                                    }
-                                    if (! $compItem) {
-                                        $this->log('SKIP component: could not resolve product_id='.($comp['product_id'] ?? 'null').' item_number='.($comp['item_number'] ?? 'null'));
-                                        continue;
-                                    }
-                                    DB::table('phppos_item_kit_items')->insert([
-                                        'item_kit_id' => $kit->id,
-                                        'item_id' => $compItem->item_id,
-                                        'quantity' => (float) $comp['quantity'],
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
-                                }
-                            }
-                        } catch (\Throwable $e) {
-                            $this->log('FAIL: could not auto-create kit — '.$e->getMessage());
-                        }
-                    }
-
-                    if (! $kit) {
-                        $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id='.$itemKitProductId);
-                        continue;
-                    }
-
-                    $lines[] = [
-                        'item_id' => null,
-                        'item_kit_id' => (int) $kit->id,
-                        'item_kit_name' => $kit->name,
-                        'quantity' => $qty,
-                    ];
-                    continue;
-                }
-
                 $this->log('Line '.$index.': resolved item #'.$item->item_id.' ('.$item->name.') qty='.$qty);
 
                 $lines[] = [
-                    'item_id' => $item->item_id,
-                    'item_kit_id' => $itemKitId,
+                    'item_id'       => $item->item_id,
+                    'item_kit_id'   => $itemKitId,
                     'item_kit_name' => $itemKitName,
-                    'quantity' => $qty,
+                    'quantity'      => $qty,
                 ];
             }
 
