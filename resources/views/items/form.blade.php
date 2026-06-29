@@ -232,6 +232,7 @@
                                         value="{{ old('size', $item?->size) }}" />
                                 </div>
 
+                                @if(!$hideItemImageUpload)
                                 <div class="col-md-12">
                                     <label class="form-label" for="item_images">Item Images</label>
                                     <input type="file" class="form-control" id="item_images" name="images[]"
@@ -251,6 +252,7 @@
                                         </div>
                                     @endif
                                 </div>
+                                @endif
 
                                 <div class="col-md-6">
                                     <label class="form-label" for="cost_price">Cost Price</label>

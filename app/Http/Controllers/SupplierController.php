@@ -26,14 +26,14 @@ class SupplierController extends Controller
             'person_id' => ['label' => 'ID', 'sort' => true],
             'company_name' => ['label' => 'Company', 'sort' => true],
             'contact_name' => ['label' => 'Contact Name', 'sort' => true],
-            'email' => ['label' => 'Email', 'sort' => true],
             'phone_number' => ['label' => 'Phone', 'sort' => true],
             'fax_number' => ['label' => 'Fax', 'sort' => true],
+            'email' => ['label' => 'Email', 'sort' => true],
             'balance' => ['label' => 'Balance', 'sort' => true],
             'account_number' => ['label' => 'Account #', 'sort' => true],
         ];
 
-        $default_columns = ['company_name', 'contact_name', 'email', 'phone_number', 'fax_number'];
+        $default_columns = ['company_name', 'contact_name',  'phone_number', 'fax_number', 'email'];
 
         $column_prefs_val = DB::table('phppos_employees_app_config')
             ->where('employee_id', $employee_id)
@@ -241,7 +241,7 @@ class SupplierController extends Controller
             }
 
             $supplier = PhpposSupplier::query()->where('person_id', $personId)->first();
-            
+
             if ($request->hasFile('image')) {
                 $file = $request->file('image');
                 $appFile = PhpposAppFile::create([
@@ -250,7 +250,7 @@ class SupplierController extends Controller
                     'timestamp' => now(),
                 ]);
                 $supplierPayload['image_id'] = $appFile->file_id;
-                
+
                 // Optional: Delete old image
                 if ($supplier && $supplier->image_id) {
                     PhpposAppFile::where('file_id', $supplier->image_id)->delete();
@@ -288,7 +288,7 @@ class SupplierController extends Controller
                             'file_data' => file_get_contents($file->getRealPath()),
                             'timestamp' => now(),
                         ]);
-                        
+
                         PhpposPeopleFile::create([
                             'file_id' => $appFile->file_id,
                             'person_id' => $personId,

@@ -268,6 +268,13 @@ class PosCoreSeeder extends Seeder
             );
         }
 
+        if (Schema::hasTable('phppos_app_config')) {
+            DB::table('phppos_app_config')->updateOrInsert(
+                ['key' => 'hide_item_image_upload'],
+                ['value' => '1']
+            );
+        }
+
         if (Schema::hasTable('phppos_receipt_settings')) {
             DB::table('phppos_receipt_settings')->updateOrInsert(
                 ['id' => 1],

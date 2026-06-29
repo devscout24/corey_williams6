@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhpposAppConfig;
+use App\Models\PhpposAppFile;
+use App\Models\PhpposCurrencyExchangeRate;
+use App\Models\PhpposLocation;
+use App\Models\PhpposPriceTier;
+use App\Models\PhpposRegister;
 use App\Models\PhpposRegisterCurrencyDenomination;
 use App\Models\PhpposTaxClass;
 use App\Models\PhpposTaxClassTax;
-use App\Models\PhpposPriceTier;
 use App\Services\AppConfigService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -70,7 +75,7 @@ class ConfigController extends Controller
             'limit_manual_price_adj', 'max_discount_percent', 'enable_markup_calculator',
             'enable_margin_calculator', 'verify_age_for_products', 'default_age_to_verify',
             'strict_age_format_check', 'hide_supplier_in_item_search_result', 'hide_supplier_from_item_popup',
-            'easy_item_clone_button', 'add_ck_editor_to_item',
+            'easy_item_clone_button', 'add_ck_editor_to_item', 'hide_item_image_upload',
             // Price Tiers config
             'override_tier_name', 'hide_tier_on_receipt',
             'default_tier_percent_type_for_excel_import', 'default_tier_fixed_type_for_excel_import',
@@ -103,14 +108,15 @@ class ConfigController extends Controller
             $values[$key] = $configService->get($key, '');
         }
 
-        $exchange_rates = \App\Models\PhpposCurrencyExchangeRate::all();
+        $exchange_rates = PhpposCurrencyExchangeRate::all();
         $currency_denoms = PhpposRegisterCurrencyDenomination::query()
             ->where('deleted', 0)
             ->orderBy('id')
             ->get();
-        $locations      = \App\Models\PhpposLocation::where('deleted', 0)->get();
-        $price_tiers    = PhpposPriceTier::where('deleted', 0)->orderBy('sort_order')->orderBy('id')->get();
-        $ecommerce_locations = \App\Models\PhpposAppConfig::where('key', 'ecommerce_location')->pluck('value', 'value')->toArray();
+        $locationId = session('employee_current_location_id') ?? auth('employee')->user()?->location_id ?? 1;
+        $locations = PhpposLocation::where('location_id', $locationId)->where('deleted', 0)->get();
+        $price_tiers = PhpposPriceTier::where('deleted', 0)->orderBy('sort_order')->orderBy('id')->get();
+        $ecommerce_locations = PhpposAppConfig::where('key', 'ecommerce_location')->pluck('value', 'value')->toArray();
         $taxClasses = PhpposTaxClass::query()
             ->where('deleted', 0)
             ->with(['taxes' => function ($query) {
@@ -119,7 +125,9 @@ class ConfigController extends Controller
             ->orderBy('order')
             ->orderBy('id')
             ->get();
-        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations', 'taxClasses'));
+        $registers_list = PhpposRegister::where('deleted', 0)->orderBy('name')->get();
+
+        return view('config.index', compact('values', 'exchange_rates', 'currency_denoms', 'locations', 'price_tiers', 'ecommerce_locations', 'taxClasses', 'registers_list'));
     }
 
     public function update(Request $request, AppConfigService $configService): RedirectResponse
@@ -147,6 +155,9 @@ class ConfigController extends Controller
             // tier fields
             'tiers_to_edit',
             'tiers_to_delete',
+            // register management
+            'registers',
+            'registers_to_delete',
             // ecommerce
             'ecommerce_locations',
             // tax class management
@@ -155,7 +166,7 @@ class ConfigController extends Controller
             'taxes_to_delete',
             'tax_classes_to_delete',
         ]);
-        
+
         // Handle checkboxes (convert missing values to 0)
         $checkboxes = [
             'print_after_sale', 'print_after_receiving', 'automatically_email_receipt', 'hide_signature',
@@ -196,6 +207,7 @@ class ConfigController extends Controller
             'limit_manual_price_adj', 'enable_markup_calculator', 'enable_margin_calculator',
             'verify_age_for_products', 'strict_age_format_check', 'hide_supplier_in_item_search_result',
             'hide_supplier_from_item_popup', 'easy_item_clone_button', 'add_ck_editor_to_item',
+            'hide_item_image_upload',
             // Price tier checkboxes
             'hide_tier_on_receipt', 'round_tier_prices_to_2_decimals',
             // Ecommerce checkboxes
@@ -265,7 +277,7 @@ class ConfigController extends Controller
                 if (is_numeric($taxClassId)) {
                     $taxClass = PhpposTaxClass::query()->firstOrNew(['id' => (int) $taxClassId]);
                 } else {
-                    $taxClass = new PhpposTaxClass();
+                    $taxClass = new PhpposTaxClass;
                 }
 
                 $taxClass->name = $name;
@@ -295,7 +307,7 @@ class ConfigController extends Controller
                     $taxId = $taxIds[$rateIndex] ?? null;
                     $taxRow = is_numeric($taxId)
                         ? PhpposTaxClassTax::query()->firstOrNew(['id' => (int) $taxId])
-                        : new PhpposTaxClassTax();
+                        : new PhpposTaxClassTax;
 
                     $taxRow->tax_class_id = $taxClass->id;
                     $taxRow->name = $taxName;
@@ -325,24 +337,22 @@ class ConfigController extends Controller
             if ($request->hasFile($fileKey)) {
                 $file = $request->file($fileKey);
                 $fileData = file_get_contents($file->getRealPath());
-                
-                $appFile = \App\Models\PhpposAppFile::create([
+
+                $appFile = PhpposAppFile::create([
                     'file_name' => $file->getClientOriginalName(),
                     'file_data' => $fileData,
                 ]);
-                
+
                 $data[$fileKey] = $appFile->file_id;
             }
         }
 
-        if (!$configService->batchSave($data)) {
+        if (! $configService->batchSave($data)) {
             return back()->withErrors(['config' => 'Error saving configuration. Please check for duplicate tax settings.']);
         }
 
-
-
         if ($request->boolean('config_exchange_rates_sync')) {
-            \App\Models\PhpposCurrencyExchangeRate::truncate();
+            PhpposCurrencyExchangeRate::truncate();
             $tos = (array) $request->input('currency_exchange_rates_to', []);
             $symbols = (array) $request->input('currency_exchange_rates_symbol', []);
             $rates = (array) $request->input('currency_exchange_rates_rate', []);
@@ -355,7 +365,7 @@ class ConfigController extends Controller
                 if (($tos[$i] ?? '') === '' || ($rates[$i] ?? '') === '') {
                     continue;
                 }
-                \App\Models\PhpposCurrencyExchangeRate::create([
+                PhpposCurrencyExchangeRate::create([
                     'currency_code_to' => $tos[$i],
                     'currency_symbol' => $symbols[$i] ?? '',
                     'exchange_rate' => $rates[$i],
@@ -412,9 +422,9 @@ class ConfigController extends Controller
 
         if ($request->has('locations_color') && is_array($request->locations_color)) {
             foreach ($request->locations_color as $locId => $color) {
-                \App\Models\PhpposLocation::where('location_id', $locId)->update([
+                PhpposLocation::where('location_id', $locId)->update([
                     'color' => $color,
-                    'secondary_color' => $request->locations_secondary_color[$locId] ?? null
+                    'secondary_color' => $request->locations_secondary_color[$locId] ?? null,
                 ]);
             }
         }
@@ -437,18 +447,53 @@ class ConfigController extends Controller
                 continue;
             }
             $attrs = [
-                'name'                        => $name,
-                'default_percent_off'         => is_numeric($tierData['default_percent_off'] ?? '') ? (float) $tierData['default_percent_off'] : null,
-                'default_cost_plus_percent'   => is_numeric($tierData['default_cost_plus_percent'] ?? '') ? (float) $tierData['default_cost_plus_percent'] : null,
+                'name' => $name,
+                'default_percent_off' => is_numeric($tierData['default_percent_off'] ?? '') ? (float) $tierData['default_percent_off'] : null,
+                'default_cost_plus_percent' => is_numeric($tierData['default_cost_plus_percent'] ?? '') ? (float) $tierData['default_cost_plus_percent'] : null,
                 'default_cost_plus_fixed_amount' => is_numeric($tierData['default_cost_plus_fixed_amount'] ?? '') ? (float) $tierData['default_cost_plus_fixed_amount'] : null,
-                'sort_order'                  => $sortOrder++,
-                'deleted'                     => 0,
+                'sort_order' => $sortOrder++,
+                'deleted' => 0,
             ];
-            $isNew = !is_numeric($tierId) || (int) $tierId <= 0;
+            $isNew = ! is_numeric($tierId) || (int) $tierId <= 0;
             if ($isNew) {
                 PhpposPriceTier::create($attrs);
             } else {
                 PhpposPriceTier::where('id', (int) $tierId)->update($attrs);
+            }
+        }
+
+        // Handle Register deletions
+        $registersToDelete = (array) $request->input('registers_to_delete', []);
+        foreach ($registersToDelete as $regId) {
+            $regId = (int) $regId;
+            if ($regId > 0) {
+                PhpposRegister::where('register_id', $regId)->update(['deleted' => 1]);
+            }
+        }
+
+        // Handle Register save/create
+        $registersToSave = (array) $request->input('registers', []);
+        foreach ($registersToSave as $regId => $regData) {
+            $name = trim((string) ($regData['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $locationId = (int) ($regData['location_id'] ?? 0);
+            if ($locationId <= 0) {
+                continue;
+            }
+            $enableTips = ($regData['enable_tips'] ?? '0') === '1';
+            $attrs = [
+                'name' => $name,
+                'location_id' => $locationId,
+                'enable_tips' => $enableTips,
+                'deleted' => 0,
+            ];
+            $isNew = ! is_numeric($regId) || (int) $regId <= 0;
+            if ($isNew) {
+                PhpposRegister::create($attrs);
+            } else {
+                PhpposRegister::where('register_id', (int) $regId)->update($attrs);
             }
         }
 

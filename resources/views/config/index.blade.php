@@ -40,6 +40,7 @@
                 <button type="button" class="sc-tab" data-tab="sales-module">Sales Module</button>
                 <button type="button" class="sc-tab" data-tab="items-module">Items Module</button>
                 <button type="button" class="sc-tab" data-tab="price-tiers">Price Tiers</button>
+                <button type="button" class="sc-tab" data-tab="registers">Registers</button>
                 <button type="button" class="sc-tab" data-tab="ecommerce">Ecommerce Platform</button>
                 <button type="button" class="sc-tab" data-tab="app-settings">Application Settings</button>
                 <button type="button" class="sc-tab" data-tab="theme">Theme</button>
@@ -748,6 +749,7 @@
                         ['hide_supplier_from_item_popup','Hide Supplier from Item Popup'],
                         ['easy_item_clone_button','Easy Item Clone Button'],
                         ['add_ck_editor_to_item','Add CKEditor to Item Description'],
+                        ['hide_item_image_upload','Hide Image Upload on Items'],
                     ] as [$key, $label])
                     <div class="sc-form-row">
                         <label class="sc-form-label">{{ $label }}</label>
@@ -819,6 +821,52 @@
                     <div class="sc-form-row">
                         <label class="sc-form-label">Round Tier Prices to 2 Decimals</label>
                         <input type="checkbox" name="round_tier_prices_to_2_decimals" value="1" @checked($values['round_tier_prices_to_2_decimals']) style="width:18px;height:18px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registers -->
+            <div class="sc-tab-panel" id="tab-registers">
+                <div class="sc-form-card">
+                    <h5 class="mb-3" style="color:var(--primary);font-weight:700;">Registers</h5>
+                    <p class="text-muted small mb-3">Define registers for each location. These registers will appear in the Sales module when opening a register shift.</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="registersTable" style="font-size:0.9rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:35%">Register Name</th>
+                                    <th style="width:30%">Location</th>
+                                    <th style="width:10%" class="text-center">Enable Tips</th>
+                                    <th style="width:80px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="registers_tbody">
+                                @forelse($registers_list as $reg)
+                                <tr data-register-id="{{ $reg->register_id }}">
+                                    <td><input type="text" class="sc-form-control" name="registers[{{ $reg->register_id }}][name]" value="{{ $reg->name }}"></td>
+                                    <td>
+                                        <select class="sc-form-control" name="registers[{{ $reg->register_id }}][location_id]">
+                                            @foreach($locations as $loc)
+                                                <option value="{{ $loc->location_id }}" @selected($reg->location_id == $loc->location_id)>{{ $loc->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="registers[{{ $reg->register_id }}][enable_tips]" value="0">
+                                        <input type="checkbox" name="registers[{{ $reg->register_id }}][enable_tips]" value="1" @checked($reg->enable_tips) style="width:18px;height:18px;">
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="#" class="delete_register text-danger" data-register-id="{{ $reg->register_id }}">Delete</a>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr id="noRegistersRow">
+                                    <td colspan="4" class="text-muted">No registers defined. Click "Add Register" below.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        <a href="#" id="add_register" class="sc-currency-link">+ Add Register</a>
                     </div>
                 </div>
             </div>
@@ -1395,6 +1443,62 @@
             }
             document.getElementById('ecommerce_platform_select')?.addEventListener('change', updateEcommercePlatform);
             updateEcommercePlatform();
+
+            // Register management
+            let registerAddIndex = Date.now();
+            const registersTbody = document.getElementById('registers_tbody');
+            const locationsData = @json($locations);
+
+            document.getElementById('add_register')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                const idx = 'new_' + registerAddIndex++;
+                // Remove "no registers" row if present
+                document.getElementById('noRegistersRow')?.remove();
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-register-id', idx);
+                let locationOptions = '<option value="">-- Select Location --</option>';
+                locationsData.forEach(function(loc) {
+                    locationOptions += `<option value="${loc.location_id}">${loc.name}</option>`;
+                });
+                tr.innerHTML = `
+                    <td><input type="text" class="sc-form-control" name="registers[${idx}][name]" value="" placeholder="Register Name"></td>
+                    <td>
+                        <select class="sc-form-control" name="registers[${idx}][location_id]">
+                            ${locationOptions}
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <input type="hidden" name="registers[${idx}][enable_tips]" value="0">
+                        <input type="checkbox" name="registers[${idx}][enable_tips]" value="1" style="width:18px;height:18px;">
+                    </td>
+                    <td class="text-center">
+                        <a href="#" class="delete_register text-danger" data-register-id="${idx}">Delete</a>
+                    </td>`;
+                registersTbody.appendChild(tr);
+            });
+
+            registersTbody?.addEventListener('click', function(e) {
+                const link = e.target.closest('.delete_register');
+                if (!link) return;
+                e.preventDefault();
+                const registerId = link.getAttribute('data-register-id');
+                const row = link.closest('tr');
+                if (registerId && !registerId.startsWith('new_')) {
+                    // Mark existing register as deleted
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'registers_to_delete[]';
+                    input.value = registerId;
+                    document.getElementById('storeConfigForm').appendChild(input);
+                }
+                row.remove();
+                if (registersTbody.children.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.id = 'noRegistersRow';
+                    emptyRow.innerHTML = '<td colspan="4" class="text-muted">No registers defined. Click "Add Register" below.</td>';
+                    registersTbody.appendChild(emptyRow);
+                }
+            });
         });
     </script>
 @endpush

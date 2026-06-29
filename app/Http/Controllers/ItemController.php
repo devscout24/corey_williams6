@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attribute;
 use App\Models\ItemVariation;
+use App\Models\PhpposAppFile;
 use App\Models\PhpposCategory;
 use App\Models\PhpposItem;
 use App\Models\PhpposSupplier;
@@ -17,15 +18,14 @@ use Illuminate\View\View;
 
 class ItemController extends Controller
 {
-    public function __construct(protected AppConfigService $configService)
-    {}
+    public function __construct(protected AppConfigService $configService) {}
 
     public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
-        $locationId  = auth('employee')->user()?->location_id ?? 1;
-        $search    = $request->input('search');
-        $category  = $request->input('category');
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $search = $request->input('search');
+        $category = $request->input('category');
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
 
         $all_columns = [
@@ -64,7 +64,7 @@ class ItemController extends Controller
         if ($column_order_val) {
             $order = explode(',', $column_order_val);
             foreach ($order as $col) {
-                if (isset($all_columns[$col]) && !isset($ordered_all_columns[$col])) {
+                if (isset($all_columns[$col]) && ! isset($ordered_all_columns[$col])) {
                     $ordered_all_columns[$col] = $all_columns[$col];
                 }
             }
@@ -79,7 +79,7 @@ class ItemController extends Controller
 
         // Append any remaining columns not in the saved order
         foreach ($all_columns as $col => $info) {
-            if (!isset($ordered_all_columns[$col])) {
+            if (! isset($ordered_all_columns[$col])) {
                 $ordered_all_columns[$col] = $info;
             }
         }
@@ -110,10 +110,10 @@ class ItemController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('phppos_items.name', 'like', "%{$search}%")
-                      ->orWhere('phppos_items.item_number', 'like', "%{$search}%")
-                      ->orWhere('phppos_items.product_id', 'like', "%{$search}%")
-                      ->orWhere('c.name', 'like', "%{$search}%")
-                      ->orWhere('s.company_name', 'like', "%{$search}%");
+                        ->orWhere('phppos_items.item_number', 'like', "%{$search}%")
+                        ->orWhere('phppos_items.product_id', 'like', "%{$search}%")
+                        ->orWhere('c.name', 'like', "%{$search}%")
+                        ->orWhere('s.company_name', 'like', "%{$search}%");
                 });
             })
             ->when($category && $category !== 'all', function ($q) use ($category) {
@@ -163,6 +163,7 @@ class ItemController extends Controller
             'baseCurrencyCode' => $baseCurrencyCode,
             'baseCurrencySymbol' => $baseCurrencySymbol,
             'baseDecimals' => $baseDecimals,
+            'hideItemImageUpload' => (bool) $this->configService->get('hide_item_image_upload', false),
         ]);
     }
 
@@ -235,6 +236,7 @@ class ItemController extends Controller
             'baseCurrencyCode' => $baseCurrencyCode,
             'baseCurrencySymbol' => $baseCurrencySymbol,
             'baseDecimals' => $baseDecimals,
+            'hideItemImageUpload' => (bool) $this->configService->get('hide_item_image_upload', false),
         ]);
     }
 
@@ -247,7 +249,7 @@ class ItemController extends Controller
             $children = $grouped->get($parentId, collect())->sortBy('name');
             foreach ($children as $child) {
                 $indent = str_repeat('&nbsp;', $depth * 4);
-                $label = $indent . e($child->name);
+                $label = $indent.e($child->name);
                 $options[] = (object) [
                     'id' => $child->id,
                     'name' => $child->name,
@@ -303,7 +305,7 @@ class ItemController extends Controller
         }
 
         DB::transaction(function () use ($itemId, $payload, $request, $data, $locationId): void {
-            if (!empty($payload)) {
+            if (! empty($payload)) {
                 PhpposItem::query()->where('item_id', $itemId)->update($payload);
             }
 
@@ -426,18 +428,18 @@ class ItemController extends Controller
             'ecommerce_shipping_class_id' => $data['ecommerce_shipping_class_id'] ?? null,
 
             'tax_included' => 1,
-            'is_service' => !empty($data['is_service']) ? 1 : 0,
-            'item_inactive' => !empty($data['item_inactive']) ? 1 : 0,
-            'is_barcoded' => !empty($data['is_barcoded']) ? 1 : 0,
-            'is_favorite' => !empty($data['is_favorite']) ? 1 : 0,
-            'is_ecommerce' => !empty($data['is_ecommerce']) ? 1 : 0,
-            'is_ebt_item' => !empty($data['is_ebt_item']) ? 1 : 0,
-            'is_series_package' => !empty($data['is_series_package']) ? 1 : 0,
-            'allow_alt_description' => !empty($data['allow_alt_description']) ? 1 : 0,
-            'is_serialized' => !empty($data['is_serialized']) ? 1 : 0,
-            'disable_loyalty' => !empty($data['disable_loyalty']) ? 1 : 0,
-            'verify_age' => !empty($data['verify_age']) ? 1 : 0,
-            'discountable' => !empty($data['discountable']) ? 1 : 0,
+            'is_service' => ! empty($data['is_service']) ? 1 : 0,
+            'item_inactive' => ! empty($data['item_inactive']) ? 1 : 0,
+            'is_barcoded' => ! empty($data['is_barcoded']) ? 1 : 0,
+            'is_favorite' => ! empty($data['is_favorite']) ? 1 : 0,
+            'is_ecommerce' => ! empty($data['is_ecommerce']) ? 1 : 0,
+            'is_ebt_item' => ! empty($data['is_ebt_item']) ? 1 : 0,
+            'is_series_package' => ! empty($data['is_series_package']) ? 1 : 0,
+            'allow_alt_description' => ! empty($data['allow_alt_description']) ? 1 : 0,
+            'is_serialized' => ! empty($data['is_serialized']) ? 1 : 0,
+            'disable_loyalty' => ! empty($data['disable_loyalty']) ? 1 : 0,
+            'verify_age' => ! empty($data['verify_age']) ? 1 : 0,
+            'discountable' => ! empty($data['discountable']) ? 1 : 0,
         ];
 
         $locationId = auth('employee')->user()?->location_id ?? 1;
@@ -457,10 +459,10 @@ class ItemController extends Controller
                 );
             }
 
-            if (!empty($data['images'])) {
+            if (! empty($data['images'])) {
                 foreach ($data['images'] as $file) {
                     if ($file) {
-                        $appFile = \App\Models\PhpposAppFile::create([
+                        $appFile = PhpposAppFile::create([
                             'file_name' => $file->getClientOriginalName(),
                             'file_data' => file_get_contents($file->getRealPath()),
                             'timestamp' => now(),
@@ -482,11 +484,11 @@ class ItemController extends Controller
                 $tagIds = [];
                 foreach ($tagNames as $tagName) {
                     $tag = DB::table('phppos_tags')->where('name', $tagName)->first();
-                    if (!$tag) {
+                    if (! $tag) {
                         $tagId = DB::table('phppos_tags')->insertGetId([
                             'name' => $tagName,
                             'created_at' => now(),
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
                     } else {
                         $tagId = $tag->id;
@@ -500,7 +502,7 @@ class ItemController extends Controller
                         'item_id' => $itemId,
                         'tag_id' => $tId,
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
                 }
             } else {
@@ -509,39 +511,39 @@ class ItemController extends Controller
 
             // Sync additional item numbers
             DB::table('phppos_additional_item_numbers')->where('item_id', $itemId)->delete();
-            if (!empty($data['additional_item_numbers'])) {
+            if (! empty($data['additional_item_numbers'])) {
                 foreach (array_filter($data['additional_item_numbers']) as $addNum) {
                     DB::table('phppos_additional_item_numbers')->insert([
                         'item_id' => $itemId,
                         'item_number' => $addNum,
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
                 }
             }
 
             // Sync secondary categories
             DB::table('phppos_items_secondary_categories')->where('item_id', $itemId)->delete();
-            if (!empty($data['secondary_categories'])) {
+            if (! empty($data['secondary_categories'])) {
                 foreach (array_filter($data['secondary_categories']) as $secCatId) {
                     DB::table('phppos_items_secondary_categories')->insert([
                         'item_id' => $itemId,
                         'category_id' => $secCatId,
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
                 }
             }
 
             // Sync secondary suppliers
             DB::table('phppos_items_secondary_suppliers')->where('item_id', $itemId)->delete();
-            if (!empty($data['secondary_suppliers'])) {
+            if (! empty($data['secondary_suppliers'])) {
                 foreach (array_filter($data['secondary_suppliers']) as $secSupId) {
                     DB::table('phppos_items_secondary_suppliers')->insert([
                         'item_id' => $itemId,
                         'supplier_id' => $secSupId,
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
                 }
             }
@@ -550,7 +552,7 @@ class ItemController extends Controller
             $existingVariationIds = ItemVariation::where('item_id', $itemId)->pluck('id')->toArray();
             $submittedVariationIds = [];
 
-            if (!empty($data['variations'])) {
+            if (! empty($data['variations'])) {
                 foreach ($data['variations'] as $varData) {
                     $varPayload = [
                         'item_id' => $itemId,
@@ -567,7 +569,7 @@ class ItemController extends Controller
                         'deleted' => 0,
                     ];
 
-                    if (!empty($varData['id'])) {
+                    if (! empty($varData['id'])) {
                         // Update existing variation
                         ItemVariation::where('id', $varData['id'])->update($varPayload);
                         $variationId = $varData['id'];
@@ -584,7 +586,7 @@ class ItemController extends Controller
                         ->where('item_variation_id', $variationId)
                         ->delete();
 
-                    if (!empty($varData['attribute_value_ids'])) {
+                    if (! empty($varData['attribute_value_ids'])) {
                         foreach (array_filter($varData['attribute_value_ids']) as $avId) {
                             DB::table('phppos_item_variation_attribute_values')->insert([
                                 'item_variation_id' => $variationId,
@@ -598,7 +600,7 @@ class ItemController extends Controller
                         ->where('item_variation_id', $variationId)
                         ->delete();
 
-                    if (!empty($varData['supplier_ids'])) {
+                    if (! empty($varData['supplier_ids'])) {
                         foreach (array_filter($varData['supplier_ids']) as $supId) {
                             DB::table('phppos_item_variation_suppliers')->insert([
                                 'item_variation_id' => $variationId,
@@ -613,7 +615,7 @@ class ItemController extends Controller
 
             // Soft-delete variations not in the submitted set
             $variationsToDelete = array_diff($existingVariationIds, $submittedVariationIds);
-            if (!empty($variationsToDelete)) {
+            if (! empty($variationsToDelete)) {
                 ItemVariation::whereIn('id', $variationsToDelete)->update(['deleted' => 1]);
             }
         });
@@ -628,7 +630,7 @@ class ItemController extends Controller
         $locationId = auth('employee')->user()?->location_id ?? 1;
 
         $categories = PhpposCategory::query()->where('deleted', 0)->pluck('name', 'id');
-        $suppliers  = PhpposSupplier::query()->where('deleted', 0)->pluck('company_name', 'person_id');
+        $suppliers = PhpposSupplier::query()->where('deleted', 0)->pluck('company_name', 'person_id');
 
         $items = PhpposItem::query()
             ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
@@ -643,22 +645,22 @@ class ItemController extends Controller
         $rows = [];
         foreach ($items as $item) {
             $rows[] = [
-                'item_id'        => $item->item_id,
-                'name'           => $item->name,
-                'item_number'    => $item->item_number ?? '',
-                'product_id'     => $item->product_id ?? '',
-                'category'       => $item->category_id ? ($categories[$item->category_id] ?? '') : '',
-                'supplier'       => $item->supplier_id ? ($suppliers[$item->supplier_id] ?? '') : '',
-                'cost_price'     => $item->cost_price,
-                'unit_price'     => $item->unit_price,
-                'quantity'       => $item->location_quantity ?? $item->default_quantity ?? 0,
-                'reorder_level'  => $item->reorder_level ?? '',
-                'description'    => $item->description ?? '',
-                'size'           => $item->size ?? '',
-                'weight'         => $item->weight ?? '',
-                'is_service'     => $item->is_service ? 1 : 0,
-                'item_inactive'  => $item->item_inactive ? 1 : 0,
-                'is_barcoded'    => $item->is_barcoded ? 1 : 0,
+                'item_id' => $item->item_id,
+                'name' => $item->name,
+                'item_number' => $item->item_number ?? '',
+                'product_id' => $item->product_id ?? '',
+                'category' => $item->category_id ? ($categories[$item->category_id] ?? '') : '',
+                'supplier' => $item->supplier_id ? ($suppliers[$item->supplier_id] ?? '') : '',
+                'cost_price' => $item->cost_price,
+                'unit_price' => $item->unit_price,
+                'quantity' => $item->location_quantity ?? $item->default_quantity ?? 0,
+                'reorder_level' => $item->reorder_level ?? '',
+                'description' => $item->description ?? '',
+                'size' => $item->size ?? '',
+                'weight' => $item->weight ?? '',
+                'is_service' => $item->is_service ? 1 : 0,
+                'item_inactive' => $item->item_inactive ? 1 : 0,
+                'is_barcoded' => $item->is_barcoded ? 1 : 0,
             ];
         }
 
@@ -749,7 +751,7 @@ class ItemController extends Controller
         ]);
 
         $file = $request->file('import_file');
-        $ext  = strtolower($file->getClientOriginalExtension());
+        $ext = strtolower($file->getClientOriginalExtension());
 
         $rows = ($ext === 'xls' || $ext === 'html')
             ? $this->parseXls($file->getRealPath())
@@ -761,12 +763,12 @@ class ItemController extends Controller
 
         $locationId = auth('employee')->user()?->location_id ?? 1;
 
-        $categories = PhpposCategory::query()->where('deleted', 0)->get()->keyBy(fn($c) => strtolower($c->name));
-        $suppliers  = PhpposSupplier::query()->where('deleted', 0)->get()->keyBy(fn($s) => strtolower($s->company_name));
+        $categories = PhpposCategory::query()->where('deleted', 0)->get()->keyBy(fn ($c) => strtolower($c->name));
+        $suppliers = PhpposSupplier::query()->where('deleted', 0)->get()->keyBy(fn ($s) => strtolower($s->company_name));
 
         $existingItems = PhpposItem::query()->where('deleted', 0)->get();
-        $byNumber = $existingItems->filter(fn($i) => $i->item_number)->keyBy(fn($i) => strtolower($i->item_number));
-        $byProduct = $existingItems->filter(fn($i) => $i->product_id)->keyBy(fn($i) => strtolower($i->product_id));
+        $byNumber = $existingItems->filter(fn ($i) => $i->item_number)->keyBy(fn ($i) => strtolower($i->item_number));
+        $byProduct = $existingItems->filter(fn ($i) => $i->product_id)->keyBy(fn ($i) => strtolower($i->product_id));
 
         $created = 0;
         $updated = 0;
@@ -776,11 +778,12 @@ class ItemController extends Controller
             $name = trim($row['name'] ?? $row['Name'] ?? '');
             if ($name === '') {
                 $skipped++;
+
                 continue;
             }
 
             $itemNumber = trim($row['item_number'] ?? $row['Item Number'] ?? '');
-            $productId  = trim($row['product_id'] ?? $row['Product ID'] ?? '');
+            $productId = trim($row['product_id'] ?? $row['Product ID'] ?? '');
 
             $existing = null;
             if ($productId !== '' && isset($byProduct[strtolower($productId)])) {
@@ -802,21 +805,21 @@ class ItemController extends Controller
             }
 
             $payload = [
-                'name'           => $name,
-                'item_number'    => $itemNumber ?: null,
-                'product_id'     => $productId ?: null,
-                'category_id'    => $categoryId,
-                'supplier_id'    => $supplierId,
-                'cost_price'     => (float) ($row['cost_price'] ?? $row['Cost Price'] ?? 0),
-                'unit_price'     => (float) ($row['unit_price'] ?? $row['Unit Price'] ?? 0),
+                'name' => $name,
+                'item_number' => $itemNumber ?: null,
+                'product_id' => $productId ?: null,
+                'category_id' => $categoryId,
+                'supplier_id' => $supplierId,
+                'cost_price' => (float) ($row['cost_price'] ?? $row['Cost Price'] ?? 0),
+                'unit_price' => (float) ($row['unit_price'] ?? $row['Unit Price'] ?? 0),
                 'default_quantity' => $row['quantity'] ?? $row['Quantity'] ?? null,
-                'reorder_level'  => $row['reorder_level'] ?? $row['Reorder Level'] ?? null,
-                'description'    => $row['description'] ?? $row['Description'] ?? null,
-                'size'           => $row['size'] ?? $row['Size'] ?? null,
-                'weight'         => $row['weight'] ?? $row['Weight'] ?? null,
-                'is_service'     => (int) ($row['is_service'] ?? $row['Is Service'] ?? 0),
-                'item_inactive'  => (int) ($row['item_inactive'] ?? $row['Inactive'] ?? 0),
-                'is_barcoded'    => (int) ($row['is_barcoded'] ?? $row['Is Barcoded'] ?? 1),
+                'reorder_level' => $row['reorder_level'] ?? $row['Reorder Level'] ?? null,
+                'description' => $row['description'] ?? $row['Description'] ?? null,
+                'size' => $row['size'] ?? $row['Size'] ?? null,
+                'weight' => $row['weight'] ?? $row['Weight'] ?? null,
+                'is_service' => (int) ($row['is_service'] ?? $row['Is Service'] ?? 0),
+                'item_inactive' => (int) ($row['item_inactive'] ?? $row['Inactive'] ?? 0),
+                'is_barcoded' => (int) ($row['is_barcoded'] ?? $row['Is Barcoded'] ?? 1),
             ];
 
             if ($existing) {
@@ -836,10 +839,10 @@ class ItemController extends Controller
                 if ($payload['default_quantity'] !== null) {
                     DB::table('phppos_location_items')->insert([
                         'location_id' => $locationId,
-                        'item_id'     => $item->item_id,
-                        'quantity'    => $payload['default_quantity'] ?? 0,
-                        'created_at'  => now(),
-                        'updated_at'  => now(),
+                        'item_id' => $item->item_id,
+                        'quantity' => $payload['default_quantity'] ?? 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
 
@@ -865,6 +868,7 @@ class ItemController extends Controller
         $headers = fgetcsv($handle);
         if (! $headers) {
             fclose($handle);
+
             return [];
         }
 

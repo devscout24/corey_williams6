@@ -104,11 +104,32 @@
                         <!-- Basic Info Tab -->
                         <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="basic-tab">
                             <div class="row g-3">
-                                <div class="col-md-4">
+
+                                <div class="col-md-6">
+                                    <label class="form-label" for="first_name">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name"
+                                        value="{{ old('first_name', $person?->first_name) }}" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="last_name">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name"
+                                        value="{{ old('last_name', $person?->last_name) }}" />
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label" for="company_name">Company Name <span
                                             class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="company_name" name="company_name"
                                         value="{{ old('company_name', $supplier?->company_name) }}" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="phone_number">Phone Number</label>
+                                    <input type="text" class="form-control" id="phone_number" name="phone_number"
+                                        value="{{ old('phone_number', $person?->phone_number) }}" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="fax_number">Fax Number</label>
+                                    <input type="text" class="form-control" id="fax_number" name="fax_number"
+                                        value="{{ old('fax_number', $person?->fax_number) }}" />
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="account_number">Account Number</label>
@@ -123,30 +144,12 @@
                                     @endif
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="first_name">First Name</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name"
-                                        value="{{ old('first_name', $person?->first_name) }}" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="last_name">Last Name</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name"
-                                        value="{{ old('last_name', $person?->last_name) }}" />
-                                </div>
-                                <div class="col-md-6">
                                     <label class="form-label" for="email">Email</label>
                                     <input type="email" class="form-control" id="email" name="email"
                                         value="{{ old('email', $person?->email) }}" />
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="phone_number">Phone Number</label>
-                                    <input type="text" class="form-control" id="phone_number" name="phone_number"
-                                        value="{{ old('phone_number', $person?->phone_number) }}" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="fax_number">Fax Number</label>
-                                    <input type="text" class="form-control" id="fax_number" name="fax_number"
-                                        value="{{ old('fax_number', $person?->fax_number) }}" />
-                                </div>
+
+
                                 <div class="col-md-6">
                                     <label class="form-label" for="address_1">Address 1</label>
                                     <input type="text" class="form-control" id="address_1" name="address_1"
