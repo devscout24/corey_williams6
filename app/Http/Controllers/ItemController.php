@@ -855,6 +855,169 @@ class ItemController extends Controller
         return back()->with('status', $message);
     }
 
+<<<<<<< Updated upstream
+=======
+    public function importReview(Request $request, string $batch): View
+    {
+        $employeeId = auth('employee')->user()?->id ?? 1;
+
+        if ($batch === 'latest') {
+            $latest = PhpposImportQueue::query()
+                ->where('employee_id', $employeeId)
+                ->where('status', 'pending')
+                ->latest()
+                ->value('import_batch');
+
+            if ($latest) {
+                $batch = $latest;
+            } else {
+                return view('items.import-review', [
+                    'items' => collect(),
+                    'batch' => '',
+                    'totalPending' => 0,
+                    'created' => 0,
+                ]);
+            }
+        }
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->get();
+
+        $totalPending = $items->count();
+        $created = session('import_created', 0);
+
+        return view('items.import-review', compact('items', 'batch', 'totalPending', 'created'));
+    }
+
+    public function importAccept(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+            'queue_ids' => ['required', 'array'],
+            'queue_ids.*' => ['integer', 'exists:phppos_import_queue,id'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $batch = $request->input('batch');
+        $queueIds = $request->input('queue_ids');
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->whereIn('id', $queueIds)
+            ->where('status', 'pending')
+            ->get();
+
+        $accepted = 0;
+        foreach ($items as $item) {
+            $costPrice = (float) ($request->input('cost_price_'.$item->id) ?? $item->incoming_cost_price);
+            $unitPrice = (float) ($request->input('unit_price_'.$item->id) ?? $item->incoming_unit_price);
+            $quantity = (float) ($request->input('quantity_'.$item->id) ?? $item->incoming_quantity);
+
+            PhpposItem::query()->where('item_id', $item->item_id)->update([
+                'cost_price' => $costPrice,
+                'unit_price' => $unitPrice,
+            ]);
+
+            DB::table('phppos_location_items')->updateOrInsert(
+                ['location_id' => $locationId, 'item_id' => $item->item_id],
+                ['quantity' => $quantity, 'updated_at' => now(), 'created_at' => now()]
+            );
+
+            $item->update(['status' => 'accepted']);
+            $accepted++;
+        }
+
+        $remaining = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($remaining === 0) {
+            return redirect()->route('items.index')
+                ->with('status', "Import complete. Accepted {$accepted} items.");
+        }
+
+        return redirect()->route('items.import.review', ['batch' => $batch])
+            ->with('status', "Accepted {$accepted} items. {$remaining} remaining.");
+    }
+
+    public function importAcceptAll(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $batch = $request->input('batch');
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->get();
+
+        $accepted = 0;
+        foreach ($items as $item) {
+            PhpposItem::query()->where('item_id', $item->item_id)->update([
+                'cost_price' => $item->incoming_cost_price,
+                'unit_price' => $item->incoming_unit_price,
+            ]);
+
+            DB::table('phppos_location_items')->updateOrInsert(
+                ['location_id' => $locationId, 'item_id' => $item->item_id],
+                ['quantity' => $item->incoming_quantity, 'updated_at' => now(), 'created_at' => now()]
+            );
+
+            $item->update(['status' => 'accepted']);
+            $accepted++;
+        }
+
+        return redirect()->route('items.index')
+            ->with('status', "Import complete. Accepted all {$accepted} items.");
+    }
+
+    public function importSkip(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+            'queue_ids' => ['required', 'array'],
+            'queue_ids.*' => ['integer', 'exists:phppos_import_queue,id'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $batch = $request->input('batch');
+
+        PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->whereIn('id', $request->input('queue_ids'))
+            ->where('status', 'pending')
+            ->update(['status' => 'skipped']);
+
+        $remaining = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($remaining === 0) {
+            return redirect()->route('items.index')
+                ->with('status', 'Import complete. All items skipped.');
+        }
+
+        return redirect()->route('items.import.review', ['batch' => $batch])
+            ->with('status', "Skipped items. {$remaining} remaining.");
+    }
+
+>>>>>>> Stashed changes
     private function parseCsv(string $path): array
     {
         $handle = fopen($path, 'r');
