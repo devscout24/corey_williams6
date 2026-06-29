@@ -86,6 +86,7 @@
                                     <td class=" fw-bold text-dark"><span
                                             class="fw-medium">{{ $kit->unit_price !== null ? $baseCurrencySymbol . number_format((float) $kit->unit_price, $baseDecimals) : '—' }}</span>
                                     </td>
+                                    <td class=""><span class="fw-medium">{{ $kit->default_quantity ?? '—' }}</span></td>
                                     <td class=""><span class="fw-medium">{{ $kit->reorder_level ?? '—' }}</span></td>
                                     <td class="text-end pe-4">
                                         <div class="btn-group">

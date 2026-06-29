@@ -69,7 +69,7 @@ class ItemKitController extends Controller
     private function form(?int $kitId): View
     {
         $kit = $kitId ? PhpposItemKit::with(['items', 'taxes', 'nestedKits', 'supplier'])->findOrFail($kitId) : null;
-        
+
         $categories = PhpposCategory::query()->where('deleted', 0)->orderBy('name')->get();
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
         $taxClasses = PhpposTaxClass::query()->where('deleted', 0)->orderBy('name')->get();
@@ -79,7 +79,7 @@ class ItemKitController extends Controller
         $secondaryCategories = $kitId
             ? DB::table('phppos_item_kits_secondary_categories')->where('item_kit_id', $kitId)->get()->all()
             : [];
-        
+
         // Tags
         $tags = $kitId ? DB::table('phppos_item_kits_tags as ikt')
             ->join('phppos_tags as t', 't.id', '=', 'ikt.tag_id')
@@ -196,12 +196,12 @@ class ItemKitController extends Controller
             'image' => ['nullable', 'image', 'max:2048'],
             'secondary_suppliers' => ['nullable', 'array'],
             'secondary_categories' => ['nullable', 'array'],
-            
+
             // Items and Nested Kits
             'kit_items' => ['nullable', 'array'],
             'kit_items.*.item_id' => ['nullable', 'integer'],
             'kit_items.*.quantity' => ['nullable', 'numeric'],
-            
+
             'nested_kits' => ['nullable', 'array'],
             'nested_kits.*.item_kit_id' => ['nullable', 'integer'],
             'nested_kits.*.quantity' => ['nullable', 'numeric'],
