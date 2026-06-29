@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhpposAppFile;
+use App\Models\PhpposInvoiceTerm;
+use App\Models\PhpposPeopleFile;
 use App\Models\PhpposPerson;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposSupplierTax;
 use App\Models\PhpposTaxClass;
-use App\Models\PhpposInvoiceTerm;
-use App\Models\PhpposAppFile;
-use App\Models\PhpposPeopleFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Response;
+use Illuminate\View\View;
 
 class SupplierController extends Controller
 {
     public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
-        $search      = $request->input('search');
+        $search = $request->input('search');
 
         $all_columns = [
             'person_id' => ['label' => 'ID', 'sort' => true],
@@ -57,7 +57,7 @@ class SupplierController extends Controller
         if ($column_order_val) {
             $order = explode(',', $column_order_val);
             foreach ($order as $col) {
-                if (isset($all_columns[$col]) && !isset($ordered_all_columns[$col])) {
+                if (isset($all_columns[$col]) && ! isset($ordered_all_columns[$col])) {
                     $ordered_all_columns[$col] = $all_columns[$col];
                 }
             }
@@ -71,7 +71,7 @@ class SupplierController extends Controller
         }
 
         foreach ($all_columns as $col => $info) {
-            if (!isset($ordered_all_columns[$col])) {
+            if (! isset($ordered_all_columns[$col])) {
                 $ordered_all_columns[$col] = $info;
             }
         }
@@ -84,11 +84,11 @@ class SupplierController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('s.company_name', 'like', "%{$search}%")
-                      ->orWhere('p.first_name', 'like', "%{$search}%")
-                      ->orWhere('p.last_name', 'like', "%{$search}%")
-                      ->orWhere('p.email', 'like', "%{$search}%")
-                      ->orWhere('p.phone_number', 'like', "%{$search}%")
-                      ->orWhere('p.fax_number', 'like', "%{$search}%");
+                        ->orWhere('p.first_name', 'like', "%{$search}%")
+                        ->orWhere('p.last_name', 'like', "%{$search}%")
+                        ->orWhere('p.email', 'like', "%{$search}%")
+                        ->orWhere('p.phone_number', 'like', "%{$search}%")
+                        ->orWhere('p.fax_number', 'like', "%{$search}%");
                 });
             })
             ->orderBy('s.company_name')
@@ -151,6 +151,7 @@ class SupplierController extends Controller
     public function downloadFile(int $fileId)
     {
         $file = PhpposAppFile::findOrFail($fileId);
+
         return Response::make($file->file_data, 200, [
             'Content-Type' => 'application/octet-stream',
             'Content-Disposition' => 'attachment; filename="'.$file->file_name.'"',
@@ -228,7 +229,7 @@ class SupplierController extends Controller
             $supplierPayload = [
                 'company_name' => $data['company_name'],
                 'account_number' => $data['account_number'] ?? null,
-                'override_default_tax' => !empty($data['override_default_tax']) ? 1 : 0,
+                'override_default_tax' => ! empty($data['override_default_tax']) ? 1 : 0,
                 'tax_class_id' => $data['tax_class_id'] ?? null,
                 'default_term_id' => $data['default_term_id'] ?? null,
                 'balance' => $data['balance'] ?? 0,
@@ -257,7 +258,7 @@ class SupplierController extends Controller
                 }
             }
 
-            if (!$supplier) {
+            if (! $supplier) {
                 $supplierPayload['person_id'] = $personId;
                 PhpposSupplier::query()->create($supplierPayload);
             } else {
@@ -266,7 +267,7 @@ class SupplierController extends Controller
 
             // Sync Taxes
             PhpposSupplierTax::where('supplier_id', $personId)->delete();
-            if (!empty($data['tax_percents'])) {
+            if (! empty($data['tax_percents'])) {
                 foreach ($data['tax_percents'] as $index => $percent) {
                     if (is_numeric($percent)) {
                         PhpposSupplierTax::create([
@@ -299,5 +300,81 @@ class SupplierController extends Controller
         });
 
         return redirect()->route('suppliers.index')->with('status', 'Supplier saved.');
+    }
+
+    public function export(Request $request)
+    {
+        $format = $request->query('format', 'csv');
+
+        $suppliers = DB::table('phppos_suppliers as s')
+            ->join('phppos_people as p', 'p.person_id', '=', 's.person_id')
+            ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number', 'p.fax_number', 'p.address', 'p.city', 'p.state', 'p.zip', 'p.country')
+            ->where('s.deleted', 0)
+            ->orderBy('s.company_name')
+            ->get();
+
+        $rows = [];
+        foreach ($suppliers as $s) {
+            $rows[] = [
+                'person_id' => $s->person_id,
+                'company_name' => $s->company_name ?? '',
+                'first_name' => $s->first_name ?? '',
+                'last_name' => $s->last_name ?? '',
+                'email' => $s->email ?? '',
+                'phone_number' => $s->phone_number ?? '',
+                'fax_number' => $s->fax_number ?? '',
+                'address' => $s->address ?? '',
+                'city' => $s->city ?? '',
+                'state' => $s->state ?? '',
+                'zip' => $s->zip ?? '',
+                'country' => $s->country ?? '',
+                'balance' => $s->balance ?? 0,
+                'account_number' => $s->account_number ?? '',
+            ];
+        }
+
+        $columnLabels = [
+            'ID', 'Company', 'First Name', 'Last Name', 'Email', 'Phone', 'Fax',
+            'Address', 'City', 'State', 'Zip', 'Country',
+            'Balance', 'Account Number',
+        ];
+
+        if ($format === 'xls') {
+            $html = '<html><head><meta charset="UTF-8"><title>Suppliers Export</title>';
+            $html .= '<style>table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}th{background:#f0f0f0;font-weight:bold;}</style>';
+            $html .= '</head><body><h2>Suppliers</h2>';
+            $html .= '<table><thead><tr>';
+            foreach ($columnLabels as $label) {
+                $html .= '<th>'.htmlspecialchars($label).'</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $html .= '<tr>';
+                foreach ($row as $val) {
+                    $html .= '<td>'.htmlspecialchars((string) $val).'</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table></body></html>';
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Disposition' => 'attachment; filename="suppliers-export.xls"',
+            ]);
+        }
+
+        $callback = function () use ($columnLabels, $rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $columnLabels);
+            foreach ($rows as $row) {
+                fputcsv($handle, array_values($row));
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="suppliers-export.csv"',
+        ]);
     }
 }

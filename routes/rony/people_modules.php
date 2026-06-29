@@ -22,6 +22,7 @@ Route::middleware('auth:employee')->group(function (): void {
 
     
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/{personId}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
@@ -31,6 +32,7 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::delete('/customers/files/{fileId}', [CustomerController::class, 'deleteFile'])->name('customers.files.delete');
 
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    Route::get('/suppliers/export', [SupplierController::class, 'export'])->name('suppliers.export');
     Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
     Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
     Route::get('/suppliers/{personId}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
