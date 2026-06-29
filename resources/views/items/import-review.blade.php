@@ -161,6 +161,34 @@
     border-radius: 4px;
     margin-left: 6px;
   }
+  .price-cell {
+    min-width: 200px;
+  }
+  .price-existing {
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .price-input {
+    width: 100%;
+    max-width: 120px;
+    padding: 5px 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: 5px;
+    font-size: 13px;
+    color: #334155;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .price-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+  }
+  .price-changed {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
 </style>
 @endpush
 
@@ -226,7 +254,7 @@
                                 <th>Cost Price</th>
                                 <th>Unit Price</th>
                                 <th>Quantity</th>
-                                <th style="width: 140px;">Actions</th>
+                                <th style="width: 160px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -243,51 +271,41 @@
                                     </td>
                                     <td>{{ $item->item_number ?: '—' }}</td>
                                     <td>{{ $item->product_id ?: '—' }}</td>
-                                    <td>
-                                        @if($item->existing_cost_price != $item->incoming_cost_price)
-                                            <span class="price-old">{{ number_format($item->existing_cost_price, 2) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_cost_price, 2) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_cost_price, 2) }} (no change)</span>
-                                        @endif
+                                    <td class="price-cell">
+                                        <div class="price-existing">Current: {{ number_format($item->existing_cost_price, 2) }}</div>
+                                        <input type="number" step="0.01" min="0"
+                                            name="cost_price_{{ $item->id }}"
+                                            value="{{ number_format($item->incoming_cost_price, 2, '.', '') }}"
+                                            class="price-input"
+                                            data-existing="{{ $item->existing_cost_price }}"
+                                            onchange="markChanged(this)">
                                     </td>
-                                    <td>
-                                        @if($item->existing_unit_price != $item->incoming_unit_price)
-                                            <span class="price-old">{{ number_format($item->existing_unit_price, 2) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_unit_price, 2) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_unit_price, 2) }} (no change)</span>
-                                        @endif
+                                    <td class="price-cell">
+                                        <div class="price-existing">Current: {{ number_format($item->existing_unit_price, 2) }}</div>
+                                        <input type="number" step="0.01" min="0"
+                                            name="unit_price_{{ $item->id }}"
+                                            value="{{ number_format($item->incoming_unit_price, 2, '.', '') }}"
+                                            class="price-input"
+                                            data-existing="{{ $item->existing_unit_price }}"
+                                            onchange="markChanged(this)">
                                     </td>
-                                    <td>
-                                        @if($item->existing_quantity != $item->incoming_quantity)
-                                            <span class="price-old">{{ number_format($item->existing_quantity, 0) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_quantity, 0) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_quantity, 0) }} (no change)</span>
-                                        @endif
+                                    <td class="price-cell">
+                                        <div class="price-existing">Current: {{ number_format($item->existing_quantity, 0) }}</div>
+                                        <input type="number" step="1" min="0"
+                                            name="quantity_{{ $item->id }}"
+                                            value="{{ number_format($item->incoming_quantity, 0, '.', '') }}"
+                                            class="price-input"
+                                            data-existing="{{ $item->existing_quantity }}"
+                                            onchange="markChanged(this)">
                                     </td>
                                     <td>
                                         <div class="btn-action-row">
-                                            <form method="post" action="{{ route('items.import.accept') }}" style="display:inline;">
-                                                @csrf
-                                                <input type="hidden" name="batch" value="{{ $batch }}">
-                                                <input type="hidden" name="queue_ids[]" value="{{ $item->id }}">
-                                                <button type="submit" class="btn-accept">
-                                                    <i class="bi bi-check-lg"></i> Accept
-                                                </button>
-                                            </form>
-                                            <form method="post" action="{{ route('items.import.skip') }}" style="display:inline;">
-                                                @csrf
-                                                <input type="hidden" name="batch" value="{{ $batch }}">
-                                                <input type="hidden" name="queue_ids[]" value="{{ $item->id }}">
-                                                <button type="submit" class="btn-skip">
-                                                    <i class="bi bi-x-lg"></i> Skip
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn-accept" onclick="submitSingle({{ $item->id }}, 'accept')">
+                                                <i class="bi bi-check-lg"></i> Accept
+                                            </button>
+                                            <button type="button" class="btn-skip" onclick="submitSingle({{ $item->id }}, 'skip')">
+                                                <i class="bi bi-x-lg"></i> Skip
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -334,10 +352,50 @@ function updateBulkButtons() {
     document.getElementById('selectedCount').textContent = count > 0 ? count + ' selected' : '';
 }
 
+function markChanged(input) {
+    const existing = parseFloat(input.dataset.existing);
+    const current = parseFloat(input.value);
+    if (Math.abs(current - existing) > 0.001) {
+        input.classList.add('price-changed');
+    } else {
+        input.classList.remove('price-changed');
+    }
+}
+
+function submitSingle(id, action) {
+    const form = document.getElementById('bulkForm');
+    form.action = action === 'accept'
+        ? '{{ route("items.import.accept") }}'
+        : '{{ route("items.import.skip") }}';
+
+    const container = document.getElementById('bulkInputs');
+    container.innerHTML = '';
+
+    const row = document.getElementById('row-' + id);
+
+    const idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = 'queue_ids[]';
+    idInput.value = id;
+    container.appendChild(idInput);
+
+    ['cost_price', 'unit_price', 'quantity'].forEach(field => {
+        const inp = row.querySelector('input[name="' + field + '_' + id + '"]');
+        if (inp) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = field + '_' + id;
+            h.value = inp.value;
+            container.appendChild(h);
+        }
+    });
+
+    form.submit();
+}
+
 function submitBulk(action) {
     const checked = document.querySelectorAll('.row-checkbox:checked');
-    const ids = Array.from(checked).map(cb => cb.value);
-    if (ids.length === 0) return;
+    if (checked.length === 0) return;
 
     const form = document.getElementById('bulkForm');
     form.action = action === 'accept'
@@ -346,12 +404,43 @@ function submitBulk(action) {
 
     const container = document.getElementById('bulkInputs');
     container.innerHTML = '';
-    ids.forEach(id => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'queue_ids[]';
-        input.value = id;
-        container.appendChild(input);
+
+    checked.forEach(cb => {
+        const id = cb.value;
+        const row = cb.closest('tr');
+
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'queue_ids[]';
+        idInput.value = id;
+        container.appendChild(idInput);
+
+        const costInput = row.querySelector('input[name="cost_price_' + id + '"]');
+        if (costInput) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = 'cost_price_' + id;
+            h.value = costInput.value;
+            container.appendChild(h);
+        }
+
+        const unitInput = row.querySelector('input[name="unit_price_' + id + '"]');
+        if (unitInput) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = 'unit_price_' + id;
+            h.value = unitInput.value;
+            container.appendChild(h);
+        }
+
+        const qtyInput = row.querySelector('input[name="quantity_' + id + '"]');
+        if (qtyInput) {
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = 'quantity_' + id;
+            h.value = qtyInput.value;
+            container.appendChild(h);
+        }
     });
 
     form.submit();
