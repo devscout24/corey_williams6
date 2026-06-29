@@ -225,6 +225,7 @@
             <li><a class="dropdown-item" href="{{ route('items.export', ['format' => 'xls']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-file-earmark-excel" style="margin-right: 8px; color: #059669;"></i>Export XLS</a></li>
             <li><hr class="dropdown-divider" style="margin: 4px 0; border-color: var(--gray-200);"></li>
             <li><a class="dropdown-item" href="{{ route('items.import') }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-upload" style="margin-right: 8px; color: #f59e0b;"></i>Import</a></li>
+            <li><a class="dropdown-item" href="{{ route('items.import.review', ['batch' => 'latest']) }}" style="font-size: 13.5px; padding: 8px 16px; font-weight: 500;"><i class="bi bi-arrow-left-right" style="margin-right: 8px; color: #8b5cf6;"></i>Import Review</a></li>
           </ul>
         </div>
       </div>

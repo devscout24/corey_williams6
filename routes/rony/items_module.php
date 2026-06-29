@@ -27,6 +27,10 @@ Route::middleware('auth:employee')->group(function (): void {
     Route::get('/items/export', [ItemController::class, 'export'])->name('items.export');
     Route::get('/items/import', [ItemController::class, 'importForm'])->name('items.import');
     Route::post('/items/import', [ItemController::class, 'import'])->name('items.import.store');
+    Route::get('/items/import/review/{batch}', [ItemController::class, 'importReview'])->name('items.import.review');
+    Route::post('/items/import/accept', [ItemController::class, 'importAccept'])->name('items.import.accept');
+    Route::post('/items/import/accept-all', [ItemController::class, 'importAcceptAll'])->name('items.import.accept-all');
+    Route::post('/items/import/skip', [ItemController::class, 'importSkip'])->name('items.import.skip');
     Route::get('/items/{itemId}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::put('/items/{itemId}', [ItemController::class, 'update'])->name('items.update');
     Route::patch('/items/{itemId}/quick-update', [ItemController::class, 'quickUpdate'])->name('items.quick-update');

@@ -86,7 +86,7 @@
             <h5 style="font-size: 16px; font-weight: 600; color: #475569; margin-bottom: 6px;">Import Items from CSV / XLS</h5>
             <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">
                 Upload a CSV or XLS file with columns: <code>name</code>, <code>item_number</code> (optional), <code>product_id</code> (optional), <code>category</code> (optional), <code>supplier</code> (optional), <code>cost_price</code>, <code>unit_price</code>, <code>quantity</code>, <code>reorder_level</code>, <code>description</code>, <code>size</code>, <code>weight</code>, <code>is_service</code>, <code>item_inactive</code>, <code>is_barcoded</code>.
-                Items are matched by item_number, then product_id, then name.
+                New items are created immediately. Existing items (matched by product_id then item_number) are queued for review before updating.
             </p>
 
             @if(session('status'))

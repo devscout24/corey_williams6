@@ -6,6 +6,7 @@ use App\Models\Attribute;
 use App\Models\ItemVariation;
 use App\Models\PhpposAppFile;
 use App\Models\PhpposCategory;
+use App\Models\PhpposImportQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposSupplier;
 use App\Models\PhpposTaxClass;
@@ -762,6 +763,7 @@ class ItemController extends Controller
         }
 
         $locationId = auth('employee')->user()?->location_id ?? 1;
+        $employeeId = auth('employee')->user()?->id ?? 1;
 
         $categories = PhpposCategory::query()->where('deleted', 0)->get()->keyBy(fn ($c) => strtolower($c->name));
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->get()->keyBy(fn ($s) => strtolower($s->company_name));
@@ -771,19 +773,20 @@ class ItemController extends Controller
         $byProduct = $existingItems->filter(fn ($i) => $i->product_id)->keyBy(fn ($i) => strtolower($i->product_id));
 
         $created = 0;
-        $updated = 0;
+        $queued = 0;
         $skipped = 0;
+        $batch = uniqid('imp_', true);
 
         foreach ($rows as $row) {
-            $name = trim($row['name'] ?? $row['Name'] ?? '');
+            $name = trim($row['name'] ?? '');
             if ($name === '') {
                 $skipped++;
 
                 continue;
             }
 
-            $itemNumber = trim($row['item_number'] ?? $row['Item Number'] ?? '');
-            $productId = trim($row['product_id'] ?? $row['Product ID'] ?? '');
+            $itemNumber = trim($row['item_number'] ?? '');
+            $productId = trim($row['product_id'] ?? '');
 
             $existing = null;
             if ($productId !== '' && isset($byProduct[strtolower($productId)])) {
@@ -792,48 +795,60 @@ class ItemController extends Controller
                 $existing = $byNumber[strtolower($itemNumber)];
             }
 
-            $categoryId = null;
-            $catName = trim($row['category'] ?? $row['Category'] ?? '');
-            if ($catName !== '' && isset($categories[strtolower($catName)])) {
-                $categoryId = $categories[strtolower($catName)]->id;
-            }
-
-            $supplierId = null;
-            $supName = trim($row['supplier'] ?? $row['Supplier'] ?? '');
-            if ($supName !== '' && isset($suppliers[strtolower($supName)])) {
-                $supplierId = $suppliers[strtolower($supName)]->person_id;
-            }
-
-            $payload = [
-                'name' => $name,
-                'item_number' => $itemNumber ?: null,
-                'product_id' => $productId ?: null,
-                'category_id' => $categoryId,
-                'supplier_id' => $supplierId,
-                'cost_price' => (float) ($row['cost_price'] ?? $row['Cost Price'] ?? 0),
-                'unit_price' => (float) ($row['unit_price'] ?? $row['Unit Price'] ?? 0),
-                'default_quantity' => $row['quantity'] ?? $row['Quantity'] ?? null,
-                'reorder_level' => $row['reorder_level'] ?? $row['Reorder Level'] ?? null,
-                'description' => $row['description'] ?? $row['Description'] ?? null,
-                'size' => $row['size'] ?? $row['Size'] ?? null,
-                'weight' => $row['weight'] ?? $row['Weight'] ?? null,
-                'is_service' => (int) ($row['is_service'] ?? $row['Is Service'] ?? 0),
-                'item_inactive' => (int) ($row['item_inactive'] ?? $row['Inactive'] ?? 0),
-                'is_barcoded' => (int) ($row['is_barcoded'] ?? $row['Is Barcoded'] ?? 1),
-            ];
-
             if ($existing) {
-                PhpposItem::query()->where('item_id', $existing->item_id)->update($payload);
+                PhpposImportQueue::query()->create([
+                    'import_batch' => $batch,
+                    'item_id' => $existing->item_id,
+                    'item_number' => $itemNumber ?: $existing->item_number,
+                    'product_id' => $productId ?: $existing->product_id,
+                    'name' => $name,
+                    'category' => trim($row['category'] ?? ''),
+                    'supplier' => trim($row['supplier'] ?? ''),
+                    'existing_cost_price' => $existing->cost_price,
+                    'existing_unit_price' => $existing->unit_price,
+                    'existing_quantity' => DB::table('phppos_location_items')
+                        ->where('location_id', $locationId)
+                        ->where('item_id', $existing->item_id)
+                        ->value('quantity') ?? 0,
+                    'incoming_cost_price' => (float) ($row['cost_price'] ?? 0),
+                    'incoming_unit_price' => (float) ($row['unit_price'] ?? 0),
+                    'incoming_quantity' => (float) ($row['quantity'] ?? 0),
+                    'status' => 'pending',
+                    'employee_id' => $employeeId,
+                ]);
 
-                if (array_key_exists('quantity', $payload) && $payload['quantity'] !== null) {
-                    DB::table('phppos_location_items')->updateOrInsert(
-                        ['location_id' => $locationId, 'item_id' => $existing->item_id],
-                        ['quantity' => $payload['default_quantity'] ?? 0, 'updated_at' => now(), 'created_at' => now()]
-                    );
+                $queued++;
+            } else {
+                $categoryId = null;
+                $catName = trim($row['category'] ?? '');
+                if ($catName !== '' && isset($categories[strtolower($catName)])) {
+                    $categoryId = $categories[strtolower($catName)]->id;
                 }
 
-                $updated++;
-            } else {
+                $supplierId = null;
+                $supName = trim($row['supplier'] ?? '');
+                if ($supName !== '' && isset($suppliers[strtolower($supName)])) {
+                    $supplierId = $suppliers[strtolower($supName)]->person_id;
+                }
+
+                $payload = [
+                    'name' => $name,
+                    'item_number' => $itemNumber ?: null,
+                    'product_id' => $productId ?: null,
+                    'category_id' => $categoryId,
+                    'supplier_id' => $supplierId,
+                    'cost_price' => (float) ($row['cost_price'] ?? 0),
+                    'unit_price' => (float) ($row['unit_price'] ?? 0),
+                    'default_quantity' => $row['quantity'] ?? null,
+                    'reorder_level' => $row['reorder_level'] ?? null,
+                    'description' => $row['description'] ?? null,
+                    'size' => $row['size'] ?? null,
+                    'weight' => $row['weight'] ?? null,
+                    'is_service' => (int) ($row['is_service'] ?? 0),
+                    'item_inactive' => (int) ($row['item_inactive'] ?? 0),
+                    'is_barcoded' => (int) ($row['is_barcoded'] ?? 1),
+                ];
+
                 $item = PhpposItem::query()->create($payload);
 
                 if ($payload['default_quantity'] !== null) {
@@ -853,9 +868,170 @@ class ItemController extends Controller
             }
         }
 
-        $message = "Import complete. Created: {$created}, Updated: {$updated}, Skipped: {$skipped}.";
+        if ($queued > 0) {
+            return redirect()->route('items.import.review', ['batch' => $batch])
+                ->with('import_created', $created);
+        }
+
+        $message = "Import complete. Created: {$created}, Skipped: {$skipped}.";
 
         return back()->with('status', $message);
+    }
+
+    public function importReview(Request $request, string $batch): View
+    {
+        $employeeId = auth('employee')->user()?->id ?? 1;
+
+        if ($batch === 'latest') {
+            $latest = PhpposImportQueue::query()
+                ->where('employee_id', $employeeId)
+                ->where('status', 'pending')
+                ->latest()
+                ->value('import_batch');
+
+            if ($latest) {
+                $batch = $latest;
+            } else {
+                return view('items.import-review', [
+                    'items' => collect(),
+                    'batch' => '',
+                    'totalPending' => 0,
+                    'created' => 0,
+                ]);
+            }
+        }
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->get();
+
+        $totalPending = $items->count();
+        $created = session('import_created', 0);
+
+        return view('items.import-review', compact('items', 'batch', 'totalPending', 'created'));
+    }
+
+    public function importAccept(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+            'queue_ids' => ['required', 'array'],
+            'queue_ids.*' => ['integer', 'exists:phppos_import_queue,id'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $batch = $request->input('batch');
+        $queueIds = $request->input('queue_ids');
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->whereIn('id', $queueIds)
+            ->where('status', 'pending')
+            ->get();
+
+        $accepted = 0;
+        foreach ($items as $item) {
+            PhpposItem::query()->where('item_id', $item->item_id)->update([
+                'cost_price' => $item->incoming_cost_price,
+                'unit_price' => $item->incoming_unit_price,
+            ]);
+
+            DB::table('phppos_location_items')->updateOrInsert(
+                ['location_id' => $locationId, 'item_id' => $item->item_id],
+                ['quantity' => $item->incoming_quantity, 'updated_at' => now(), 'created_at' => now()]
+            );
+
+            $item->update(['status' => 'accepted']);
+            $accepted++;
+        }
+
+        $remaining = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($remaining === 0) {
+            return redirect()->route('items.index')
+                ->with('status', "Import complete. Accepted {$accepted} items.");
+        }
+
+        return redirect()->route('items.import.review', ['batch' => $batch])
+            ->with('status', "Accepted {$accepted} items. {$remaining} remaining.");
+    }
+
+    public function importAcceptAll(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $locationId = auth('employee')->user()?->location_id ?? 1;
+        $batch = $request->input('batch');
+
+        $items = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->get();
+
+        $accepted = 0;
+        foreach ($items as $item) {
+            PhpposItem::query()->where('item_id', $item->item_id)->update([
+                'cost_price' => $item->incoming_cost_price,
+                'unit_price' => $item->incoming_unit_price,
+            ]);
+
+            DB::table('phppos_location_items')->updateOrInsert(
+                ['location_id' => $locationId, 'item_id' => $item->item_id],
+                ['quantity' => $item->incoming_quantity, 'updated_at' => now(), 'created_at' => now()]
+            );
+
+            $item->update(['status' => 'accepted']);
+            $accepted++;
+        }
+
+        return redirect()->route('items.index')
+            ->with('status', "Import complete. Accepted all {$accepted} items.");
+    }
+
+    public function importSkip(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'batch' => ['required', 'string'],
+            'queue_ids' => ['required', 'array'],
+            'queue_ids.*' => ['integer', 'exists:phppos_import_queue,id'],
+        ]);
+
+        $employeeId = auth('employee')->user()?->id ?? 1;
+        $batch = $request->input('batch');
+
+        PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->whereIn('id', $request->input('queue_ids'))
+            ->where('status', 'pending')
+            ->update(['status' => 'skipped']);
+
+        $remaining = PhpposImportQueue::query()
+            ->where('import_batch', $batch)
+            ->where('employee_id', $employeeId)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($remaining === 0) {
+            return redirect()->route('items.index')
+                ->with('status', 'Import complete. All items skipped.');
+        }
+
+        return redirect()->route('items.import.review', ['batch' => $batch])
+            ->with('status', "Skipped items. {$remaining} remaining.");
     }
 
     private function parseCsv(string $path): array
@@ -872,7 +1048,7 @@ class ItemController extends Controller
             return [];
         }
 
-        $headers = array_map('strtolower', array_map('trim', $headers));
+        $headers = array_map(fn ($h) => str_replace(' ', '_', strtolower(trim($h))), $headers);
 
         $rows = [];
         while (($data = fgetcsv($handle)) !== false) {
@@ -917,7 +1093,7 @@ class ItemController extends Controller
 
         $headers = [];
         for ($i = 0; $i < $headerCells->length; $i++) {
-            $headers[] = strtolower(trim($headerCells->item($i)->textContent));
+            $headers[] = str_replace(' ', '_', strtolower(trim($headerCells->item($i)->textContent)));
         }
 
         for ($i = 1; $i < $trElements->length; $i++) {

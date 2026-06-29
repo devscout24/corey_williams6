@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PhpposCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
@@ -133,13 +134,14 @@ class CategoryController extends Controller
         return view('categories.import');
     }
 
-    public function import(Request $request): RedirectResponse {
+    public function import(Request $request): RedirectResponse
+    {
         $request->validate([
             'import_file' => ['required', 'file', 'mimes:csv,txt,xls,html'],
         ]);
 
         $file = $request->file('import_file');
-        $ext  = strtolower($file->getClientOriginalExtension());
+        $ext = strtolower($file->getClientOriginalExtension());
 
         $rows = ($ext === 'xls' || $ext === 'html')
             ? $this->parseXls($file->getRealPath())
@@ -157,24 +159,24 @@ class CategoryController extends Controller
         // 2. $byName["name"][]              => [category data, ...]  (name-only)
         // 3. $bySlug["slug"]                => category data  (slug lookup)
         $byComposite = [];
-        $byName      = [];
-        $bySlug      = [];
+        $byName = [];
+        $bySlug = [];
 
         $existingCategories = PhpposCategory::query()->where('deleted', 0)->get();
 
         foreach ($existingCategories as $cat) {
-            $nameKey      = strtolower($cat->name);
-            $compositeKey = $nameKey . '|' . ($cat->parent_id ?? '');
+            $nameKey = strtolower($cat->name);
+            $compositeKey = $nameKey.'|'.($cat->parent_id ?? '');
 
             $entry = [
-                'id'             => $cat->id,
-                'parent_id'      => $cat->parent_id,
-                'slug'           => $cat->slug ?? '',
+                'id' => $cat->id,
+                'parent_id' => $cat->parent_id,
+                'slug' => $cat->slug ?? '',
                 'hide_from_grid' => (int) $cat->hide_from_grid,
             ];
 
-            $byComposite[$compositeKey]  = $entry;
-            $byName[$nameKey][]          = $entry;
+            $byComposite[$compositeKey] = $entry;
+            $byName[$nameKey][] = $entry;
             if (($cat->slug ?? '') !== '') {
                 $bySlug[strtolower($cat->slug)] = $entry;
             }
@@ -185,18 +187,19 @@ class CategoryController extends Controller
         $skipped = 0;
 
         foreach ($rows as $row) {
-            $name         = trim($row['name'] ?? $row['Name'] ?? '');
-            $slug         = strtolower(trim($row['slug'] ?? $row['Slug'] ?? ''));
-            $hideFromGrid = (int) ($row['hide_from_grid'] ?? $row['Hide From Grid'] ?? 0);
+            $name = trim($row['name'] ?? '');
+            $slug = strtolower(trim($row['slug'] ?? ''));
+            $hideFromGrid = (int) ($row['hide_from_grid'] ?? 0);
 
             if ($name === '') {
                 $skipped++;
+
                 continue;
             }
 
             // Auto-generate slug from name if not provided
             if ($slug === '') {
-                $slug = \Illuminate\Support\Str::slug($name);
+                $slug = Str::slug($name);
             }
 
             // Resolve parent from slug path (everything before last /)
@@ -213,12 +216,12 @@ class CategoryController extends Controller
                 // If parent slug not found → stays null (top-level)
             }
 
-            $nameKey      = strtolower($name);
-            $compositeKey = $nameKey . '|' . ($parentId ?? '');
-            $existing     = $byComposite[$compositeKey] ?? null;
+            $nameKey = strtolower($name);
+            $compositeKey = $nameKey.'|'.($parentId ?? '');
+            $existing = $byComposite[$compositeKey] ?? null;
 
             // Also try slug match for updates
-            if (!$existing && isset($bySlug[$slug])) {
+            if (! $existing && isset($bySlug[$slug])) {
                 $existing = $bySlug[$slug];
             }
 
@@ -245,23 +248,23 @@ class CategoryController extends Controller
                 }
             } else {
                 $newCat = PhpposCategory::query()->create([
-                    'name'           => $name,
-                    'parent_id'      => $parentId,
-                    'deleted'        => 0,
+                    'name' => $name,
+                    'parent_id' => $parentId,
+                    'deleted' => 0,
                     'hide_from_grid' => $hideFromGrid,
                 ]);
 
                 $entry = [
-                    'id'             => $newCat->id,
-                    'parent_id'      => $parentId,
-                    'slug'           => $newCat->slug ?? '',
+                    'id' => $newCat->id,
+                    'parent_id' => $parentId,
+                    'slug' => $newCat->slug ?? '',
                     'hide_from_grid' => $hideFromGrid,
                 ];
 
                 // Add to all maps so later rows can resolve this as a parent
                 $byComposite[$compositeKey] = $entry;
-                $byName[$nameKey][]         = $entry;
-                $bySlug[$slug]              = $entry;
+                $byName[$nameKey][] = $entry;
+                $bySlug[$slug] = $entry;
 
                 $created++;
             }
@@ -271,6 +274,7 @@ class CategoryController extends Controller
 
         return back()->with('status', $message);
     }
+
     private function parseCsv(string $path): array
     {
         $handle = fopen($path, 'r');
@@ -285,7 +289,7 @@ class CategoryController extends Controller
             return [];
         }
 
-        $headers = array_map('strtolower', array_map('trim', $headers));
+        $headers = array_map(fn ($h) => str_replace(' ', '_', strtolower(trim($h))), $headers);
 
         $rows = [];
         while (($data = fgetcsv($handle)) !== false) {
@@ -330,7 +334,7 @@ class CategoryController extends Controller
 
         $headers = [];
         for ($i = 0; $i < $headerCells->length; $i++) {
-            $headers[] = strtolower(trim($headerCells->item($i)->textContent));
+            $headers[] = str_replace(' ', '_', strtolower(trim($headerCells->item($i)->textContent)));
         }
 
         for ($i = 1; $i < $trElements->length; $i++) {
@@ -353,14 +357,14 @@ class CategoryController extends Controller
         foreach ($rows as $i => $row) {
             $slug = strtolower(trim($row['slug'] ?? $row['Slug'] ?? ''));
             if ($slug === '') {
-                $slug = \Illuminate\Support\Str::slug(strtolower(trim($row['name'] ?? $row['Name'] ?? '')));
+                $slug = Str::slug(strtolower(trim($row['name'] ?? $row['Name'] ?? '')));
             }
             $depths[$i] = substr_count($slug, '/');
         }
 
         $indices = range(0, count($rows) - 1);
-        usort($indices, fn($a, $b) => $depths[$a] <=> $depths[$b]);
+        usort($indices, fn ($a, $b) => $depths[$a] <=> $depths[$b]);
 
-        return array_map(fn($i) => $rows[$i], $indices);
+        return array_map(fn ($i) => $rows[$i], $indices);
     }
 }
