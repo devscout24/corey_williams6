@@ -22,7 +22,7 @@ class CustomerController extends Controller
     public function index(Request $request): View
     {
         $employee_id = auth('employee')->id();
-        $search      = $request->input('search');
+        $search = $request->input('search');
 
         $all_columns = [
             'person_id' => ['label' => 'ID', 'sort' => true],
@@ -60,7 +60,7 @@ class CustomerController extends Controller
         if ($column_order_val) {
             $order = explode(',', $column_order_val);
             foreach ($order as $col) {
-                if (isset($all_columns[$col]) && !isset($ordered_all_columns[$col])) {
+                if (isset($all_columns[$col]) && ! isset($ordered_all_columns[$col])) {
                     $ordered_all_columns[$col] = $all_columns[$col];
                 }
             }
@@ -74,7 +74,7 @@ class CustomerController extends Controller
         }
 
         foreach ($all_columns as $col => $info) {
-            if (!isset($ordered_all_columns[$col])) {
+            if (! isset($ordered_all_columns[$col])) {
                 $ordered_all_columns[$col] = $info;
             }
         }
@@ -87,10 +87,10 @@ class CustomerController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('phppos_people.first_name', 'like', "%{$search}%")
-                      ->orWhere('phppos_people.last_name', 'like', "%{$search}%")
-                      ->orWhere('phppos_people.email', 'like', "%{$search}%")
-                      ->orWhere('phppos_people.phone_number', 'like', "%{$search}%")
-                      ->orWhere('phppos_customers.company_name', 'like', "%{$search}%");
+                        ->orWhere('phppos_people.last_name', 'like', "%{$search}%")
+                        ->orWhere('phppos_people.email', 'like', "%{$search}%")
+                        ->orWhere('phppos_people.phone_number', 'like', "%{$search}%")
+                        ->orWhere('phppos_customers.company_name', 'like', "%{$search}%");
                 });
             })
             ->orderBy('phppos_people.last_name', 'asc')
@@ -114,7 +114,7 @@ class CustomerController extends Controller
         $customer = $personId ? PhpposCustomer::with(['person', 'taxes', 'tier', 'location'])->findOrFail($personId) : null;
         $tiers = PhpposPriceTier::where('deleted', 0)->orderBy('name')->get();
         $taxClasses = PhpposTaxClass::orderBy('name')->get();
-        
+
         $customerFiles = $personId ? DB::table('phppos_people_files')
             ->join('phppos_app_files', 'phppos_app_files.file_id', '=', 'phppos_people_files.file_id')
             ->where('phppos_people_files.person_id', $personId)
@@ -141,6 +141,7 @@ class CustomerController extends Controller
     public function destroy(int $personId): RedirectResponse
     {
         PhpposCustomer::query()->where('person_id', $personId)->update(['deleted' => 1]);
+
         return redirect()->route('customers.index')->with('status', 'Customer archived.');
     }
 
@@ -186,7 +187,7 @@ class CustomerController extends Controller
             $personPayload = [
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
-                'full_name' => $data['first_name'] . ' ' . $data['last_name'],
+                'full_name' => $data['first_name'].' '.$data['last_name'],
                 'email' => $data['email'] ?? '',
                 'phone_number' => $data['phone_number'] ?? '',
                 'address_1' => $data['address_1'] ?? '',
@@ -220,9 +221,9 @@ class CustomerController extends Controller
                 'credit_limit' => $data['credit_limit'] ?? null,
                 'points' => $data['points'] ?? 0,
                 'discount_percent' => $data['discount_percent'] ?? 0,
-                'taxable' => !empty($data['taxable']) ? 1 : 0,
+                'taxable' => ! empty($data['taxable']) ? 1 : 0,
                 'tax_certificate' => $data['tax_certificate'] ?? null,
-                'override_default_tax' => !empty($data['override_default_tax']) ? 1 : 0,
+                'override_default_tax' => ! empty($data['override_default_tax']) ? 1 : 0,
                 'tax_class_id' => $data['tax_class_id'] ?? null,
                 'internal_notes' => $data['internal_notes'] ?? null,
                 'deleted' => 0,
@@ -251,7 +252,7 @@ class CustomerController extends Controller
 
             // Sync Taxes
             PhpposCustomerTax::where('customer_id', $personId)->delete();
-            if (!empty($data['tax_percents'])) {
+            if (! empty($data['tax_percents'])) {
                 foreach ($data['tax_percents'] as $index => $percent) {
                     if (is_numeric($percent)) {
                         PhpposCustomerTax::create([
@@ -287,7 +288,7 @@ class CustomerController extends Controller
     public function downloadFile(int $fileId): BinaryFileResponse|RedirectResponse
     {
         $file = PhpposAppFile::find($fileId);
-        if (!$file) {
+        if (! $file) {
             return redirect()->back()->with('error', 'File not found.');
         }
 
@@ -301,6 +302,84 @@ class CustomerController extends Controller
     {
         PhpposPeopleFile::where('file_id', $fileId)->delete();
         PhpposAppFile::where('file_id', $fileId)->delete();
+
         return redirect()->back()->with('status', 'File deleted.');
+    }
+
+    public function export(Request $request)
+    {
+        $format = $request->query('format', 'csv');
+
+        $customers = PhpposCustomer::query()
+            ->join('phppos_people', 'phppos_people.person_id', '=', 'phppos_customers.person_id')
+            ->select('phppos_people.*', 'phppos_customers.*')
+            ->where('phppos_customers.deleted', 0)
+            ->orderBy('phppos_people.last_name')
+            ->get();
+
+        $rows = [];
+        foreach ($customers as $c) {
+            $rows[] = [
+                'person_id' => $c->person_id,
+                'first_name' => $c->first_name ?? '',
+                'last_name' => $c->last_name ?? '',
+                'company_name' => $c->company_name ?? '',
+                'email' => $c->email ?? '',
+                'phone_number' => $c->phone_number ?? '',
+                'address' => $c->address ?? '',
+                'city' => $c->city ?? '',
+                'state' => $c->state ?? '',
+                'zip' => $c->zip ?? '',
+                'country' => $c->country ?? '',
+                'balance' => $c->balance ?? 0,
+                'credit_limit' => $c->credit_limit ?? 0,
+                'points' => $c->points ?? 0,
+                'taxable' => $c->taxable ? 1 : 0,
+            ];
+        }
+
+        $columnLabels = [
+            'ID', 'First Name', 'Last Name', 'Company', 'Email', 'Phone',
+            'Address', 'City', 'State', 'Zip', 'Country',
+            'Balance', 'Credit Limit', 'Points', 'Taxable',
+        ];
+
+        if ($format === 'xls') {
+            $html = '<html><head><meta charset="UTF-8"><title>Customers Export</title>';
+            $html .= '<style>table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}th{background:#f0f0f0;font-weight:bold;}</style>';
+            $html .= '</head><body><h2>Customers</h2>';
+            $html .= '<table><thead><tr>';
+            foreach ($columnLabels as $label) {
+                $html .= '<th>'.htmlspecialchars($label).'</th>';
+            }
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $html .= '<tr>';
+                foreach ($row as $val) {
+                    $html .= '<td>'.htmlspecialchars((string) $val).'</td>';
+                }
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table></body></html>';
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Disposition' => 'attachment; filename="customers-export.xls"',
+            ]);
+        }
+
+        $callback = function () use ($columnLabels, $rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $columnLabels);
+            foreach ($rows as $row) {
+                fputcsv($handle, array_values($row));
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="customers-export.csv"',
+        ]);
     }
 }

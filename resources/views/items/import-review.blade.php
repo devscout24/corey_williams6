@@ -59,23 +59,53 @@
   .review-table tbody tr:hover {
     background: #f8fafc;
   }
-  .price-old {
-    color: #94a3b8;
-    text-decoration: line-through;
-    font-size: 12.5px;
+  .cell-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .price-new {
-    color: #059669;
+  .cell-edit input[type="number"] {
+    width: 90px;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 13px;
+    color: #1e293b;
+    outline: none;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .cell-edit input[type="number"]:focus {
+    border-color: var(--primary);
+  }
+  .cell-edit input[type="number"].using-existing {
+    background: #fffbeb;
+    border-color: #fbbf24;
+  }
+  .btn-keep-existing {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
     font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
   }
-  .price-same {
-    color: #94a3b8;
-    font-size: 12.5px;
+  .btn-keep-existing:hover {
+    background: #e2e8f0;
   }
-  .arrow-icon {
+  .btn-keep-existing.active {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+  }
+  .existing-hint {
+    font-size: 11px;
     color: #94a3b8;
-    margin: 0 6px;
-    font-size: 12px;
+    white-space: nowrap;
   }
   .btn-action-row {
     display: flex;
@@ -178,13 +208,9 @@
                 </div>
                 <div class="toolbar-actions">
                     @if($totalPending > 0)
-                        <form method="post" action="{{ route('items.import.accept-all') }}" style="display:inline;">
-                            @csrf
-                            <input type="hidden" name="batch" value="{{ $batch }}">
-                            <button type="submit" class="btn-accept-all" onclick="return confirm('Accept all {{ $totalPending }} pending items?')">
-                                <i class="bi bi-check-all" style="margin-right: 4px;"></i> Accept All
-                            </button>
-                        </form>
+                        <button type="button" class="btn-accept-all" onclick="submitBulkAcceptAll()" onclick="return confirm('Accept all {{ $totalPending }} pending items?')">
+                            <i class="bi bi-check-all" style="margin-right: 4px;"></i> Accept All
+                        </button>
                         <form method="post" action="{{ route('items.import.skip') }}" style="display:inline;" id="skipAllForm">
                             @csrf
                             <input type="hidden" name="batch" value="{{ $batch }}">
@@ -244,39 +270,54 @@
                                     <td>{{ $item->item_number ?: '—' }}</td>
                                     <td>{{ $item->product_id ?: '—' }}</td>
                                     <td>
-                                        @if($item->existing_cost_price != $item->incoming_cost_price)
-                                            <span class="price-old">{{ number_format($item->existing_cost_price, 2) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_cost_price, 2) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_cost_price, 2) }} (no change)</span>
-                                        @endif
+                                        <div class="cell-edit">
+                                            <input type="number" step="0.01" min="0"
+                                                class="cost-input"
+                                                data-existing="{{ $item->existing_cost_price }}"
+                                                data-incoming="{{ $item->incoming_cost_price }}"
+                                                value="{{ $item->incoming_cost_price }}">
+                                            <button type="button" class="btn-keep-existing"
+                                                onclick="toggleExisting(this, 'cost')"
+                                                title="Toggle existing value">Keep</button>
+                                        </div>
+                                        <div class="existing-hint">was: {{ number_format($item->existing_cost_price, 2) }}</div>
                                     </td>
                                     <td>
-                                        @if($item->existing_unit_price != $item->incoming_unit_price)
-                                            <span class="price-old">{{ number_format($item->existing_unit_price, 2) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_unit_price, 2) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_unit_price, 2) }} (no change)</span>
-                                        @endif
+                                        <div class="cell-edit">
+                                            <input type="number" step="0.01" min="0"
+                                                class="unit-input"
+                                                data-existing="{{ $item->existing_unit_price }}"
+                                                data-incoming="{{ $item->incoming_unit_price }}"
+                                                value="{{ $item->incoming_unit_price }}">
+                                            <button type="button" class="btn-keep-existing"
+                                                onclick="toggleExisting(this, 'unit')"
+                                                title="Toggle existing value">Keep</button>
+                                        </div>
+                                        <div class="existing-hint">was: {{ number_format($item->existing_unit_price, 2) }}</div>
                                     </td>
                                     <td>
-                                        @if($item->existing_quantity != $item->incoming_quantity)
-                                            <span class="price-old">{{ number_format($item->existing_quantity, 0) }}</span>
-                                            <span class="arrow-icon">&rarr;</span>
-                                            <span class="price-new">{{ number_format($item->incoming_quantity, 0) }}</span>
-                                        @else
-                                            <span class="price-same">{{ number_format($item->existing_quantity, 0) }} (no change)</span>
-                                        @endif
+                                        <div class="cell-edit">
+                                            <input type="number" step="1" min="0"
+                                                class="qty-input"
+                                                data-existing="{{ $item->existing_quantity }}"
+                                                data-incoming="{{ $item->incoming_quantity }}"
+                                                value="{{ $item->incoming_quantity }}">
+                                            <button type="button" class="btn-keep-existing"
+                                                onclick="toggleExisting(this, 'qty')"
+                                                title="Toggle existing value">Keep</button>
+                                        </div>
+                                        <div class="existing-hint">was: {{ number_format($item->existing_quantity, 0) }}</div>
                                     </td>
                                     <td>
                                         <div class="btn-action-row">
-                                            <form method="post" action="{{ route('items.import.accept') }}" style="display:inline;">
+                                            <form method="post" action="{{ route('items.import.accept') }}" style="display:inline;" class="accept-form">
                                                 @csrf
                                                 <input type="hidden" name="batch" value="{{ $batch }}">
                                                 <input type="hidden" name="queue_ids[]" value="{{ $item->id }}">
-                                                <button type="submit" class="btn-accept">
+                                                <input type="hidden" name="cost_price_{{ $item->id }}" class="cost-hidden">
+                                                <input type="hidden" name="unit_price_{{ $item->id }}" class="unit-hidden">
+                                                <input type="hidden" name="quantity_{{ $item->id }}" class="qty-hidden">
+                                                <button type="submit" class="btn-accept" onclick="syncRowValues(this)">
                                                     <i class="bi bi-check-lg"></i> Accept
                                                 </button>
                                             </form>
@@ -334,26 +375,96 @@ function updateBulkButtons() {
     document.getElementById('selectedCount').textContent = count > 0 ? count + ' selected' : '';
 }
 
+function toggleExisting(btn, type) {
+    const row = btn.closest('tr');
+    let input;
+    if (type === 'cost') input = row.querySelector('.cost-input');
+    else if (type === 'unit') input = row.querySelector('.unit-input');
+    else input = row.querySelector('.qty-input');
+
+    const existing = parseFloat(input.dataset.existing);
+    const incoming = parseFloat(input.dataset.incoming);
+    const usingExisting = btn.classList.toggle('active');
+
+    if (usingExisting) {
+        input.value = existing;
+        input.classList.add('using-existing');
+    } else {
+        input.value = incoming;
+        input.classList.remove('using-existing');
+    }
+}
+
+function syncRowValues(btn) {
+    const form = btn.closest('form');
+    const row = btn.closest('tr');
+    form.querySelector('.cost-hidden').value = row.querySelector('.cost-input').value;
+    form.querySelector('.unit-hidden').value = row.querySelector('.unit-input').value;
+    form.querySelector('.qty-hidden').value = row.querySelector('.qty-input').value;
+}
+
 function submitBulk(action) {
     const checked = document.querySelectorAll('.row-checkbox:checked');
     const ids = Array.from(checked).map(cb => cb.value);
     if (ids.length === 0) return;
 
-    const form = document.getElementById('bulkForm');
-    form.action = action === 'accept'
-        ? '{{ route("items.import.accept") }}'
-        : '{{ route("items.import.skip") }}';
+    if (action === 'skip') {
+        const form = document.getElementById('bulkForm');
+        form.action = '{{ route("items.import.skip") }}';
+        const container = document.getElementById('bulkInputs');
+        container.innerHTML = '';
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'queue_ids[]';
+            input.value = id;
+            container.appendChild(input);
+        });
+        form.submit();
+        return;
+    }
 
+    const form = document.getElementById('bulkForm');
+    form.action = '{{ route("items.import.accept") }}';
     const container = document.getElementById('bulkInputs');
     container.innerHTML = '';
+
     ids.forEach(id => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'queue_ids[]';
-        input.value = id;
-        container.appendChild(input);
+        const row = document.getElementById('row-' + id);
+        const queueInput = document.createElement('input');
+        queueInput.type = 'hidden';
+        queueInput.name = 'queue_ids[]';
+        queueInput.value = id;
+        container.appendChild(queueInput);
+
+        const costInput = document.createElement('input');
+        costInput.type = 'hidden';
+        costInput.name = 'cost_price_' + id;
+        costInput.value = row.querySelector('.cost-input').value;
+        container.appendChild(costInput);
+
+        const unitInput = document.createElement('input');
+        unitInput.type = 'hidden';
+        unitInput.name = 'unit_price_' + id;
+        unitInput.value = row.querySelector('.unit-input').value;
+        container.appendChild(unitInput);
+
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'hidden';
+        qtyInput.name = 'quantity_' + id;
+        qtyInput.value = row.querySelector('.qty-input').value;
+        container.appendChild(qtyInput);
     });
 
+    form.submit();
+}
+
+function submitBulkAcceptAll() {
+    if (!confirm('Accept all {{ $totalPending }} pending items with their current values?')) return;
+
+    const form = document.getElementById('bulkForm');
+    form.action = '{{ route("items.import.accept-all") }}';
+    document.getElementById('bulkInputs').innerHTML = '';
     form.submit();
 }
 </script>
