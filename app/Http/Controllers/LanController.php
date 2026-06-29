@@ -228,7 +228,8 @@ class LanController extends Controller
                                 'product_id' => $itemKitProductId,
                                 'cost_price' => (float) ($line['item_kit_cost_price'] ?? 0),
                                 'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
-                                'default_quantity' => 0,
+                                // 'default_quantity' => 0,
+                                'default_quantity' => $qty,
                             ]);
 
                             // Wire up kit components — product_id → item_number only, no name/id fallbacks.
