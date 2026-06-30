@@ -88,7 +88,7 @@ class SalesController extends Controller
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
         $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
         $baseDecimalsRaw = $this->configService->get('number_of_decimals');
-        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 5;
         $baseThousands = (string) $this->configService->get('thousands_separator', ',');
         if ($baseThousands === '') {
             $baseThousands = ',';
@@ -630,6 +630,16 @@ class SalesController extends Controller
                 break;
             }
         }
+
+        $customerDiscount = 0;
+        if ($cart['customer_id']) {
+            $customer = PhpposCustomer::find($cart['customer_id']);
+            if ($customer && (float) $customer->discount_percent > 0) {
+                // TODO: Apply discount for item kits when customer discount_percent is set
+                // Kit discount logic goes here (check kit-level discountable flag or max_discount_percent)
+            }
+        }
+
         if ($existingKey !== null) {
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
@@ -659,6 +669,14 @@ class SalesController extends Controller
             }
         }
 
+        $customerDiscount = 0;
+        if ($cart['customer_id']) {
+            $customer = PhpposCustomer::find($cart['customer_id']);
+            if ($customer && (float) $customer->discount_percent > 0 && $item->discountable) {
+                $customerDiscount = (float) $customer->discount_percent;
+            }
+        }
+
         if ($existingKey !== null) {
             $cart['items'][$existingKey]['quantity'] += $quantity;
         } else {
@@ -667,7 +685,7 @@ class SalesController extends Controller
                 'name' => $variation ? $variation->name.' ('.$item->name.')' : $item->name,
                 'quantity' => $quantity,
                 'unit_price' => (float) ($variation?->unit_price ?? $item->unit_price),
-                'discount' => 0,
+                'discount' => $customerDiscount,
             ];
             if ($variation) {
                 $entry['variation_id'] = $variation->id;
@@ -722,6 +740,39 @@ class SalesController extends Controller
     {
         $cart = $this->getCart();
         $cart['customer_id'] = $request->customer_id ?: null;
+
+        if ($cart['customer_id']) {
+            $customer = PhpposCustomer::find($cart['customer_id']);
+            $discountPercent = $customer ? (float) $customer->discount_percent : 0;
+
+            if ($discountPercent > 0) {
+                $nonKitItemIds = [];
+                foreach ($cart['items'] as $item) {
+                    if (($item['type'] ?? 'item') !== 'kit') {
+                        $nonKitItemIds[] = (int) $item['item_id'];
+                    }
+                }
+
+                $discountableIds = [];
+                if ($nonKitItemIds) {
+                    $discountableIds = PhpposItem::whereIn('item_id', $nonKitItemIds)
+                        ->where('discountable', true)
+                        ->pluck('item_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->toArray();
+                }
+
+                foreach ($cart['items'] as $key => $item) {
+                    if (($item['type'] ?? 'item') === 'kit') {
+                        continue;
+                    }
+                    if (in_array((int) $item['item_id'], $discountableIds)) {
+                        $cart['items'][$key]['discount'] = $discountPercent;
+                    }
+                }
+            }
+        }
+
         Session::put('sales_cart', $cart);
 
         return redirect()->route('sales.index');
@@ -757,7 +808,7 @@ class SalesController extends Controller
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
         $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
         $baseDecimalsRaw = $this->configService->get('number_of_decimals');
-        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 5;
         $baseThousands = (string) $this->configService->get('thousands_separator', ',');
         if ($baseThousands === '') {
             $baseThousands = ',';
@@ -979,7 +1030,7 @@ class SalesController extends Controller
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
         $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
         $baseDecimalsRaw = $this->configService->get('number_of_decimals');
-        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 5;
         $baseThousands = (string) $this->configService->get('thousands_separator', ',');
         if ($baseThousands === '') {
             $baseThousands = ',';
@@ -1210,7 +1261,7 @@ class SalesController extends Controller
         $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
         $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
         $baseDecimalsRaw = $this->configService->get('number_of_decimals');
-        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 2;
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 5;
         $baseThousands = (string) $this->configService->get('thousands_separator', ',');
         if ($baseThousands === '') {
             $baseThousands = ',';

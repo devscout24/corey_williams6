@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(PosCoreSeeder::class);
+        $this->call(AppConfigSeeder::class);
 
         if ((bool) env('POS_SEED_DEMO', false)) {
             $this->call(PosDemoSeeder::class);

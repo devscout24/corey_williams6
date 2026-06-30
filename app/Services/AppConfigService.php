@@ -83,7 +83,7 @@ class AppConfigService
             return (int) $value;
         }
 
-        return 2;
+        return 5;
     }
 
     private function normalizeScalarConfigValue(mixed $value): string

@@ -4,6 +4,7 @@
 @section('page-title', 'Sales Register')
 
 @push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
     <style>
         .category-tabs {
             display: inline-flex;
@@ -340,29 +341,34 @@
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-body">
-                        <form action="{{ route('sales.customer.set') }}" method="POST">
-                            @csrf
-                            <label class="form-label small fw-bold text-uppercase text-muted">Select Customer</label>
-                            <div class="input-group">
-                                <select name="customer_id" class="form-select" onchange="this.form.submit()">
-                                    <option value="">— Walk-in Customer —</option>
-                                    @foreach($customers as $customer)
-                                        <option value="{{ $customer->person_id }}"
-                                            @selected($cart['customer_id'] == $customer->person_id)>
-                                            {{ $customer->person?->first_name }} {{ $customer->person?->last_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @if($cart['customer_id'])
-                                    <button type="submit" name="customer_id" value="" class="btn btn-outline-danger"><i
-                                            class="bi bi-x"></i></button>
-                                @endif
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                                                <div class="card shadow-sm border-0 mb-4">
+                                                    <div class="card-body">
+                                                        <form action="{{ route('sales.customer.set') }}" method="POST" id="customer-form">
+                                                            @csrf
+                                                            <label class="form-label small fw-bold text-uppercase text-muted">Select Customer</label>
+                                                            <select name="customer_id" class="form-select customer-select">
+                                                                <option value="">— Walk-in Customer —</option>
+                                                                @foreach($customers as $customer)
+                                                                    <option value="{{ $customer->person_id }}"
+                                                                        @selected($cart['customer_id'] == $customer->person_id)>
+                                                                        {{ $customer->person?->first_name }} {{ $customer->person?->last_name }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                            @php
+                                                                $selectedCustomerObj = $cart['customer_id'] ? $customers->firstWhere('person_id', $cart['customer_id']) : null;
+                                                                $customerDiscountPercent = $selectedCustomerObj ? (float) $selectedCustomerObj->discount_percent : 0;
+                                                            @endphp
+                                                            @if($customerDiscountPercent > 0)
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-warning text-dark">
+                                                                        <i class="bi bi-percent"></i> Customer Discount: {{ $customerDiscountPercent }}%
+                                                                    </span>
+                                                                </div>
+                                                            @endif
+                                                        </form>
+                                                    </div>
+                                                </div>
 
                 {{-- <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
@@ -1127,6 +1133,19 @@
                     }
                 }
             });
+
+            const customerSelect = document.querySelector('.customer-select');
+            if (customerSelect) {
+                $(customerSelect).select2({
+                    placeholder: '— Walk-in Customer —',
+                    allowClear: true,
+                    width: '100%',
+                }).on('select2:select', function () {
+                    this.form.submit();
+                }).on('select2:clear', function () {
+                    this.form.submit();
+                });
+            }
         });
     </script>
     <style>
@@ -1205,6 +1224,25 @@
             color: #0f172a;
             font-size: 0.9rem;
             white-space: nowrap;
+        }
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+            padding-left: 12px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d9e6;
+            border-radius: 4px;
+        }
+        .select2-dropdown {
+            border-color: #d1d9e6;
         }
     </style>
 @endpush
