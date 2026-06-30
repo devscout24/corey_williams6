@@ -501,9 +501,12 @@
                                     class="form-control form-control-sm bg-dark border-white border-opacity-25 text-white placeholder-white"
                                     placeholder="Add notes/comments..."></textarea>
                             </div>
-                            <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-dark mb-2" {{ empty($cart['items']) ? 'disabled' : '' }}>
+                            <button type="submit" class="btn btn-light btn-lg w-100 fw-bold text-dark mb-2" {{ empty($cart['items']) || $amountDue > 0 ? 'disabled' : '' }}>
                                 <i class="bi bi-check2-circle me-2"></i> COMPLETE SALE
                             </button>
+                            @if($amountDue > 0)
+                                <small class="text-warning d-block text-center">Add payments to complete sale</small>
+                            @endif
                         </form>
 
                         <form action="{{ route('sales.cancel') }}" method="POST">

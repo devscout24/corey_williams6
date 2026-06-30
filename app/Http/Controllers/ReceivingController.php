@@ -510,8 +510,12 @@ class ReceivingController extends Controller
 
     public function addItem(Request $request): RedirectResponse
     {
-        $request->validate(['item_id' => 'required|string']);
+        $request->validate([
+            'item_id' => 'required|string',
+            'quantity' => 'nullable|numeric|min:0.001',
+        ]);
 
+        $quantity = (float) ($request->quantity ?? 1);
         $itemIdStr = $request->item_id;
         $cart = $this->getCart();
 
@@ -519,14 +523,14 @@ class ReceivingController extends Controller
             $variationId = (int) str_replace('VAR ', '', $itemIdStr);
             $variation = ItemVariation::findOrFail($variationId);
             $parentItem = PhpposItem::findOrFail($variation->item_id);
-            $this->addSingleItemToCart($parentItem, 1, $cart, $variation);
+            $this->addSingleItemToCart($parentItem, $quantity, $cart, $variation);
         } elseif (str_starts_with($itemIdStr, 'KIT ')) {
             $kitId = (int) str_replace('KIT ', '', $itemIdStr);
             $kit = PhpposItemKit::findOrFail($kitId);
-            $this->addKitToCart($kit, 1, $cart);
+            $this->addKitToCart($kit, $quantity, $cart);
         } else {
             $item = PhpposItem::findOrFail($itemIdStr);
-            $this->addSingleItemToCart($item, 1, $cart);
+            $this->addSingleItemToCart($item, $quantity, $cart);
         }
 
         Session::put('receiving_cart', $cart);

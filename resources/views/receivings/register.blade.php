@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const renderProductTile = (product) => {
         return `
-            <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}">
+            <button type="button" class="category-card" data-product-id="${product.id}" data-product-type="${product.type}" data-product-name-enc="${encodeURIComponent(product.name)}">
                 <div class="category-name">${product.name}</div>
             </button>
         `;
@@ -400,8 +400,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (productTile) {
                 const productId = productTile.getAttribute('data-product-id');
                 const productType = productTile.getAttribute('data-product-type');
+                const productName = decodeURIComponent(productTile.getAttribute('data-product-name-enc') || '');
                 const itemId = productType === 'kit' ? `KIT ${productId}` : productId;
-                addItem(itemId);
+                addItem(itemId, productName);
             }
         });
     }
@@ -469,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div class="search-result-price">${price}</div>
                             `;
-                            div.onclick = () => addItem(item.item_id);
+                            div.onclick = () => addItem(item.item_id, displayName);
                             resultsDiv.appendChild(div);
                         });
 
@@ -485,31 +486,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
-    function addItem(itemId) {
+    function addItem(itemId, itemName) {
+        const name = itemName || 'this item';
         if (window.Swal) {
             Swal.fire({
+                title: name,
+                html: `<div class="mb-2 text-muted">Enter quantity to add:</div>
+                       <input type="number" id="swal-qty" class="form-control text-center" value="1" min="0.001" step="any" autofocus>`,
                 icon: 'question',
-                title: 'Add item?',
-                text: 'Do you want to add this item to the purchase cart?',
                 showCancelButton: true,
                 confirmButtonText: 'Add',
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#3b82f6',
+                didOpen: () => {
+                    const input = document.getElementById('swal-qty');
+                    if (input) {
+                        input.focus();
+                        input.select();
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                Swal.clickConfirm();
+                            }
+                        });
+                    }
+                },
+                preConfirm: () => {
+                    const qty = parseFloat(document.getElementById('swal-qty')?.value || '1');
+                    if (!qty || qty < 0.001) {
+                        Swal.showValidationMessage('Quantity must be at least 0.001');
+                        return false;
+                    }
+                    return qty;
+                }
             }).then((result) => {
-                if (result.isConfirmed) {
-                    submitAddItem(itemId);
+                if (result.isConfirmed && result.value) {
+                    submitAddItem(itemId, result.value);
                 }
             });
         } else {
-            submitAddItem(itemId);
+            submitAddItem(itemId, 1);
         }
     }
 
-    function submitAddItem(itemId) {
+    function submitAddItem(itemId, qty) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = "{{ route('receivings.item.add') }}";
-        form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="item_id" value="${itemId}">`;
+        form.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="item_id" value="${itemId}">
+                          <input type="hidden" name="quantity" value="${qty}">`;
         document.body.appendChild(form);
         form.submit();
     }

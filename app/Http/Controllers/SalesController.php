@@ -889,6 +889,22 @@ class SalesController extends Controller
             return redirect()->back()->with('error', 'Cart is empty.');
         }
 
+        $subtotal = 0.0;
+        foreach ($cart['items'] as $item) {
+            $subtotal += $item['unit_price'] * $item['quantity'] * (1 - $item['discount'] / 100);
+        }
+
+        $paymentTotal = 0.0;
+        foreach ($cart['payments'] as $payment) {
+            $paymentTotal += $payment['amount'];
+        }
+
+        $amountDue = max(0, $subtotal - $paymentTotal);
+
+        if ($amountDue > 0) {
+            return redirect()->back()->with('error', 'Complete all payments before completing the sale.');
+        }
+
         $customerName = null;
         if ($cart['customer_id']) {
             $customer = PhpposCustomer::with('person')->find($cart['customer_id']);
