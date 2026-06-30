@@ -160,9 +160,9 @@
                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changeRegisterModal">
                         <i class="bi bi-arrow-left-right me-1"></i> Change Register
                     </button>
-                    <a href="{{ route('sales.register.close') }}" class="btn btn-sm btn-danger">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="blindCloseRegister()">
                         <i class="bi bi-x-circle me-1"></i> Close Register
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1150,6 +1150,27 @@
                 });
             }
         });
+
+        window.blindCloseRegister = function () {
+            Swal.fire({
+                title: 'Close Register?',
+                text: 'Are you sure you want to close this register?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Close',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc2626',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route("sales.register.blind-close") }}';
+                    form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}">';
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        };
     </script>
     <style>
         .hover-bg-light:hover {

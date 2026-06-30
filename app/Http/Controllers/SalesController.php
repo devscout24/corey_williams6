@@ -1365,6 +1365,200 @@ class SalesController extends Controller
         return redirect()->route('modules.index')->with('status', 'Register closed successfully.');
     }
 
+    public function blindCloseRegister(): RedirectResponse
+    {
+        $logId = session('register_log_id');
+        if (! $logId) {
+            return redirect()->route('sales.index');
+        }
+
+        $registerLog = PhpposRegisterLog::find($logId);
+        if (! $registerLog || $registerLog->shift_end) {
+            session()->forget('register_log_id');
+            return redirect()->route('sales.index');
+        }
+
+        DB::transaction(function () use ($logId, $registerLog) {
+            DB::table('phppos_register_log')
+                ->where('register_log_id', $logId)
+                ->update([
+                    'employee_id_close' => auth('employee')->id(),
+                    'shift_end' => now(),
+                    'status' => PhpposRegisterLog::STATUS_PENDING_RECONCILIATION,
+                    'updated_at' => now(),
+                ]);
+
+            $paymentTypes = array_values(array_unique(array_merge(
+                ['Cash', 'Check', 'Credit Card', 'Debit Card'],
+                $this->configService->getAdditionalPaymentTypes(),
+            )));
+
+            foreach ($paymentTypes as $type) {
+                $existing = DB::table('phppos_register_log_payments')
+                    ->where('register_log_id', $logId)
+                    ->where('payment_type', $type)
+                    ->first();
+
+                if ($existing) {
+                    DB::table('phppos_register_log_payments')
+                        ->where('id', $existing->id)
+                        ->update(['close_amount' => 0, 'updated_at' => now()]);
+                } else {
+                    DB::table('phppos_register_log_payments')->insert([
+                        'register_log_id' => $logId,
+                        'payment_type' => $type,
+                        'open_amount' => 0,
+                        'close_amount' => 0,
+                        'payment_sales_amount' => 0,
+                        'total_payment_additions' => 0,
+                        'total_payment_subtractions' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        });
+
+        session()->forget('register_log_id');
+
+        return redirect()->route('modules.index')->with('status', 'Register closed. Awaiting manager reconciliation.');
+    }
+
+    public function reconciliationIndex(): View
+    {
+        $logs = PhpposRegisterLog::with(['register', 'employeeOpen.person', 'employeeClose.person'])
+            ->where('status', PhpposRegisterLog::STATUS_PENDING_RECONCILIATION)
+            ->orderBy('shift_end', 'desc')
+            ->get();
+
+        return view('registers.reconciliation', compact('logs'));
+    }
+
+    public function reconciliationEdit(int $logId): View|RedirectResponse
+    {
+        $registerLog = PhpposRegisterLog::with('employeeOpen.person')->find($logId);
+
+        if (! $registerLog || $registerLog->status !== PhpposRegisterLog::STATUS_PENDING_RECONCILIATION) {
+            return redirect()->route('registers.reconciliation.index')->with('error', 'Register log not found or already reconciled.');
+        }
+
+        $currentRegister = PhpposRegister::find($registerLog->register_id);
+
+        $logPayments = DB::table('phppos_register_log_payments')
+            ->where('register_log_id', $logId)
+            ->get();
+
+        $paymentTypes = array_values(array_unique(array_merge(
+            ['Cash', 'Check', 'Credit Card', 'Debit Card'],
+            $this->configService->getAdditionalPaymentTypes(),
+            $logPayments->pluck('payment_type')->toArray()
+        )));
+
+        $paymentsData = [];
+        foreach ($paymentTypes as $type) {
+            $payment = $logPayments->firstWhere('payment_type', $type);
+            $open = $payment ? (float) $payment->open_amount : 0.0;
+            $sales = $payment ? (float) $payment->payment_sales_amount : 0.0;
+            $additions = $payment ? (float) $payment->total_payment_additions : 0.0;
+            $subs = $payment ? (float) $payment->total_payment_subtractions : 0.0;
+            $expected = $open + $sales + $additions - $subs;
+            $closeAmount = $payment ? (float) $payment->close_amount : 0.0;
+
+            $paymentsData[$type] = [
+                'open' => $open,
+                'sales' => $sales,
+                'expected' => $expected,
+                'close_amount' => $closeAmount,
+            ];
+        }
+
+        $baseCurrencyCode = (string) $this->configService->get('currency_code', '');
+        $baseCurrencySymbol = (string) $this->configService->get('currency_symbol', '$');
+        $baseSymbolLocation = (string) $this->configService->get('currency_symbol_location', 'before');
+        $baseDecimalsRaw = $this->configService->get('number_of_decimals');
+        $baseDecimals = is_numeric($baseDecimalsRaw) ? (int) $baseDecimalsRaw : 5;
+        $baseThousands = (string) $this->configService->get('thousands_separator', ',');
+        if ($baseThousands === '') {
+            $baseThousands = ',';
+        }
+        $baseDecimalPoint = (string) $this->configService->get('decimal_point', '.');
+        if ($baseDecimalPoint === '') {
+            $baseDecimalPoint = '.';
+        }
+
+        $baseCurrency = [
+            'code' => $baseCurrencyCode,
+            'symbol' => $baseCurrencySymbol,
+            'symbol_location' => $baseSymbolLocation,
+            'decimals' => $baseDecimals,
+            'thousands_separator' => $baseThousands,
+            'decimal_point' => $baseDecimalPoint,
+        ];
+
+        $reconciliationMode = true;
+
+        return view('sales.register_close', compact(
+            'currentRegister', 'registerLog', 'paymentsData', 'baseCurrency', 'reconciliationMode'
+        ));
+    }
+
+    public function reconciliationUpdate(Request $request, int $logId): RedirectResponse
+    {
+        $request->validate([
+            'closed_payments' => 'required|array',
+            'closed_payments.*.actual' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $registerLog = PhpposRegisterLog::find($logId);
+        if (! $registerLog || $registerLog->status !== PhpposRegisterLog::STATUS_PENDING_RECONCILIATION) {
+            return redirect()->route('registers.reconciliation.index')->with('error', 'Register log not found or already reconciled.');
+        }
+
+        DB::transaction(function () use ($logId, $request, $registerLog) {
+            DB::table('phppos_register_log')
+                ->where('register_log_id', $logId)
+                ->update([
+                    'status' => PhpposRegisterLog::STATUS_CLOSED,
+                    'notes' => trim(($registerLog->notes ? $registerLog->notes."\n" : '').'Reconciliation Notes: '.$request->notes),
+                    'updated_at' => now(),
+                ]);
+
+            foreach ($request->closed_payments as $type => $data) {
+                $actual = (float) $data['actual'];
+
+                $logPayment = DB::table('phppos_register_log_payments')
+                    ->where('register_log_id', $logId)
+                    ->where('payment_type', $type)
+                    ->first();
+
+                if ($logPayment) {
+                    DB::table('phppos_register_log_payments')
+                        ->where('id', $logPayment->id)
+                        ->update([
+                            'close_amount' => $actual,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('phppos_register_log_payments')->insert([
+                        'register_log_id' => $logId,
+                        'payment_type' => $type,
+                        'open_amount' => 0,
+                        'close_amount' => $actual,
+                        'payment_sales_amount' => 0,
+                        'total_payment_additions' => 0,
+                        'total_payment_subtractions' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('registers.reconciliation.index')
+            ->with('status', 'Register #'.$logId.' reconciled and closed.');
+    }
+
     public function settings(): View
     {
         $settings = DB::table('phppos_receipt_settings')->where('id', 1)->first();

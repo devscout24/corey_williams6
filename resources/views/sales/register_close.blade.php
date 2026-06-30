@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Close Register')
-@section('page-title', 'Close Register')
+@section('title', $reconciliationMode ?? false ? 'Reconcile Register' : 'Close Register')
+@section('page-title', $reconciliationMode ?? false ? 'Reconcile Register' : 'Close Register')
 
 @section('content')
 @php
@@ -46,11 +46,11 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow border-0 radius-lg overflow-hidden">
-                <div class="card-header bg-danger text-white py-4">
+                <div class="card-header {{ $reconciliationMode ?? false ? 'bg-primary' : 'bg-danger' }} text-white py-4">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <h4 class="m-0 fw-bold"><i class="bi bi-door-closed me-2"></i> Close Register</h4>
-                            <p class="m-0 opacity-75 mt-1">End shift for register: <strong>{{ $currentRegister->name }}</strong></p>
+                            <h4 class="m-0 fw-bold"><i class="bi {{ $reconciliationMode ?? false ? 'bi-search' : 'bi-door-closed' }} me-2"></i> {{ $reconciliationMode ?? false ? 'Reconcile Register' : 'Close Register' }}</h4>
+                            <p class="m-0 opacity-75 mt-1">{{ $reconciliationMode ?? false ? 'Count and verify' : 'End shift' }} for register: <strong>{{ $currentRegister->name }}</strong></p>
                         </div>
                         <div class="text-end">
                             <span class="badge bg-dark px-3 py-2">Shift #{{ $registerLog->register_log_id }}</span>
@@ -95,8 +95,10 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('sales.register.close.post') }}" method="POST">
+                    @php $isRecon = $reconciliationMode ?? false; @endphp
+                    <form action="{{ $isRecon ? route('registers.reconciliation.update', $registerLog->register_log_id) : route('sales.register.close.post') }}" method="POST">
                         @csrf
+                        @if($isRecon) @method('PUT') @endif
                         
                         <div class="table-responsive mb-4">
                             <table class="table table-hover align-middle border rounded overflow-hidden">
@@ -122,9 +124,10 @@
                                             <td class="text-end">
                                                 <div class="input-group input-group-sm justify-content-end">
                                                     <span class="input-group-text">{{ $currencySymbol }}</span>
+                                                    @php $prefill = $isRecon ? ($data['close_amount'] ?? 0) : $data['expected']; @endphp
                                                     <input type="number" step="0.01" name="closed_payments[{{ $type }}][actual]" 
                                                         class="form-control text-end actual-amount-input fw-semibold" 
-                                                        value="{{ number_format($data['expected'], 2, '.', '') }}" 
+                                                        value="{{ number_format($prefill, 2, '.', '') }}" 
                                                         style="max-width: 120px;" required>
                                                 </div>
                                             </td>
@@ -153,11 +156,11 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mt-4 border-top pt-4">
-                            <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary px-4 py-2">
-                                <i class="bi bi-arrow-left me-2"></i> Keep Open / Return to Sales
+                            <a href="{{ $isRecon ? route('registers.reconciliation.index') : route('sales.index') }}" class="btn btn-outline-secondary px-4 py-2">
+                                <i class="bi bi-arrow-left me-2"></i> {{ $isRecon ? 'Back to Reconciliation' : 'Keep Open / Return to Sales' }}
                             </a>
-                            <button type="submit" class="btn btn-danger px-4 py-2 fw-bold" onclick="return confirm('Are you sure you want to end this shift and close the register?')">
-                                <i class="bi bi-x-circle me-2"></i> End Shift & Close Register
+                            <button type="submit" class="btn {{ $isRecon ? 'btn-primary' : 'btn-danger' }} px-4 py-2 fw-bold" onclick="return confirm('{{ $isRecon ? 'Are you sure you want to finalize this reconciliation?' : 'Are you sure you want to end this shift and close the register?' }}')">
+                                <i class="bi {{ $isRecon ? 'bi-check2-circle' : 'bi-x-circle' }} me-2"></i> {{ $isRecon ? 'Finalize Reconciliation' : 'End Shift & Close Register' }}
                             </button>
                         </div>
                     </form>

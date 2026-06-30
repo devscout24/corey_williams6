@@ -64,6 +64,7 @@
                 </a>
             </div>
             <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i class="bi bi-cart-fill"></i><span>Sales</span></a></div>
+            <div class="nav-item"><a href="{{ route('registers.reconciliation.index') }}" class="nav-link {{ request()->routeIs('registers.reconciliation.*') ? 'active' : '' }}"><i class="bi bi-calculator-fill"></i><span>Reconciliation</span></a></div>
 
             <div class="nav-item">
                 <a href="#" class="nav-link" data-toggle="submenu">

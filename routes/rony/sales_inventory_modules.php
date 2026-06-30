@@ -39,7 +39,13 @@ Route::middleware('auth:employee')->group(function (): void {
         
         Route::get('/sales/register/close', [SalesController::class, 'showRegisterCloseForm'])->name('sales.register.close');
         Route::post('/sales/register/close', [SalesController::class, 'closeRegister'])->name('sales.register.close.post');
+        Route::post('/sales/register/blind-close', [SalesController::class, 'blindCloseRegister'])->name('sales.register.blind-close');
     });
+
+    // Reconciliation routes (outside check_register_open — register is already closed)
+    Route::get('/registers/reconciliation', [SalesController::class, 'reconciliationIndex'])->name('registers.reconciliation.index');
+    Route::get('/registers/reconciliation/{log}', [SalesController::class, 'reconciliationEdit'])->name('registers.reconciliation.edit');
+    Route::put('/registers/reconciliation/{log}', [SalesController::class, 'reconciliationUpdate'])->name('registers.reconciliation.update');
 
 });
 

@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class PhpposRegisterLog extends Model
 {
+    const STATUS_OPEN = 'open';
+    const STATUS_PENDING_RECONCILIATION = 'pending_reconciliation';
+    const STATUS_CLOSED = 'closed';
+
     protected $table = 'phppos_register_log';
     protected $primaryKey = 'register_log_id';
     protected $guarded = [];
