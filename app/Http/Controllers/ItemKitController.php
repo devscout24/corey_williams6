@@ -369,15 +369,13 @@ class ItemKitController extends Controller
             // Sync Tags
             DB::table('phppos_item_kits_tags')->where('item_kit_id', $kitId)->delete();
             if (!empty($data['tags'])) {
-                $tagNames = array_map('trim', explode(',', $data['tags']));
+                $tagNames = array_unique(array_filter(array_map('trim', explode(',', $data['tags']))));
                 foreach ($tagNames as $tagName) {
-                    if ($tagName) {
-                        $tag = PhpposTag::firstOrCreate(['name' => $tagName]);
-                        DB::table('phppos_item_kits_tags')->insert([
-                            'item_kit_id' => $kitId,
-                            'tag_id' => $tag->id,
-                        ]);
-                    }
+                    $tag = PhpposTag::firstOrCreate(['name' => $tagName]);
+                    DB::table('phppos_item_kits_tags')->insertOrIgnore([
+                        'item_kit_id' => $kitId,
+                        'tag_id' => $tag->id,
+                    ]);
                 }
             }
         });

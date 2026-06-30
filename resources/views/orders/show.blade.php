@@ -152,6 +152,7 @@
                 <thead>
                     <tr>
                         <th>Item</th>
+                        <th>Product ID</th>
                         <th class="text-center">Qty on Hand</th>
                         <th class="text-center">Qty Ordered</th>
                     </tr>
@@ -173,6 +174,7 @@
                                 <small class="badge bg-primary-subtle text-primary ms-1">Kit</small>
                             @endif
                         </td>
+                        <td>{{ $item->item_id ? ($item->item->product_id ?? '—') : '—' }}</td>
                         <td class="text-center">{{ $qtyOnHand[$item->item_id] ?? $qtyOnHand['kit_' . $item->item_kit_id] ?? 0 }}</td>
                         <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
                     </tr>

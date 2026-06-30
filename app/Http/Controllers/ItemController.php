@@ -9,6 +9,7 @@ use App\Models\PhpposCategory;
 use App\Models\PhpposImportQueue;
 use App\Models\PhpposItem;
 use App\Models\PhpposSupplier;
+use App\Models\PhpposTag;
 use App\Models\PhpposTaxClass;
 use App\Services\AppConfigService;
 use Illuminate\Http\JsonResponse;
@@ -480,34 +481,18 @@ class ItemController extends Controller
             }
 
             // Sync tags
-            if (isset($data['tags'])) {
-                $tagNames = array_filter(array_map('trim', explode(',', $data['tags'])));
-                $tagIds = [];
+            DB::table('phppos_items_tags')->where('item_id', $itemId)->delete();
+            if (!empty($data['tags'])) {
+                $tagNames = array_unique(array_filter(array_map('trim', explode(',', $data['tags']))));
                 foreach ($tagNames as $tagName) {
-                    $tag = DB::table('phppos_tags')->where('name', $tagName)->first();
-                    if (! $tag) {
-                        $tagId = DB::table('phppos_tags')->insertGetId([
-                            'name' => $tagName,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    } else {
-                        $tagId = $tag->id;
-                    }
-                    $tagIds[] = $tagId;
-                }
-
-                DB::table('phppos_items_tags')->where('item_id', $itemId)->delete();
-                foreach (array_unique($tagIds) as $tId) {
-                    DB::table('phppos_items_tags')->insert([
+                    $tag = PhpposTag::firstOrCreate(['name' => $tagName]);
+                    DB::table('phppos_items_tags')->insertOrIgnore([
                         'item_id' => $itemId,
-                        'tag_id' => $tId,
+                        'tag_id' => $tag->id,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 }
-            } else {
-                DB::table('phppos_items_tags')->where('item_id', $itemId)->delete();
             }
 
             // Sync additional item numbers

@@ -121,8 +121,8 @@
     <table>
         <thead>
             <tr>
-                <th>Product ID</th>
                 <th>Item</th>
+                <th>Product ID</th>
                 <th class="text-center">Qty on Hand</th>
                 <th class="text-center">Qty Ordered</th>
             </tr>
@@ -130,7 +130,6 @@
         <tbody>
             @foreach($order->items as $item)
             <tr>
-                <td>{{ $item->item_id ? ($item->item->product_id ?? '—') : '—' }}</td>
                 <td>
                     @if($item->item_id)
                         {{ $item->item->name ?? 'Unknown Item' }}
@@ -141,6 +140,7 @@
                     @endif
                     @if($item->item_kit_id && ! $item->item_id) <small style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-size:11px;margin-left:4px;">Kit</small> @endif
                 </td>
+                <td>{{ $item->item_id ? ($item->item->product_id ?? '—') : '—' }}</td>
                 <td class="text-center">{{ $qtyOnHand[$item->item_id] ?? $qtyOnHand['kit_' . $item->item_kit_id] ?? 0 }}</td>
                 <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
             </tr>
