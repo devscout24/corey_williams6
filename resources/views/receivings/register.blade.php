@@ -90,7 +90,7 @@
                                     <th width="120">Tax Class</th>
                                     <th width="120">Cost Price</th>
                                     <th width="100">Qty</th>
-                                    <th width="100">Disc %</th>
+                                    <th width="100">Tax</th>
                                     <th class="text-end" width="120">Total</th>
                                     <th class="text-end pe-4" width="50"></th>
                                 </tr>
@@ -133,10 +133,11 @@
                                             </form>
                                         </td>
                                         <td>
-                                            <form action="{{ route('receivings.item.edit', $index) }}" method="POST">
-                                                @csrf
-                                                <input type="number" step="0.1" name="discount" class="form-control form-control-sm" value="{{ $item['discount'] }}" onchange="this.form.submit()">
-                                            </form>
+                                            @if($item['tax_class_name'] ?? null)
+                                                <span class="badge bg-info">{{ $item['tax_class_name'] }}</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
                                         </td>
                                         <td class="text-end fw-bold">
                                             ${{ number_format($item['cost_price'] * $item['quantity'] * (1 - $item['discount'] / 100), 2) }}

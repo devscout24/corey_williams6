@@ -142,7 +142,7 @@
                 <th class="text-center">Qty Purchased</th>
                 <th class="text-center">Qty Received</th>
                 <th class="text-end">Cost Price</th>
-                <th class="text-end">Discount</th>
+                <th class="text-end">Tax</th>
                 <th class="text-end">Total</th>
                 @endif
             </tr>
@@ -161,7 +161,7 @@
                 <td class="text-center">{{ (float) $item->quantity_purchased }}</td>
                 <td class="text-center">{{ (float) $item->quantity_received }}</td>
                 <td class="text-end">${{ number_format($item->item_cost_price, 2) }}</td>
-                <td class="text-end">{{ (float) $item->discount_percent }}%</td>
+                <td class="text-end">{{ $item->item?->taxClass?->name ?? ($item->kit?->taxClass?->name ?? '—') }}</td>
                 <td class="text-end">${{ number_format($item->total, 2) }}</td>
                 @endif
             </tr>
