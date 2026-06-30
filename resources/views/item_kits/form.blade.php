@@ -163,7 +163,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="default_quantity">Default Quantity</label>
-                                    <input type="number" step="0.001" class="form-control" name="default_quantity"
+                                    <input type="number" step="1" class="form-control" name="default_quantity"
                                         id="default_quantity"
                                         value="{{ old('default_quantity', $kit?->default_quantity) }}">
                                 </div>
@@ -179,7 +179,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="reorder_level">Threshold</label>
-                                    <input type="number" step="0.001" class="form-control" name="reorder_level"
+                                    <input type="number" step="1" class="form-control" name="reorder_level"
                                         id="reorder_level" value="{{ old('reorder_level', $kit?->reorder_level) }}" />
                                 </div>
                             </div>
@@ -214,7 +214,7 @@
                                                                 @endforeach
                                                             </select>
                                                         </td>
-                                                        <td><input type="number" step="0.001"
+                                                        <td><input type="number" step="1"
                                                                 class="form-control form-control-sm"
                                                                 name="kit_items[{{ $index }}][quantity]"
                                                                 value="{{ $kitItem->quantity }}"></td>
@@ -255,7 +255,7 @@
                                                                 @endforeach
                                                             </select>
                                                         </td>
-                                                        <td><input type="number" step="0.001"
+                                                        <td><input type="number" step="1"
                                                                 class="form-control form-control-sm"
                                                                 name="nested_kits[{{ $index }}][quantity]"
                                                                 value="{{ $nested->quantity }}"></td>
@@ -280,7 +280,10 @@
                                     <label class="form-label" for="cost_price">Cost Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="cost_price"
+                                        <input type="number"
+                                        step="{{ 10 ** -$baseDecimals }}"
+                                        {{-- step="1" --}}
+                                        class="form-control" id="cost_price"
                                             name="cost_price" value="{{ old('cost_price', $kit?->cost_price) }}" />
                                     </div>
                                 </div>
@@ -295,7 +298,10 @@
                                     <label class="form-label" for="markup">Markup</label>
                                     <div class="input-group">
                                         <span class="input-group-text" id="markup-symbol">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="markup" name="markup"
+                                        <input type="number"
+                                        step="{{ 10 ** -$baseDecimals }}"
+                                        {{-- step="1" --}}
+                                        class="form-control" id="markup" name="markup"
                                             value="{{ old('markup', $kit?->markup) }}" />
                                     </div>
                                 </div>
@@ -303,7 +309,10 @@
                                     <label class="form-label" for="unit_price">Unit Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
-                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $kit?->unit_price) }}" />
+                                        <input type="number"
+                                        step="{{ 10 ** -$baseDecimals }}"
+                                        {{-- step="1" --}}
+                                        class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $kit?->unit_price) }}" />
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -363,7 +372,7 @@
                                                             <tr>
                                                                 <td><input type="text" class="form-control" name="tax_names[]"
                                                                         value="{{ $tax->name }}"></td>
-                                                                <td><input type="number" step="0.001" class="form-control"
+                                                                <td><input type="number" step="0.1" class="form-control"
                                                                         name="tax_percents[]" value="{{ $tax->percent }}"></td>
                                                                 <td class="text-center">
                                                                     <input type="checkbox" class="form-check-input"
