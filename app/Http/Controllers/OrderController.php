@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PhpposItem;
 use App\Models\PhpposItemKit;
-use App\Models\PhpposReceiving;
-use App\Models\PhpposReceivingItem;
+use App\Models\PhpposOrder;
+use App\Models\PhpposOrderItem;
 use App\Models\PhpposSupplier;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -21,11 +21,10 @@ class OrderController extends Controller
         $q = trim((string) $request->query('q', ''));
         $suppliers = PhpposSupplier::query()->where('deleted', 0)->orderBy('company_name')->get();
 
-        $query = PhpposReceiving::query()
+        $query = PhpposOrder::query()
             ->with(['supplier', 'items.item', 'items.kit'])
-            ->where('is_po', 1)
             ->where('deleted', 0)
-            ->orderBy('receiving_time', 'desc');
+            ->orderBy('order_time', 'desc');
 
         if ($status === 'open') {
             $query->where('suspended', 0);
@@ -36,7 +35,7 @@ class OrderController extends Controller
         if ($q !== '') {
             $query->where(function ($sq) use ($q) {
                 $sq->where('internal_code', 'like', "%{$q}%")
-                    ->orWhere('receiving_id', 'like', "%{$q}%")
+                    ->orWhere('order_id', 'like', "%{$q}%")
                     ->orWhereHas('supplier', function ($sq2) use ($q) {
                         $sq2->where('company_name', 'like', "%{$q}%");
                     });
@@ -64,21 +63,20 @@ class OrderController extends Controller
 
         $employee = auth('employee')->user();
 
-        $receiving = PhpposReceiving::create([
-            'receiving_time' => now(),
+        $order = PhpposOrder::create([
+            'order_time' => now(),
             'supplier_id' => $data['supplier_id'],
             'employee_id' => $employee->person_id,
             'location_id' => $employee->location_id ?? 1,
-            'is_po' => 1,
             'deleted' => 0,
             'suspended' => 0,
-            'mode' => 'receive',
-            'type' => 'receive',
-            'source' => 'order',
             'subtotal' => 0,
             'total' => 0,
         ]);
-        $receiving->syncDocumentIdentity();
+
+        $order->internal_code = 'PO-'.str_pad((string) $order->order_id, 8, '0', STR_PAD_LEFT);
+        $order->saveQuietly();
+
         $total = 0;
 
         foreach ($data['items'] as $line => $item) {
@@ -87,17 +85,15 @@ class OrderController extends Controller
                 if ($dbItem) {
                     $lineTotal = $item['quantity'] * $dbItem->cost_price;
                     $total += $lineTotal;
-                    PhpposReceivingItem::create([
-                        'receiving_id' => $receiving->receiving_id,
+                    PhpposOrderItem::create([
+                        'order_id' => $order->order_id,
                         'item_id' => $item['item_id'],
                         'description' => $dbItem->description ?? '',
-                        'serialnumber' => '',
                         'line' => $line + 1,
                         'quantity_purchased' => $item['quantity'],
-                        'quantity_received' => $item['quantity'], // Set received to purchased initially
+                        'quantity_received' => $item['quantity'],
                         'item_cost_price' => $dbItem->cost_price,
                         'item_unit_price' => $dbItem->unit_price,
-                        'discount_percent' => 0,
                         'subtotal' => $lineTotal,
                         'total' => $lineTotal,
                     ]);
@@ -111,18 +107,16 @@ class OrderController extends Controller
                         if ($dbItem) {
                             $lineTotal = ($item['quantity'] * $kitItem->quantity) * $dbItem->cost_price;
                             $total += $lineTotal;
-                            PhpposReceivingItem::create([
-                                'receiving_id' => $receiving->receiving_id,
+                            PhpposOrderItem::create([
+                                'order_id' => $order->order_id,
                                 'item_id' => $kitItem->item_id,
                                 'item_kit_id' => null,
                                 'description' => $dbItem->description ?? '',
-                                'serialnumber' => '',
                                 'line' => $line + 1,
                                 'quantity_purchased' => $item['quantity'] * $kitItem->quantity,
                                 'quantity_received' => $item['quantity'] * $kitItem->quantity,
                                 'item_cost_price' => $dbItem->cost_price,
                                 'item_unit_price' => $dbItem->unit_price,
-                                'discount_percent' => 0,
                                 'subtotal' => $lineTotal,
                                 'total' => $lineTotal,
                             ]);
@@ -130,22 +124,19 @@ class OrderController extends Controller
                         }
                     }
 
-                    // Fallback: If no items were added (empty kit), add the kit itself as a line item
                     if ($itemsAdded === 0) {
                         $lineTotal = $item['quantity'] * ($kit->cost_price ?? 0);
                         $total += $lineTotal;
-                        PhpposReceivingItem::create([
-                            'receiving_id' => $receiving->receiving_id,
+                        PhpposOrderItem::create([
+                            'order_id' => $order->order_id,
                             'item_id' => null,
                             'item_kit_id' => $kit->id,
                             'description' => $kit->description ?? '',
-                            'serialnumber' => '',
                             'line' => $line + 1,
                             'quantity_purchased' => $item['quantity'],
                             'quantity_received' => $item['quantity'],
                             'item_cost_price' => $kit->cost_price ?? 0,
                             'item_unit_price' => $kit->unit_price ?? 0,
-                            'discount_percent' => 0,
                             'subtotal' => $lineTotal,
                             'total' => $lineTotal,
                         ]);
@@ -154,7 +145,7 @@ class OrderController extends Controller
             }
         }
 
-        $receiving->update([
+        $order->update([
             'subtotal' => $total,
             'total' => $total,
         ]);
@@ -162,7 +153,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order saved successfully',
-            'order_id' => $receiving->receiving_id,
+            'order_id' => $order->order_id,
         ]);
     }
 
@@ -263,7 +254,6 @@ class OrderController extends Controller
 
         $itemsQuery = PhpposItem::query()
             ->where('phppos_items.deleted', 0)
-            // ->where('phppos_items.supplier_id', $supplierId)
             ->leftJoin('phppos_location_items as li', function ($join) use ($locationId) {
                 $join->on('li.item_id', '=', 'phppos_items.item_id')
                     ->where('li.location_id', '=', $locationId);
@@ -288,7 +278,6 @@ class OrderController extends Controller
 
         $kitsQuery = PhpposItemKit::query()
             ->where('phppos_item_kits.deleted', 0)
-            // ->where('phppos_item_kits.supplier_id', $supplierId)
             ->select(
                 'phppos_item_kits.id as id',
                 'phppos_item_kits.name',
@@ -333,20 +322,20 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show($receivingId): View
+    public function show(PhpposOrder $order): View
     {
-        $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
-        $qtyOnHand = $this->getQtyOnHand($receiving);
+        $order->load(['items.item', 'items.kit', 'supplier', 'location', 'employee']);
+        $qtyOnHand = $this->getQtyOnHand($order);
 
-        return view('receivings.show', compact('receiving', 'qtyOnHand'));
+        return view('orders.show', compact('order', 'qtyOnHand'));
     }
 
-    public function edit($receivingId)
+    public function edit(PhpposOrder $order)
     {
-        return redirect()->route('purchases.index', ['receiving_id' => $receivingId]);
+        return redirect()->route('orders.index');
     }
 
-    public function update(Request $request, $receivingId): JsonResponse
+    public function update(Request $request, PhpposOrder $order): JsonResponse
     {
         $data = $request->validate([
             'items' => 'required|array',
@@ -355,9 +344,9 @@ class OrderController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
         ]);
 
-        return DB::transaction(function () use ($receivingId, $data) {
+        return DB::transaction(function () use ($order, $data) {
             try {
-                $order = PhpposReceiving::with('items')->findOrFail($receivingId);
+                $order->load('items');
 
                 foreach ($data['items'] as $inputItem) {
                     $item = null;
@@ -388,48 +377,10 @@ class OrderController extends Controller
         });
     }
 
-    public function close($receivingId): JsonResponse
+    public function close(PhpposOrder $order): JsonResponse
     {
-        return DB::transaction(function () use ($receivingId) {
+        return DB::transaction(function () use ($order) {
             try {
-                $order = PhpposReceiving::with('items')->findOrFail($receivingId);
-                // $receive = $order->replicate();
-                // $receive->internal_code = null;
-                // $receive->is_po = 0;
-                // $receive->suspended = 0;
-                // $receive->source = 'order';
-                // $receive->reference_id = $order->internal_code ?? $order->receiving_id;
-                // $receive->receiving_time = now();
-                // $receive->closed_at = now();
-                // $receive->save();
-                // $receive->syncDocumentIdentity();
-
-                // foreach ($order->items as $item) {
-                //     $new_item = $item->replicate();
-                //     $new_item->receiving_id = $receive->receiving_id;
-                //     $new_item->save();
-
-                //     if ($new_item->item_id) {
-                //         DB::table('phppos_location_items')
-                //             ->updateOrInsert(
-                //                 ['item_id' => $new_item->item_id, 'location_id' => $receive->location_id],
-                //                 ['quantity' => DB::raw("quantity + " . $new_item->quantity_received)]
-                //             );
-
-                //         DB::table('phppos_inventory_movements')->insert([
-                //             'movement_type' => 'receiving',
-                //             'item_id' => $new_item->item_id,
-                //             'to_location_id' => $receive->location_id,
-                //             'quantity' => $new_item->quantity_received,
-                //             'reference_id' => $receive->receiving_id,
-                //             'reference_type' => 'receiving',
-                //             'created_by_person_id' => auth('employee')->id(),
-                //             'notes' => 'Generated from Order ' . ($order->internal_code ?? $order->receiving_id),
-                //             'created_at' => now(),
-                //             'updated_at' => now(),
-                //         ]);
-                //     }
-                // }
                 $order->update([
                     'suspended' => 1,
                     'closed_at' => now(),
@@ -442,12 +393,12 @@ class OrderController extends Controller
         });
     }
 
-    public function print($receivingId): View
+    public function print(PhpposOrder $order): View
     {
-        $receiving = PhpposReceiving::with(['items.item', 'items.kit', 'supplier', 'location', 'employee'])->findOrFail($receivingId);
-        $qtyOnHand = $this->getQtyOnHand($receiving);
+        $order->load(['items.item', 'items.kit', 'supplier', 'location', 'employee']);
+        $qtyOnHand = $this->getQtyOnHand($order);
 
-        return view('receivings.print', compact('receiving', 'qtyOnHand'));
+        return view('orders.print', compact('order', 'qtyOnHand'));
     }
 
     public function export(Request $request)
@@ -455,11 +406,10 @@ class OrderController extends Controller
         $status = $request->query('status', 'open');
         $q = trim((string) $request->query('q', ''));
 
-        $query = PhpposReceiving::query()
+        $query = PhpposOrder::query()
             ->with(['supplier', 'items.item', 'items.kit'])
-            ->where('is_po', 1)
             ->where('deleted', 0)
-            ->orderBy('receiving_time', 'desc');
+            ->orderBy('order_time', 'desc');
 
         if ($status === 'open') {
             $query->where('suspended', 0);
@@ -470,7 +420,7 @@ class OrderController extends Controller
         if ($q !== '') {
             $query->where(function ($sq) use ($q) {
                 $sq->where('internal_code', 'like', "%{$q}%")
-                    ->orWhere('receiving_id', 'like', "%{$q}%")
+                    ->orWhere('order_id', 'like', "%{$q}%")
                     ->orWhereHas('supplier', function ($sq2) use ($q) {
                         $sq2->where('company_name', 'like', "%{$q}%");
                     });
@@ -495,9 +445,9 @@ class OrderController extends Controller
 
             foreach ($orders as $order) {
                 fputcsv($handle, [
-                    $order->internal_code ?? 'PO-'.str_pad($order->receiving_id, 8, '0', STR_PAD_LEFT),
+                    $order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT),
                     $order->supplier->company_name ?? '—',
-                    Carbon::parse($order->receiving_time)->format('Y-m-d H:i:s'),
+                    Carbon::parse($order->order_time)->format('Y-m-d H:i:s'),
                     $order->suspended ? 'Closed' : 'Open',
                     $order->items->count(),
                     number_format($order->total, 2),
@@ -510,10 +460,10 @@ class OrderController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function getQtyOnHand(PhpposReceiving $receiving): array
+    private function getQtyOnHand(PhpposOrder $order): array
     {
-        $locationId = $receiving->location_id;
-        $itemIds = $receiving->items->pluck('item_id')->filter()->values()->toArray();
+        $locationId = $order->location_id;
+        $itemIds = $order->items->pluck('item_id')->filter()->values()->toArray();
 
         $locationQtys = [];
         if (! empty($itemIds)) {
@@ -525,7 +475,7 @@ class OrderController extends Controller
         }
 
         $qtyOnHand = [];
-        foreach ($receiving->items as $item) {
+        foreach ($order->items as $item) {
             if ($item->item_id) {
                 $qtyOnHand[$item->item_id] = (float) ($locationQtys[$item->item_id] ?? $item->item?->default_quantity ?? 0);
             } elseif ($item->item_kit_id) {
@@ -536,11 +486,10 @@ class OrderController extends Controller
         return $qtyOnHand;
     }
 
-    public function destroy($receivingId): JsonResponse
+    public function destroy(PhpposOrder $order): JsonResponse
     {
         try {
-            $receiving = PhpposReceiving::findOrFail($receivingId);
-            $receiving->update(['deleted' => 1]);
+            $order->update(['deleted' => 1]);
 
             return response()->json(['success' => true, 'message' => 'Order deleted successfully']);
         } catch (\Exception $e) {

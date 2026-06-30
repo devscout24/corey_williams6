@@ -205,7 +205,7 @@
                         <i class="bi bi-person"></i>
                       </div>
                       <div>
-                        <div class="user-name">{{ $customer->last_name }}, {{ $customer->first_name }}</div>
+                        <div class="user-name">{{ $customer->first_name }}, {{ $customer->last_name }}</div>
                         <div class="user-id">ID:{{ $customer->person_id }}</div>
                       </div>
                     </div>
@@ -249,7 +249,7 @@
         </table>
       </div>
     </div>
-    
+
     @if($customers->hasPages())
         <div class="mt-3">
             {{ $customers->links() }}
@@ -359,7 +359,7 @@ function checkSelection() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
     const bulkActions = document.getElementById('bulkActions');
     const selectAll = document.getElementById('selectAll');
-    
+
     let checkedCount = 0;
     checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
 

@@ -203,9 +203,9 @@
                 <tbody>
                     @forelse($orders as $order)
                         <tr>
-                            <td>{{ $order->internal_code ?? 'PO-'.str_pad($order->receiving_id, 8, '0', STR_PAD_LEFT) }}</td>
+                            <td>{{ $order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT) }}</td>
                             <td>{{ $order->supplier->company_name ?? '—' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($order->receiving_time)->format('m/d/Y') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($order->order_time)->format('m/d/Y') }}</td>
                             <td>{{ str_pad($order->items->count(), 2, '0', STR_PAD_LEFT) }}</td>
                             <td>
                                 <span class="status-badge {{ $order->suspended ? 'status-closed' : 'status-open' }}">
@@ -214,7 +214,27 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <button type="button" class="btn-action-icon" title="Edit" data-id="{{ $order->receiving_id }}" data-items="{{ json_encode($order->items->map(fn($i) => ['item_id' => $i->item_id, 'name' => $i->item->name ?? $i->description ?? 'Unknown', 'quantity' => (float)$i->quantity_purchased])) }}" onclick="editOrder(this.dataset.id, JSON.parse(this.dataset.items))">
+                                    @php
+                                        $orderLocationId = auth('employee')->user()->location_id ?? 1;
+                                    @endphp
+                                    <button type="button" class="btn-action-icon" title="Edit" data-id="{{ $order->order_id }}" data-items="{{ json_encode($order->items->map(function($i) use ($orderLocationId) {
+                                        $extra = [];
+                                        if ($i->item_id) {
+                                            $extra['reorder_level'] = (float) ($i->item?->reorder_level ?? 0);
+                                            $extra['quantity_at_hand'] = (float) (\App\Models\PhpposLocationItem::where('item_id', $i->item_id)->where('location_id', $orderLocationId)->value('quantity') ?? 0);
+                                        } elseif ($i->item_kit_id) {
+                                            $extra['reorder_level'] = (float) ($i->kit?->reorder_level ?? 0);
+                                            $extra['quantity_at_hand'] = (float) ($i->kit?->default_quantity ?? 0);
+                                        } else {
+                                            $extra['reorder_level'] = 0;
+                                            $extra['quantity_at_hand'] = 0;
+                                        }
+                                        return array_merge([
+                                            'item_id' => $i->item_id,
+                                            'name' => $i->item->name ?? $i->kit->name ?? $i->description ?? 'Unknown',
+                                            'quantity' => (float) $i->quantity_purchased,
+                                        ], $extra);
+                                    })) }}" onclick="editOrder(this.dataset.id, JSON.parse(this.dataset.items))">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <div class="dropdown">
@@ -224,24 +244,24 @@
                                         <ul class="dropdown-menu dropdown-menu-end action-dropdown-menu">
                                             @if(!$order->suspended)
                                             <li>
-                                                <button class="action-dropdown-item" onclick="closeOrder({{ $order->receiving_id }}, '{{ $order->internal_code ?? 'PO-'.str_pad($order->receiving_id, 8, '0', STR_PAD_LEFT) }}')">
+                                                <button class="action-dropdown-item" onclick="closeOrder({{ $order->order_id }}, '{{ $order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT) }}')">
                                                     <i class="bi bi-check-circle text-success"></i> Close Order
                                                 </button>
                                             </li>
                                             @endif
                                             <li>
-                                                <a href="{{ route('orders.show', $order->receiving_id) }}" class="action-dropdown-item">
+                                                <a href="{{ route('orders.show', $order->order_id) }}" class="action-dropdown-item">
                                                     <i class="bi bi-eye text-primary"></i> View Details
                                                 </a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('orders.print', $order->receiving_id) }}" target="_blank" class="action-dropdown-item">
+                                                <a href="{{ route('orders.print', $order->order_id) }}" target="_blank" class="action-dropdown-item">
                                                     <i class="bi bi-printer text-primary"></i> Print Order
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <button class="action-dropdown-item text-danger" onclick="deleteOrder({{ $order->receiving_id }})">
+                                                <button class="action-dropdown-item text-danger" onclick="deleteOrder({{ $order->order_id }})">
                                                     <i class="bi bi-trash"></i> Delete
                                                 </button>
                                             </li>
@@ -400,7 +420,9 @@
                         <thead>
                             <tr>
                                 <th>Item Name</th>
-                                <th>Quantity</th>
+                                <th style="width:100px">Reorder Level</th>
+                                <th style="width:100px">Qty At Hand</th>
+                                <th style="width:120px">Quantity</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -744,11 +766,13 @@
     window.editOrder = (id, items) => {
         editOrderIdInput.value = id;
         editOrderTableBody.innerHTML = '';
-        
+
         items.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${item.name}</td>
+                <td class="text-center">${item.reorder_level ?? 0}</td>
+                <td class="text-center">${item.quantity_at_hand ?? 0}</td>
                 <td><input type="number" step="0.001" class="form-control form-control-sm edit-item-qty" data-id="${item.item_id}" value="${item.quantity}" /></td>
             `;
             editOrderTableBody.appendChild(row);

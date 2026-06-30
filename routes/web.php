@@ -80,13 +80,13 @@ Route::middleware('installed')->group(function (): void {
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/pull-list', [OrderController::class, 'pullList'])->name('orders.pull-list');
         Route::get('/orders/search-items', [OrderController::class, 'searchItems'])->name('orders.search-items');
-        Route::get('/orders/{receivingId}', [OrderController::class, 'show'])->name('orders.show');
-        Route::get('/orders/{receivingId}/edit', [OrderController::class, 'edit'])->name('orders.edit');
-        Route::put('/orders/{receivingId}', [OrderController::class, 'update'])->name('orders.update');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
+        Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
         Route::get('/orders/export/csv', [OrderController::class, 'export'])->name('orders.export');
-        Route::post('/orders/{receivingId}/close', [OrderController::class, 'close'])->name('orders.close');
-        Route::get('/orders/{receivingId}/print', [OrderController::class, 'print'])->name('orders.print');
-        Route::delete('/orders/{receivingId}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::post('/orders/{order}/close', [OrderController::class, 'close'])->name('orders.close');
+        Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
+        Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
         Route::get('/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
         Route::post('/profile', [EmployeeController::class, 'updateProfile'])->name('employee.profile.update');
