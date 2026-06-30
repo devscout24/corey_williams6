@@ -65,14 +65,14 @@
                                         value="{{ old('name', $kit?->name) }}" required />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="item_kit_number">Kit Number</label>
+                                    <label class="form-label" for="item_kit_number">Kit Number<span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="item_kit_number" name="item_kit_number"
-                                        value="{{ old('item_kit_number', $kit?->item_kit_number) }}" />
+                                        value="{{ old('item_kit_number', $kit?->item_kit_number) }}" required />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="product_id">Product ID</label>
+                                    <label class="form-label" for="product_id">Product ID<span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="product_id" name="product_id"
-                                        value="{{ old('product_id', $kit?->product_id) }}" />
+                                        value="{{ old('product_id', $kit?->product_id) }}" required />
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="category_id">Category</label>
@@ -428,6 +428,13 @@
                                         <label class="form-check-label" for="item_kit_inactive">Inactive</label>
                                     </div>
                                 </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="discountable"
+                                            id="discountable" value="1" @checked(old('discountable', $kit?->discountable))>
+                                        <label class="form-check-label" for="discountable">Is Discountable</label>
+                                    </div>
+                                </div>
 
                                 <div class="col-md-12">
                                     <hr>
@@ -720,41 +727,58 @@
                 const totalPrice = kitItems.price + nestedKits.price;
                 const totalLines = kitItems.lines + nestedKits.lines;
 
+                const roundedPrice = Math.ceil(totalPrice);
                 const costInput = document.getElementById('cost_price');
                 const priceInput = document.getElementById('unit_price');
-                if (costInput) {
-                    costInput.value = totalCost.toFixed({{ $baseDecimals }});
-                }
-                if (priceInput) {
-                    priceInput.value = totalPrice.toFixed({{ $baseDecimals }});
-                }
 
                 const summaryHtml = `
-                <div class="text-start">
-                    <div><strong>Item lines:</strong> ${kitItems.lines}</div>
-                    <div><strong>Nested kit lines:</strong> ${nestedKits.lines}</div>
-                    <div><strong>Total lines:</strong> ${totalLines}</div>
-                    <hr>
-                    <div><strong>Total cost:</strong> {{ $baseCurrencySymbol }}${totalCost.toFixed({{ $baseDecimals }})}</div>
-                    <div><strong>Total unit price:</strong> {{ $baseCurrencySymbol }}${totalPrice.toFixed({{ $baseDecimals }})}</div>
+                <div class="row g-3 mt-1">
+                    <div class="col-6">
+                        <div class="card border p-3 text-center h-100">
+                            <div class="fw-bold text-primary mb-1">Precise</div>
+                            <div class="fs-5 fw-bold">{{ $baseCurrencySymbol }}${totalPrice.toFixed({{ $baseDecimals }})}</div>
+                            <div class="text-muted small mt-1">Keep exact value</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card border p-3 text-center h-100">
+                            <div class="fw-bold text-primary mb-1">Rounded</div>
+                            <div class="fs-5 fw-bold">{{ $baseCurrencySymbol }}${roundedPrice.toFixed({{ $baseDecimals }})}</div>
+                            <div class="text-muted small mt-1">Round up</div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-start small text-muted">
+                    <div>Item lines: ${kitItems.lines} | Nested kits: ${nestedKits.lines} | Total lines: ${totalLines}</div>
+                    <div class="mt-1">Cost: {{ $baseCurrencySymbol }}${totalCost.toFixed({{ $baseDecimals }})}</div>
                 </div>
             `;
 
                 if (window.Swal) {
                     Swal.fire({
-                        title: 'Pricing calculated',
+                        title: 'Apply pricing',
                         html: summaryHtml,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
+                        icon: 'question',
+                        showCancelButton: true,
+                        showDenyButton: true,
+                        confirmButtonText: 'Precise · {{ $baseCurrencySymbol }}' + totalPrice.toFixed({{ $baseDecimals }}),
+                        denyButtonText: 'Rounded · {{ $baseCurrencySymbol }}' + roundedPrice.toFixed({{ $baseDecimals }}),
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#3b82f6',
+                        denyButtonColor: '#059669',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if (costInput) costInput.value = totalCost.toFixed({{ $baseDecimals }});
+                            if (priceInput) priceInput.value = totalPrice.toFixed({{ $baseDecimals }});
+                        } else if (result.isDenied) {
+                            if (costInput) costInput.value = totalCost.toFixed({{ $baseDecimals }});
+                            if (priceInput) priceInput.value = roundedPrice.toFixed({{ $baseDecimals }});
+                        }
                     });
                 } else {
-                    alert(
-                        `Item lines: ${kitItems.lines}\n` +
-                        `Nested kit lines: ${nestedKits.lines}\n` +
-                        `Total lines: ${totalLines}\n` +
-                        `Total cost: {{ $baseCurrencySymbol }}${totalCost.toFixed({{ $baseDecimals }})}\n` +
-                        `Total unit price: {{ $baseCurrencySymbol }}${totalPrice.toFixed({{ $baseDecimals }})}`
-                    );
+                    if (costInput) costInput.value = totalCost.toFixed({{ $baseDecimals }});
+                    if (priceInput) priceInput.value = totalPrice.toFixed({{ $baseDecimals }});
                 }
             });
 

@@ -172,9 +172,23 @@
             <button type="submit" class="btn-search"><i class="bi bi-search"></i> Search</button>
         </form>
         <div class="d-flex gap-2">
-            <a href="{{ route('orders.export', ['status' => $currentStatus, 'q' => request('q')]) }}" class="btn-new-order" style="background: #059669;">
-                <i class="bi bi-download"></i> Export CSV
-            </a>
+            <div class="dropdown">
+                <button class="btn-new-order dropdown-toggle" style="background: #059669;" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end action-dropdown-menu">
+                    <li>
+                        <a class="action-dropdown-item" href="{{ route('orders.export', ['status' => $currentStatus, 'q' => request('q')]) }}">
+                            <i class="bi bi-filetype-csv"></i> Export CSV
+                        </a>
+                    </li>
+                    <li>
+                        <a class="action-dropdown-item" href="{{ route('orders.export-xls', ['status' => $currentStatus, 'q' => request('q')]) }}">
+                            <i class="bi bi-file-earmark-excel"></i> Export XLS
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <button class="btn-new-order" data-bs-toggle="modal" data-bs-target="#newOrderModal">
                 <i class="bi bi-plus-lg"></i> New Order
             </button>

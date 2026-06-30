@@ -35,6 +35,8 @@ return new class extends Migration
             $table->decimal('commission_fixed', 23, 10)->nullable();
             $table->boolean('change_cost_price')->default(false);
             $table->boolean('disable_loyalty')->default(false);
+            $table->boolean('discountable')->default(false);
+
             $table->decimal('max_discount_percent', 15, 3)->nullable();
             $table->decimal('max_edit_price', 23, 10)->nullable();
             $table->decimal('min_edit_price', 23, 10)->nullable();

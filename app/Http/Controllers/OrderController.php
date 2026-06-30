@@ -440,21 +440,95 @@ class OrderController extends Controller
             $handle = fopen('php://output', 'w+');
 
             fputcsv($handle, [
-                'Order ID', 'Supplier', 'Created Date', 'Status', 'Items Count', 'Total',
+                'Order ID', 'Supplier', 'Created Date', 'Status', 'Product ID', 'Item', 'Qty Ordered',
             ]);
 
             foreach ($orders as $order) {
-                fputcsv($handle, [
-                    $order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT),
-                    $order->supplier->company_name ?? '—',
-                    Carbon::parse($order->order_time)->format('Y-m-d H:i:s'),
-                    $order->suspended ? 'Closed' : 'Open',
-                    $order->items->count(),
-                    number_format($order->total, 2),
-                ]);
+                foreach ($order->items as $line) {
+                    $itemName = $line->item_id
+                        ? ($line->item->name ?? 'Unknown Item')
+                        : ($line->item_kit_id ? ($line->kit->name ?? 'Unknown Kit') : ($line->description ?? 'Unknown'));
+                    $productId = $line->item_id ? ($line->item->product_id ?? '') : '';
+                    fputcsv($handle, [
+                        $order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT),
+                        $order->supplier->company_name ?? '—',
+                        Carbon::parse($order->order_time)->format('Y-m-d H:i:s'),
+                        $order->suspended ? 'Closed' : 'Open',
+                        $productId,
+                        $itemName,
+                        (float) $line->quantity_purchased,
+                    ]);
+                }
             }
 
             fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportXls(Request $request)
+    {
+        $status = $request->query('status', 'open');
+        $q = trim((string) $request->query('q', ''));
+
+        $query = PhpposOrder::query()
+            ->with(['supplier', 'items.item', 'items.kit'])
+            ->where('deleted', 0)
+            ->orderBy('order_time', 'desc');
+
+        if ($status === 'open') {
+            $query->where('suspended', 0);
+        } elseif ($status === 'closed') {
+            $query->where('suspended', 1);
+        }
+
+        if ($q !== '') {
+            $query->where(function ($sq) use ($q) {
+                $sq->where('internal_code', 'like', "%{$q}%")
+                    ->orWhere('order_id', 'like', "%{$q}%")
+                    ->orWhereHas('supplier', function ($sq2) use ($q) {
+                        $sq2->where('company_name', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        $orders = $query->get();
+
+        $filename = 'orders-export-'.now()->format('Y-m-d-His').'.xls';
+
+        $headers = [
+            'Content-Type' => 'application/vnd.ms-excel',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($orders) {
+            echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+            echo '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Orders</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>';
+            echo '<body><table>';
+            echo '<thead><tr>';
+            echo '<th>Order ID</th><th>Supplier</th><th>Created Date</th><th>Status</th><th>Product ID</th><th>Item</th><th>Qty Ordered</th>';
+            echo '</tr></thead><tbody>';
+
+            foreach ($orders as $order) {
+                foreach ($order->items as $line) {
+                    $itemName = $line->item_id
+                        ? e($line->item->name ?? 'Unknown Item')
+                        : ($line->item_kit_id ? e($line->kit->name ?? 'Unknown Kit') : e($line->description ?? 'Unknown'));
+                    $productId = $line->item_id ? e($line->item->product_id ?? '') : '';
+                    echo '<tr>';
+                    echo '<td>'.e($order->internal_code ?? 'PO-'.str_pad($order->order_id, 8, '0', STR_PAD_LEFT)).'</td>';
+                    echo '<td>'.e($order->supplier->company_name ?? '—').'</td>';
+                    echo '<td>'.\Carbon\Carbon::parse($order->order_time)->format('Y-m-d H:i:s').'</td>';
+                    echo '<td>'.($order->suspended ? 'Closed' : 'Open').'</td>';
+                    echo '<td>'.$productId.'</td>';
+                    echo '<td>'.$itemName.'</td>';
+                    echo '<td>'.(float) $line->quantity_purchased.'</td>';
+                    echo '</tr>';
+                }
+            }
+
+            echo '</tbody></table></body></html>';
         };
 
         return response()->stream($callback, 200, $headers);

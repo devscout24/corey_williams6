@@ -84,6 +84,7 @@ Route::middleware('installed')->group(function (): void {
         Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
         Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
         Route::get('/orders/export/csv', [OrderController::class, 'export'])->name('orders.export');
+        Route::get('/orders/export/xls', [OrderController::class, 'exportXls'])->name('orders.export-xls');
         Route::post('/orders/{order}/close', [OrderController::class, 'close'])->name('orders.close');
         Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
         Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');

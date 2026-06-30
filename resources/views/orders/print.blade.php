@@ -121,6 +121,7 @@
     <table>
         <thead>
             <tr>
+                <th>Product ID</th>
                 <th>Item</th>
                 <th class="text-center">Qty on Hand</th>
                 <th class="text-center">Qty Ordered</th>
@@ -129,6 +130,7 @@
         <tbody>
             @foreach($order->items as $item)
             <tr>
+                <td>{{ $item->item_id ? ($item->item->product_id ?? '—') : '—' }}</td>
                 <td>
                     @if($item->item_id)
                         {{ $item->item->name ?? 'Unknown Item' }}

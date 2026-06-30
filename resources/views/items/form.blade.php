@@ -211,9 +211,11 @@
                                         value="{{ old('item_number', $item?->item_number) }}" />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="product_id">Product ID</label>
+                                    <label class="form-label" for="product_id">Product ID <span
+                                            class="text-danger">*</span></label>
+
                                     <input type="text" class="form-control" id="product_id" name="product_id"
-                                        value="{{ old('product_id', $item?->product_id) }}" />
+                                        value="{{ old('product_id', $item?->product_id) }}"  required/>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label" for="tags">Tags (Comma Separated)</label>

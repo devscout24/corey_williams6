@@ -402,6 +402,7 @@ class LanController extends Controller
                 $receiving = PhpposReceiving::create([
                     'receiving_time' => $timestamp,
                     'closed_at' => null,
+                    'suspended' => 1,
                     'supplier_id' => null,
                     'employee_id' => $employeeId,
                     'comment' => $payload['notes'] ?? 'Transfer from '.$senderName.' #'.($payload['transfer_code'] ?? $payload['transfer_out_id']),

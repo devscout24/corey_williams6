@@ -121,7 +121,13 @@ class ReceivingController extends Controller
     private function receivingHistoryUiStatus(PhpposReceiving $r): array
     {
         if ($r->mode === 'transfer') {
-            return ['label' => 'Transfer', 'tone' => 'neutral'];
+            if ($r->suspended) {
+                return ['label' => 'Suspended', 'tone' => 'open'];
+            }
+            if (!$r->closed_at) {
+                return ['label' => 'Pending', 'tone' => 'open'];
+            }
+            return ['label' => 'Closed', 'tone' => 'closed'];
         }
 
         if ($r->mode === 'return') {
@@ -1235,6 +1241,7 @@ class ReceivingController extends Controller
 
             $receiving->update([
                 'closed_at' => now(),
+                'suspended' => 0,
                 'total_quantity_received' => $receiving->total_quantity_purchased,
             ]);
 
