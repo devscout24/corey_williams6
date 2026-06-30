@@ -135,6 +135,8 @@ class ItemKitController extends Controller
         $data = $request->validate([
             'cost_price' => ['nullable', 'numeric'],
             'unit_price' => ['nullable', 'numeric'],
+            'markup' => ['nullable', 'numeric'],
+            'markup_type' => ['nullable', 'string', 'max:50'],
             'quantity' => ['nullable', 'numeric'],
             'reorder_level' => ['nullable', 'numeric'],
         ]);
@@ -146,6 +148,12 @@ class ItemKitController extends Controller
         }
         if ($request->has('unit_price')) {
             $payload['unit_price'] = $data['unit_price'];
+        }
+        if ($request->has('markup')) {
+            $payload['markup'] = $data['markup'];
+        }
+        if ($request->has('markup_type')) {
+            $payload['markup_type'] = $data['markup_type'];
         }
         if ($request->has('reorder_level')) {
             $payload['reorder_level'] = $data['reorder_level'];
@@ -173,6 +181,8 @@ class ItemKitController extends Controller
             'info_popup' => ['nullable', 'string'],
             'unit_price' => ['nullable', 'numeric'],
             'cost_price' => ['nullable', 'numeric'],
+            'markup' => ['nullable', 'numeric'],
+            'markup_type' => ['nullable', 'string', 'max:50'],
             'tax_included' => ['nullable', 'boolean'],
             'override_default_tax' => ['nullable', 'boolean'],
             'tax_class_id' => ['nullable', 'integer'],
@@ -228,6 +238,8 @@ class ItemKitController extends Controller
                 'info_popup' => $data['info_popup'] ?? null,
                 'unit_price' => $data['unit_price'] ?? 0,
                 'cost_price' => $data['cost_price'] ?? 0,
+                'markup' => $data['markup'] ?? 0,
+                'markup_type' => $data['markup_type'] ?? 'flat',
                 // 'tax_included' => !empty($data['tax_included']) ? 1 : 0,
                 'tax_included' => 1,
                 'override_default_tax' => !empty($data['override_default_tax']) ? 1 : 0,

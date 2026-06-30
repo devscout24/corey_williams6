@@ -276,7 +276,7 @@
                         <!-- Pricing & Taxes Tab -->
                         <div class="tab-pane fade" id="pricing" role="tabpanel" aria-labelledby="pricing-tab">
                             <div class="row g-3">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label" for="cost_price">Cost Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
@@ -284,14 +284,29 @@
                                             name="cost_price" value="{{ old('cost_price', $kit?->cost_price) }}" />
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="markup_type">Markup Type</label>
+                                    <select class="form-control" id="markup_type" name="markup_type">
+                                        <option value="percentage" {{ old('markup_type', $kit?->markup_type) == 'percentage' ? 'selected' : '' }}>Percentage</option>
+                                        <option value="flat" {{ old('markup_type', $kit?->markup_type) == 'flat' ? 'selected' : '' }}>Flat</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="markup">Markup</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text" id="markup-symbol">{{ $baseCurrencySymbol }}</span>
+                                        <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="markup" name="markup"
+                                            value="{{ old('markup', $kit?->markup) }}" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
                                     <label class="form-label" for="unit_price">Unit Price</label>
                                     <div class="input-group">
                                         <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
                                         <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="unit_price" name="unit_price" value="{{ old('unit_price', $kit?->unit_price) }}" />
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-12">
                                     <label class="form-label" for="recalc_prices">Recalculate</label>
                                     <div class="d-grid">
                                         <button type="button" class="btn btn-outline-primary" id="recalc_prices">
@@ -703,6 +718,36 @@
                     );
                 }
             });
+
+            function updateMarkupSymbol() {
+                var markupType = $('#markup_type').val();
+                $('#markup-symbol').text(markupType === 'percentage' ? '%' : '{{ $baseCurrencySymbol }}');
+            }
+
+            $('#markup, #cost_price, #unit_price, #markup_type').on('input change', function () {
+                var cost = parseFloat($('#cost_price').val()) || 0;
+                var unitPrice = parseFloat($('#unit_price').val()) || 0;
+                var markup = parseFloat($('#markup').val()) || 0;
+                var markupType = $('#markup_type').val();
+
+                updateMarkupSymbol();
+
+                if ($(this).is('#unit_price')) {
+                    if (markupType === 'flat') {
+                        $('#markup').val((unitPrice - cost).toFixed(3));
+                    } else {
+                        $('#markup').val(cost > 0 ? ((unitPrice - cost) / cost * 100).toFixed(3) : 0);
+                    }
+                } else {
+                    if (markupType === 'flat') {
+                        $('#unit_price').val((cost + markup).toFixed(3));
+                    } else {
+                        $('#unit_price').val((cost + (cost * markup / 100)).toFixed(3));
+                    }
+                }
+            });
+
+            updateMarkupSymbol();
 
             // Remove rows via event delegation
             document.addEventListener('click', function (e) {

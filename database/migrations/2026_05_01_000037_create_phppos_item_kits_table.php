@@ -23,6 +23,11 @@ return new class extends Migration
             $table->unsignedBigInteger('tax_class_id')->nullable();
             $table->decimal('unit_price', 23, 10)->default(0);
             $table->decimal('cost_price', 23, 10)->default(0);
+
+
+            $table->decimal('markup', 23, 10)->default(0);
+            $table->string('markup_type', 50)->default('flat');
+
             $table->integer('manufacturer_id')->nullable();
             $table->boolean('is_ebt_item')->default(false);
             $table->decimal('commission_percent', 15, 3)->nullable();
@@ -33,6 +38,8 @@ return new class extends Migration
             $table->decimal('max_discount_percent', 15, 3)->nullable();
             $table->decimal('max_edit_price', 23, 10)->nullable();
             $table->decimal('min_edit_price', 23, 10)->nullable();
+
+
             $table->integer('required_age')->nullable();
             $table->boolean('verify_age')->default(false);
             $table->boolean('allow_price_override_regardless_of_permissions')->default(false);

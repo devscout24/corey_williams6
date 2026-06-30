@@ -272,7 +272,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label" for="markup">Markup</label>
                                     <div class="input-group">
-                                        <span class="input-group-text">{{ $baseCurrencySymbol }}</span>
+                                        <span class="input-group-text" id="markup-symbol">{{ $baseCurrencySymbol }}</span>
                                         <input type="number" step="{{ 10 ** -$baseDecimals }}" class="form-control" id="markup" name="markup"
                                             value="{{ old('markup', $item?->markup) }}" />
                                     </div>
@@ -1031,12 +1031,19 @@
                 $(this).closest('.attr-assignment').remove();
             });
 
+            function updateMarkupSymbol() {
+                var markupType = $('#markup_type').val();
+                $('#markup-symbol').text(markupType === 'percentage' ? '%' : '{{ $baseCurrencySymbol }}');
+            }
+
             // Markup calculation for item-level
             $('#markup, #cost_price, #unit_price, #markup_type').on('input change', function () {
                 var cost = parseFloat($('#cost_price').val()) || 0;
                 var markup = parseFloat($('#markup').val()) || 0;
                 var unitPrice = parseFloat($('#unit_price').val()) || 0;
                 var markupType = $('#markup_type').val();
+
+                updateMarkupSymbol();
 
                 if ($(this).is('#unit_price') && cost > 0) {
                     if (markupType === 'flat') {
@@ -1053,6 +1060,8 @@
                 }
             });
 
+            updateMarkupSymbol();
+
             // Variation inline pricing calculation
             $(document).on('input', '.variation-markup, .variation-cost', function () {
                 var $row = $(this).closest('tr.variation-row');
@@ -1068,7 +1077,10 @@
             });
 
             $(document).on('change', '[name*="[markup_type]"]', function () {
-                $(this).closest('tr.variation-row').find('.variation-markup').trigger('input');
+                var $row = $(this).closest('tr.variation-row');
+                var $symbol = $row.find('.variation-markup').closest('.input-group').find('.input-group-text');
+                $symbol.text($(this).val() === 'percentage' ? '%' : '{{ $baseCurrencySymbol }}');
+                $row.find('.variation-markup').trigger('input');
             });
 
             // Remove rows via event delegation
