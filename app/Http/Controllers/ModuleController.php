@@ -9,11 +9,15 @@ class ModuleController extends Controller
 {
     public function index(): View
     {
+        $employee = auth('employee')->user();
+
         $modules = PhpposModule::query()
-            ->whereIn('module_id', ['locations', 'contacts', 'items', 'receivings', 'sales', 'messages', 'config', 'employees'])
+            ->whereIn('module_id', ['locations', 'contacts', 'items', 'receivings', 'sales', 'reports', 'messages', 'employees', 'config'])
             ->with('submodules')
             ->orderBy('sort')
-            ->get();
+            ->get()
+            ->filter(fn ($m) => $employee?->hasModulePermission($m->module_id))
+            ->values();
 
         // Fetch Sales Information (Graphical)
         $monthStart = now()->startOfMonth();

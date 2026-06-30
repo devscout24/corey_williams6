@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 
 
-Route::middleware('auth:employee')->group(function (): void {
+Route::middleware(['auth:employee', 'check_module_permission:sales'])->group(function (): void {
 
     // Register open/change routes (bypass the check_register_open middleware)
     Route::get('/sales/register/open', [SalesController::class, 'showRegisterOpenForm'])->name('sales.register.open');
@@ -41,19 +41,21 @@ Route::middleware('auth:employee')->group(function (): void {
         Route::post('/sales/register/close', [SalesController::class, 'closeRegister'])->name('sales.register.close.post');
         Route::post('/sales/register/blind-close', [SalesController::class, 'blindCloseRegister'])->name('sales.register.blind-close');
     });
+});
 
+Route::middleware(['auth:employee', 'check_module_permission:sales,config'])->group(function (): void {
     // Reconciliation routes (outside check_register_open — register is already closed)
     Route::get('/registers/reconciliation', [SalesController::class, 'reconciliationIndex'])->name('registers.reconciliation.index');
     Route::get('/registers/reconciliation/{log}', [SalesController::class, 'reconciliationEdit'])->name('registers.reconciliation.edit');
     Route::put('/registers/reconciliation/{log}', [SalesController::class, 'reconciliationUpdate'])->name('registers.reconciliation.update');
-
 });
 
-
-Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
-Route::get('/tags/create', [TagController::class, 'create'])->name('tags.create');
-Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
-Route::get('/tags/{id}/edit', [TagController::class, 'edit'])->name('tags.edit');
-Route::put('/tags/{id}', [TagController::class, 'update'])->name('tags.update');
-Route::delete('/tags/{id}', [TagController::class, 'destroy'])->name('tags.destroy');
-Route::get('/tags/list', [TagController::class, 'tagList'])->name('tags.list');
+Route::middleware(['auth:employee', 'check_module_permission:items'])->group(function (): void {
+    Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
+    Route::get('/tags/create', [TagController::class, 'create'])->name('tags.create');
+    Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
+    Route::get('/tags/{id}/edit', [TagController::class, 'edit'])->name('tags.edit');
+    Route::put('/tags/{id}', [TagController::class, 'update'])->name('tags.update');
+    Route::delete('/tags/{id}', [TagController::class, 'destroy'])->name('tags.destroy');
+    Route::get('/tags/list', [TagController::class, 'tagList'])->name('tags.list');
+});

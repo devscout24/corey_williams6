@@ -9,7 +9,7 @@ use App\Http\Controllers\ItemLabelController;
 use App\Http\Controllers\PriceRuleController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:employee')->group(function (): void {
+Route::middleware(['auth:employee', 'check_module_permission:items'])->group(function (): void {
 
     // labels
     Route::get('/items/labels', [ItemLabelController::class, 'index'])->name('labels.index');

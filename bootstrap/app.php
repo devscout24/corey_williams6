@@ -19,6 +19,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'sync.auth' => \App\Http\Middleware\SyncAuth::class,
             'installed' => \App\Http\Middleware\EnsureInstalled::class,
             'check_register_open' => \App\Http\Middleware\CheckRegisterOpen::class,
+            'check_module_permission' => \App\Http\Middleware\CheckModulePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

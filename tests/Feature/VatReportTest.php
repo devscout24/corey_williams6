@@ -52,6 +52,19 @@ class VatReportTest extends TestCase
             'location_id' => 1,
         ]);
 
+        // Grant the employee access to the reports module (modules FK must exist)
+        DB::table('phppos_modules')->insertOrIgnore([
+            'module_id' => 'reports',
+            'name_lang_key' => 'module_reports',
+            'desc_lang_key' => 'module_reports_desc',
+            'sort' => 70,
+            'icon' => 'ti-bar-chart-alt',
+        ]);
+        DB::table('phppos_permissions')->insert([
+            'module_id' => 'reports',
+            'person_id' => $employeeId,
+        ]);
+
         // Create category and item
         DB::table('phppos_categories')->insert([
             'id' => 1,

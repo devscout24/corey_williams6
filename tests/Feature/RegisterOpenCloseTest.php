@@ -61,6 +61,19 @@ class RegisterOpenCloseTest extends TestCase
             'deleted' => 0,
         ]);
 
+        // Grant the employee access to the sales module (modules FK must exist)
+        DB::table('phppos_modules')->insertOrIgnore([
+            'module_id' => 'sales',
+            'name_lang_key' => 'module_sales',
+            'desc_lang_key' => 'module_sales_desc',
+            'sort' => 50,
+            'icon' => 'ti-shopping-cart',
+        ]);
+        DB::table('phppos_permissions')->insert([
+            'module_id' => 'sales',
+            'person_id' => $employeeId,
+        ]);
+
         $employee = PhpposEmployee::findOrFail($employeeId);
         Auth::guard('employee')->login($employee);
 

@@ -15,6 +15,7 @@
                 </a>
             </div>
 
+            @if(auth('employee')->user()?->hasModulePermission('contacts'))
             <div class="nav-item">
                 <a href="#" class="nav-link" data-toggle="submenu">
                     <i class="bi bi-people-fill"></i><span>Contacts</span>
@@ -33,7 +34,9 @@
                     </div>
                 </div>
             </div>
+            @endif
 
+            @if(auth('employee')->user()?->hasModulePermission('items'))
             <div class="nav-item">
                 <a href="#" class="nav-link" data-toggle="submenu">
                     <i class="bi bi-box-seam-fill"></i><span>Inventory</span>
@@ -50,22 +53,34 @@
                     <div class="nav-item"><a href="{{ Route::has('price-rules.index') ? route('price-rules.index') : '#' }}" class="nav-link"><i class="bi bi-dot"></i> Price Rules</a></div>
                 </div>
             </div>
+            @endif
 
+            @if(auth('employee')->user()?->hasModulePermission('reports'))
             <div class="nav-item">
                 <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                     <i class="bi bi-bar-chart-fill"></i><span>Reports</span>
                 </a>
             </div>
+            @endif
 
+            @if(auth('employee')->user()?->hasModulePermission('receivings'))
             <div class="nav-item">
                 <a href="{{ route('purchases.index') }}"
                     class="nav-link {{ request()->routeIs('purchases.*', 'receivings.*') ? 'active' : '' }}">
                     <i class="bi bi-truck"></i><span>Purchases</span>
                 </a>
             </div>
-            <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i class="bi bi-cart-fill"></i><span>Sales</span></a></div>
-            <div class="nav-item"><a href="{{ route('registers.reconciliation.index') }}" class="nav-link {{ request()->routeIs('registers.reconciliation.*') ? 'active' : '' }}"><i class="bi bi-calculator-fill"></i><span>Reconciliation</span></a></div>
+            @endif
 
+            @if(auth('employee')->user()?->hasModulePermission('sales'))
+            <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i class="bi bi-cart-fill"></i><span>Sales</span></a></div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('sales') || auth('employee')->user()?->hasModulePermission('config'))
+            <div class="nav-item"><a href="{{ route('registers.reconciliation.index') }}" class="nav-link {{ request()->routeIs('registers.reconciliation.*') ? 'active' : '' }}"><i class="bi bi-calculator-fill"></i><span>Reconciliation</span></a></div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('receivings'))
             <div class="nav-item">
                 <a href="#" class="nav-link" data-toggle="submenu">
                     <i class="bi bi-arrow-left-right"></i><span>Transfer</span>
@@ -76,21 +91,40 @@
                     <div class="nav-item"><a href="{{ route('transfers.in') }}" class="nav-link"><i class="bi bi-dot"></i> Transfer In</a></div>
                 </div>
             </div>
+            @endif
 
+            @if(auth('employee')->user()?->hasModulePermission('employees'))
             <div class="nav-item"><a href="{{ route('employees.index') }}" class="nav-link"><i class="bi bi-person-badge-fill"></i><span>Employees</span></a></div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('reports'))
             <div class="nav-item"><a href="{{ route('reports.vat') }}" class="nav-link {{ request()->routeIs('reports.vat') ? 'active' : '' }}"><i class="bi bi-receipt"></i><span>VAT Report</span></a></div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('config'))
             <div class="nav-item"><a href="{{ route('config.index') }}" class="nav-link"><i class="bi bi-gear-fill"></i><span>Store Config</span></a></div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('locations'))
             <div class="nav-item">
                 <a href="{{ route('lan.locations') }}" class="nav-link {{ request()->routeIs('lan.locations') ? 'active' : '' }}">
                     <i class="bi bi-geo-alt-fill"></i><span>Locations</span>
                 </a>
             </div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('config'))
             <div class="nav-item">
                 <a href="{{ route('zkteco.index') }}" class="nav-link {{ request()->routeIs('zkteco.*') ? 'active' : '' }}">
                     <i class="bi bi-fingerprint"></i><span>Device Monitor</span>
                 </a>
             </div>
+            @endif
+
+            @if(auth('employee')->user()?->hasModulePermission('messages'))
             <div class="nav-item"><a href="{{ route('messages.index') }}" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Messages</span></a></div>
+            @endif
+
             <div class="nav-item"><a href="{{ route('app.notifications.all') }}" class="nav-link"><i class="bi bi-bell-fill"></i><span>Notifications</span></a></div>
         </nav>
 

@@ -146,7 +146,19 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
 @endpush
 
 @section('content')
+@php
+    $authEmployee = auth('employee')->user();
+    $canSales    = $authEmployee?->hasModulePermission('sales');
+    $canContacts = $authEmployee?->hasModulePermission('contacts');
+    $canItems    = $authEmployee?->hasModulePermission('items');
+    $canReports  = $authEmployee?->hasModulePermission('reports');
+    $canReceivings = $authEmployee?->hasModulePermission('receivings');
+    $canConfig   = $authEmployee?->hasModulePermission('config');
+    $canEmployees = $authEmployee?->hasModulePermission('employees');
+@endphp
+
 <div class="stats-grid">
+    @if($canSales)
     <div class="stat-card">
         <div class="stat-icon blue">
             <i class="bi bi-cart3"></i>
@@ -156,7 +168,9 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
             <div class="stat-value">${{ number_format($stats['total_sales_amount'], 2) }}</div>
         </div>
     </div>
+    @endif
 
+    @if($canContacts)
     <div class="stat-card">
         <div class="stat-icon green">
             <i class="bi bi-people-fill"></i>
@@ -166,7 +180,9 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
             <div class="stat-value">{{ number_format($stats['total_customers']) }}</div>
         </div>
     </div>
+    @endif
 
+    @if($canItems)
     <div class="stat-card">
         <div class="stat-icon red">
             <i class="bi bi-box-seam"></i>
@@ -186,6 +202,7 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
             <div class="stat-value">{{ number_format($stats['total_item_kits']) }}</div>
         </div>
     </div>
+    @endif
 </div>
 
 <div class="dashboard-grid">
@@ -208,6 +225,7 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
         </div>
         <div class="card-body">
             <div class="gs-grid">
+                @if($canConfig)
                 <a href="{{ route('config.index') }}" class="gs-item done">
                     <div class="gs-item-icon"><i class="bi bi-gear-fill"></i></div>
                     <span>Store Config</span>
@@ -216,22 +234,31 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
                     <div class="gs-item-icon"><i class="bi bi-geo-alt-fill"></i></div>
                     <span>Locations</span>
                 </a>
+                @endif
+                @if($canItems)
                 <a href="{{ route('items.index') }}" class="gs-item {{ $stats['total_items'] > 0 ? 'done' : '' }}">
                     <div class="gs-item-icon"><i class="bi bi-box-seam"></i></div>
                     <span>Items</span>
                 </a>
+                @endif
+                @if($canEmployees)
                 <a href="{{ route('employees.index') }}" class="gs-item {{ $stats['total_employees'] > 0 ? 'done' : '' }}">
                     <div class="gs-item-icon"><i class="bi bi-person-badge-fill"></i></div>
                     <span>Employees</span>
                 </a>
+                @endif
+                @if($canContacts)
                 <a href="{{ route('customers.index') }}" class="gs-item {{ $stats['total_customers'] > 0 ? 'done' : '' }}">
                     <div class="gs-item-icon"><i class="bi bi-people"></i></div>
                     <span>Customers</span>
                 </a>
+                @endif
+                @if($canSales)
                 <a href="{{ route('sales.index') }}" class="gs-item {{ $stats['total_sales'] > 0 ? 'done' : '' }}">
                     <div class="gs-item-icon"><i class="bi bi-cart"></i></div>
                     <span>Start Sales</span>
                 </a>
+                @endif
             </div>
         </div>
     </div>
@@ -243,12 +270,15 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
         </div>
         <div class="card-body p-0">
             <div class="cmd-list">
+                @if($canSales)
                 <a href="{{ route('sales.index') }}" class="cmd-btn-primary">
                     <span style="display:flex; align-items:center; gap:8px;">
                         <i class="bi bi-cart-fill"></i> Start New Sale
                     </span>
                     <i class="bi bi-chevron-right"></i>
                 </a>
+                @endif
+                @if($canReceivings)
                 <a href="{{ route('purchases.create', ['mode' => 'receive']) }}" class="cmd-item">
                     <div class="cmd-item-left">
                         <i class="bi bi-truck"></i>
@@ -256,6 +286,8 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
                     </div>
                     <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
                 </a>
+                @endif
+                @if($canReports)
                 <a href="{{ route('reports.index') }}" class="cmd-item">
                     <div class="cmd-item-left">
                         <i class="bi bi-clock-history"></i>
@@ -277,11 +309,13 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
                     </div>
                     <i class="bi bi-chevron-right" style="font-size:12px; color:var(--gray-300);"></i>
                 </a>
+                @endif
             </div>
         </div>
     </div>
 </div>
 
+@if($canSales)
 <!-- Recent Activity -->
 <div class="card mb-4 mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -306,6 +340,7 @@ Overview of your business performance at {{ $currentStoreLocationName ?? 'Main B
         @endforelse
     </div>
 </div>
+@endif
 
 <!-- Total Sales Chart -->
 <div class="card chart-card">
