@@ -87,6 +87,7 @@
                                 <tr>
                                     <th class="ps-4" width="50">#</th>
                                     <th>Item Name</th>
+                                    <th width="120">Tax Class</th>
                                     <th width="120">Cost Price</th>
                                     <th width="100">Qty</th>
                                     <th width="100">Disc %</th>
@@ -108,6 +109,13 @@
                                             <small class="text-muted">
                                                 ID: {{ ($item['type'] ?? 'item') === 'kit' ? ($item['item_kit_id'] ?? '') : ($item['item_id'] ?? '') }}
                                             </small>
+                                        </td>
+                                        <td>
+                                            @if($item['tax_class_name'] ?? null)
+                                                <span class="badge bg-info">{{ $item['tax_class_name'] }}</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
                                         </td>
                                         <td>
                                             <form action="{{ route('receivings.item.edit', $index) }}" method="POST">
@@ -143,7 +151,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-5 text-muted">
+                                        <td colspan="8" class="text-center py-5 text-muted">
                                             <i class="bi bi-cart fs-1 d-block mb-2"></i>
                                             Your purchase cart is empty.
                                         </td>

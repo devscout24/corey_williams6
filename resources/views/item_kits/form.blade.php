@@ -162,10 +162,14 @@
                                     @endif
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="default_quantity">Default Quantity</label>
+                                    <label class="form-label" for="default_quantity">
+                                        Default Quantity
+                                        <span class="badge bg-secondary ms-1" id="item-count-badge">0 item(s)</span>
+                                    </label>
                                     <input type="number" step="1" class="form-control" name="default_quantity"
                                         id="default_quantity"
                                         value="{{ old('default_quantity', $kit?->default_quantity) }}">
+                                    <small class="text-muted d-none" id="auto-calc-hint">Auto-calculated from item stock</small>
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label" for="description">Description</label>
@@ -627,10 +631,12 @@
             // Add rows
             document.getElementById('add-kit-item')?.addEventListener('click', function () {
                 addRowFromTemplate('kit-items-table', 'kit-item-row', true, kitItemIndex++);
+                updateItemCount();
             });
 
             document.getElementById('add-nested-kit')?.addEventListener('click', function () {
                 addRowFromTemplate('nested-kits-table', 'nested-kit-row', true, nestedKitIndex++);
+                updateItemCount();
             });
 
             document.getElementById('add-tax-row')?.addEventListener('click', function () {
@@ -681,6 +687,30 @@
                 });
 
                 return { cost: costTotal, price: priceTotal, lines: lineCount };
+            }
+
+            function updateItemCount() {
+                var items = document.querySelectorAll('#kit-items-table tbody tr');
+                var nested = document.querySelectorAll('#nested-kits-table tbody tr');
+                var total = 0;
+                items.forEach(function (tr) {
+                    var qty = tr.querySelector('input[name$="[quantity]"]');
+                    if (qty && parseFloat(qty.value) > 0) total++;
+                });
+                nested.forEach(function (tr) {
+                    var qty = tr.querySelector('input[name$="[quantity]"]');
+                    if (qty && parseFloat(qty.value) > 0) total++;
+                });
+                var badge = document.getElementById('item-count-badge');
+                var hint = document.getElementById('auto-calc-hint');
+                if (badge) badge.textContent = total + ' item(s)';
+                if (hint) {
+                    if (total === 1) {
+                        hint.classList.remove('d-none');
+                    } else {
+                        hint.classList.add('d-none');
+                    }
+                }
             }
 
             document.getElementById('recalc_prices')?.addEventListener('click', function () {
@@ -757,6 +787,11 @@
             });
 
             updateMarkupSymbol();
+            updateItemCount();
+
+            $('#kit-items-table, #nested-kits-table').on('input', 'input[name$="[quantity]"]', function () {
+                updateItemCount();
+            });
 
             // Remove rows via event delegation
             document.addEventListener('click', function (e) {
@@ -765,6 +800,7 @@
                     const row = removeBtn.closest('.input-group') || removeBtn.closest('tr');
                     if (row) {
                         row.remove();
+                        updateItemCount();
                     }
                 }
             });

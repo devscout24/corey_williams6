@@ -29,4 +29,9 @@ class PhpposItem extends Model
     {
         return $this->belongsToMany(PhpposSupplier::class, 'phppos_items_secondary_suppliers', 'item_id', 'supplier_id')->withTimestamps();
     }
+
+    public function taxClass()
+    {
+        return $this->belongsTo(PhpposTaxClass::class, 'tax_class_id', 'id');
+    }
 }

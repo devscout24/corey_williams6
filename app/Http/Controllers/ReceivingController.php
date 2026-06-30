@@ -554,6 +554,7 @@ class ReceivingController extends Controller
                 'quantity' => $quantity,
                 'cost_price' => (float) ($kit->cost_price ?? 0),
                 'discount' => 0,
+                'tax_class_name' => $kit->taxClass?->name,
             ];
         }
     }
@@ -582,6 +583,7 @@ class ReceivingController extends Controller
                 'quantity' => $quantity,
                 'cost_price' => $variation?->cost_price ?? $item->cost_price,
                 'discount' => 0,
+                'tax_class_name' => $item->taxClass?->name,
             ];
             if ($variation) {
                 $entry['variation_id'] = $variation->id;
@@ -759,7 +761,7 @@ class ReceivingController extends Controller
 
         foreach ($receiving->items as $line) {
             if ($line->item_kit_id) {
-                $kit = PhpposItemKit::find($line->item_kit_id);
+                $kit = PhpposItemKit::with('taxClass')->find($line->item_kit_id);
                 $cart['items'][] = [
                     'type' => 'kit',
                     'item_kit_id' => $line->item_kit_id,
@@ -767,6 +769,7 @@ class ReceivingController extends Controller
                     'quantity' => (float) $line->quantity_purchased,
                     'cost_price' => (float) $line->item_cost_price,
                     'discount' => (float) $line->discount_percent,
+                    'tax_class_name' => $kit?->taxClass?->name,
                 ];
             } elseif ($line->item_id) {
                 $entry = [
@@ -775,6 +778,7 @@ class ReceivingController extends Controller
                     'quantity' => (float) $line->quantity_purchased,
                     'cost_price' => (float) $line->item_cost_price,
                     'discount' => (float) $line->discount_percent,
+                    'tax_class_name' => $line->item?->taxClass?->name,
                 ];
                 if ($line->item_variation_id) {
                     $entry['variation_id'] = (int) $line->item_variation_id;

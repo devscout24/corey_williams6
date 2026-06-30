@@ -322,6 +322,19 @@ class ItemKitController extends Controller
                 }
             }
 
+            // Auto-calculate default_quantity for single-item kits
+            $kitItemCount = !empty($data['kit_items']) ? count(array_filter($data['kit_items'], fn($i) => !empty($i['item_id']) && !empty($i['quantity']))) : 0;
+            $nestedKitCount = !empty($data['nested_kits']) ? count(array_filter($data['nested_kits'], fn($n) => !empty($n['item_kit_id']) && !empty($n['quantity']))) : 0;
+
+            if ($kitItemCount === 1 && $nestedKitCount === 0) {
+                $singleItem = current(array_filter($data['kit_items'], fn($i) => !empty($i['item_id']) && !empty($i['quantity'])));
+                $item = PhpposItem::find($singleItem['item_id']);
+                if ($item && $item->default_quantity > 0 && $singleItem['quantity'] > 0) {
+                    $calculatedQty = (int) floor($item->default_quantity / $singleItem['quantity']);
+                    PhpposItemKit::query()->where('id', $kitId)->update(['default_quantity' => $calculatedQty]);
+                }
+            }
+
             // Sync Nested Kits
             PhpposItemKitItemKit::where('item_kit_id', $kitId)->delete();
             if (!empty($data['nested_kits'])) {
