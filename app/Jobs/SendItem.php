@@ -188,10 +188,11 @@ class SendItem implements ShouldQueue
                     foreach ($kitModel->nestedKits as $nestedKit) {
                         $nestedKitModel = PhpposItemKit::find((int) $nestedKit->item_kit_item_kit);
                         $components[] = [
-                            'item_kit_id' => (int) $nestedKit->item_kit_item_kit,
-                            'item_kit_name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
-                            'name' => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
-                            'quantity' => (float) $nestedKit->quantity,
+                            'item_kit_id'         => (int) $nestedKit->item_kit_item_kit,
+                            'item_kit_name'       => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'item_kit_product_id' => $nestedKitModel?->product_id,
+                            'name'                => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
+                            'quantity'            => (float) $nestedKit->quantity,
                         ];
                     }
                 }
