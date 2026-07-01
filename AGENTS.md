@@ -83,11 +83,20 @@ When updating an item's quantity, **always update both** `phppos_items.default_q
 - Lifecycle in `InventoryFlowService` (`createTransferOut`, `completeTransferOut`, `importTransferIn`, etc.).
 - `TransferController::edit()` restores cart from saved `phppos_transfer_items`.
 
-### LAN transfer — item/kit auto-creation
+### LAN transfer — nested kit handling (recursive)
 
-Receiver resolution order (`LanController::receive`, `TransferSyncController::receiveTransferOut`):
+Kit kits can be nested to arbitrary depth (e.g. `Outer > Inner > Item`). Both export and receive handle this recursively.
+
+**Export paths:** `SendItem.php`, `TransferSyncController::exportTransferOut()`
+- Direct items are inlined into the `components` array.
+- Nested kits use `buildKitComponentPayload()` — loads the kit with `items.item` + `nestedKits`, builds its direct items inline, and recurses into its own `nestedKits`. Returns `{ item_kit_id, item_kit_name, item_kit_product_id, name, quantity, components: [...] }`.
+
+**Receiver resolution order** (`LanController::receive`, `TransferSyncController::receiveTransferOut`):
 1. `item_id` → 2. `item_number` → 3. `product_id` → 4. `name` → 5. **auto-create** `PhpposItem` with provided metadata
-6. For kit headers, auto-create `PhpposItemKit` with its `components` array if component items exist locally
+6. For kit headers: resolve by `item_kit_product_id` → `item_kit_name` → auto-create `PhpposItemKit`.
+7. Kit components are wired outside the auto-create block so pre-existing kits also get their components populated.
+8. Nested kit components link outer→inner via `phppos_item_kit_item_kits`, then `processNestedKitComponents()` recurses into the inner kit's `components` to wire its items (`phppos_item_kit_items`) and sub-nested kits (further recursion).
+9. Component processing runs unconditionally on every receive — duplicate inserts are harmless (each run adds rows to the pivot tables).
 
 ## Orders
 

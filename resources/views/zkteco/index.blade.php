@@ -166,6 +166,12 @@
 [data-theme='dark'] .device-info-label {
     color: var(--gray-400);
 }
+[data-theme='dark'] .card-header h5 {
+    color: var(--gray-800) !important;
+}
+[data-theme='dark'] #connectionStatus .text-muted {
+    color: var(--gray-400) !important;
+}
 </style>
 @endpush
 

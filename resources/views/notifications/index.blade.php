@@ -44,6 +44,18 @@
     [data-theme='dark'] .notif-table tr:hover {
         background: var(--gray-50) !important;
     }
+    .table-container-card {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xs);
+        border: 1px solid var(--gray-200);
+        padding: 24px;
+        overflow-x: auto;
+    }
+    [data-theme='dark'] .table-container-card {
+        background: var(--gray-100) !important;
+        border-color: var(--gray-200) !important;
+    }
     .btn-delete-notif {
         background: none;
         border: none;

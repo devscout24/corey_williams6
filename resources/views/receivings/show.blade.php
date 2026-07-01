@@ -13,6 +13,15 @@
         box-shadow: var(--shadow-sm);
         margin-bottom: 20px;
     }
+    [data-theme='dark'] .doc-card {
+        background: var(--gray-100) !important;
+        border-color: var(--gray-200) !important;
+    }
+    [data-theme='dark'] .doc-title h2 { color: var(--gray-900) !important; }
+    [data-theme='dark'] .doc-title p { color: var(--gray-400) !important; }
+    [data-theme='dark'] .info-block strong { color: var(--gray-400) !important; }
+    [data-theme='dark'] .info-block p { color: var(--gray-900) !important; }
+    [data-theme='dark'] .items-table td { border-bottom-color: var(--gray-200) !important; }
     .doc-header {
         display: flex;
         justify-content: space-between;

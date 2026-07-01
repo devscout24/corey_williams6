@@ -13,6 +13,10 @@
         padding: 24px;
         overflow-x: auto;
     }
+    [data-theme='dark'] .table-container-card {
+        background: var(--gray-100) !important;
+        border-color: var(--gray-200) !important;
+    }
 </style>
 @endpush
 

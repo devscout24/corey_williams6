@@ -3,6 +3,25 @@
 @section('title', 'LAN Locations')
 @section('page-title', 'LAN Locations')
 
+@push('styles')
+<style>
+    [data-theme='dark'] code {
+        background: var(--gray-200) !important;
+        color: var(--gray-900) !important;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    [data-theme='dark'] .alert-info {
+        background: var(--gray-100) !important;
+        border-color: var(--gray-200) !important;
+        color: var(--gray-800) !important;
+    }
+    [data-theme='dark'] .card-header h5 {
+        color: var(--gray-800);
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     @if(session('status'))
