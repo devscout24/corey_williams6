@@ -243,12 +243,12 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                 <li>
-                    <a class="dropdown-item" href="{{ route('reports.generate', $report) }}?start_date={{ urlencode($startDate) }}&end_date={{ urlencode($endDate) }}&export_format=xls">
+                    <a class="dropdown-item" href="#" onclick="event.preventDefault(); downloadExport('xls');">
                         <i class="bi bi-file-earmark-excel me-2 text-success"></i> Excel (.xls)
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{{ route('reports.generate', $report) }}?start_date={{ urlencode($startDate) }}&end_date={{ urlencode($endDate) }}&export_format=csv">
+                    <a class="dropdown-item" href="#" onclick="event.preventDefault(); downloadExport('csv');">
                         <i class="bi bi-filetype-csv me-2 text-primary"></i> CSV (.csv)
                     </a>
                 </li>
@@ -303,21 +303,14 @@
 
 {{-- ── Output Tax Table ─────────────────────────────────────────────── --}}
 <div class="ot-section">
-    <div class="ot-section-header" style="flex-wrap: wrap;">
-        <div class="right-aligned d-flex gap-3 align-items-center w-100 mb-2" style="justify-content: flex-end;">
-            <label class="small fw-semibold text-muted mb-0">Claimable <input type="number" id="claimable-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
-            <label class="small fw-semibold text-muted mb-0">VAT Non-Inventory <input type="number" id="vat-non-inventory-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
-            <label class="small fw-semibold text-muted mb-0">VAT on Electricity <input type="number" id="vat-electricity-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
-        </div>
-        <div class="d-flex align-items-center gap-3 w-100">
-            <span class="ot-badge standard">
-                <i class="bi bi-receipt-cutoff"></i>
-                Output Tax
-            </span>
-            <div>
-                <h5>Output Tax (Sales) – VAT Incl.</h5>
-                <p class="mb-0 text-muted small">Standard Rated, Zero Rated, and Exempt supplies</p>
-            </div>
+    <div class="ot-section-header">
+        <span class="ot-badge standard">
+            <i class="bi bi-receipt-cutoff"></i>
+            Output Tax
+        </span>
+        <div>
+            <h5>Output Tax (Sales) – VAT Incl.</h5>
+            <p class="mb-0 text-muted small">Standard Rated, Zero Rated, and Exempt supplies</p>
         </div>
     </div>
 
@@ -382,19 +375,27 @@
 
 {{-- ── Input Tax Section ─────────────────────────────────────────────── --}}
 @php
-    $importsExVat   = $inputTaxData['imports']['total_excl_vat'];
-    $importsVat     = $inputTaxData['imports']['vat_amount'];
-    $domesticExVat  = $inputTaxData['domestic']['total_excl_vat'];
-    $domesticVat    = $inputTaxData['domestic']['vat_amount'];
+    $importsExVat     = $inputTaxData['imports']['total_excl_vat'];
+    $importsVat       = $inputTaxData['imports']['vat_amount'];
+    $domesticExVat    = $inputTaxData['domestic']['total_excl_vat'];
+    $domesticVat      = $inputTaxData['domestic']['vat_amount'];
 
-    $totalInputVat  = $importsVat + $domesticVat;
+    $electricityVat   = 0;
+    $nonInventoryVat  = 0;
+
+    $totalInputVat    = $importsVat + $domesticVat + $electricityVat + $nonInventoryVat;
     $totalPurchasesExVat = $importsExVat + $domesticExVat;
 
     $netVat = $grandVat - $totalInputVat;
 @endphp
 
 <div class="it-section">
-    <div class="it-section-header">
+    <div class="it-section-header" style="flex-wrap: wrap;">
+        <div class="d-flex gap-3 align-items-center w-100 mb-2" style="justify-content: flex-end;">
+            <label class="small fw-semibold text-muted mb-0">Claimable <input type="text" id="claimable-input" class="form-control form-control-sm d-inline-block" style="width:120px" readonly tabindex="-1"></label>
+            <label class="small fw-semibold text-muted mb-0">VAT Non-Inventory <input type="number" id="vat-non-inventory-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
+            <label class="small fw-semibold text-muted mb-0">VAT on Electricity <input type="number" id="vat-electricity-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
+        </div>
         <span class="it-badge">
             <i class="bi bi-cart-check-fill"></i>
             Input Tax
@@ -441,14 +442,26 @@
             {{-- Row 5: Electricity Consumption VAT --}}
             <tr id="electricity-excl-row">
                 <td class="row-title">Value of Electricity Consumption on which VAT was paid</td>
-                <td class="text-end value-cell">{{ $fmt($domesticVat/0.15) }}</td>
+                <td class="text-end value-cell">—</td>
                 <td class="text-end blank-cell">—</td>
             </tr>
             {{-- Row 6: VAT Paid, Payable or Claimable --}}
             <tr id="electricity-vat-row">
                 <td class="row-title">VAT Paid, Payable or Claimable on Electricity Consumption</td>
                 <td class="text-end blank-cell">—</td>
-                <td class="text-end vat-cell">{{ $fmt($domesticVat) }}</td>
+                <td class="text-end vat-cell">0.00</td>
+            </tr>
+            {{-- Row 7: Non-Inventory --}}
+            <tr id="non-inventory-excl-row">
+                <td class="row-title">Value of Non-Inventory Purchases (Services, Operating Expenses) on which VAT was paid</td>
+                <td class="text-end value-cell">—</td>
+                <td class="text-end blank-cell">—</td>
+            </tr>
+            {{-- Row 8: Non-Inventory VAT --}}
+            <tr id="non-inventory-vat-row">
+                <td class="row-title">VAT Paid, Payable or Claimable on Non-Inventory Purchases</td>
+                <td class="text-end blank-cell">—</td>
+                <td class="text-end vat-cell">0.00</td>
             </tr>
         </tbody>
     </table>
@@ -458,7 +471,7 @@
 <div class="ot-grand-total mt-0 mb-4" style="border-left-color: #7b1fa2;">
     <div>
         <div class="gt-label" style="color: #7b1fa2;">Grand Total – Input Tax (Purchases)</div>
-        <div class="text-muted small mt-1">Sum of Imports + Domestic Purchases</div>
+        <div class="text-muted small mt-1">Imports + Domestic + Electricity + Non-Inventory</div>
     </div>
     <div class="d-flex gap-5 align-items-center">
         <div class="text-end">
@@ -493,43 +506,59 @@
 
 @push('scripts')
 <script>
-    const VatElectricityInput = document.getElementById('vat-electricity-input');
-    const electricityExclRow = document.getElementById('electricity-excl-row');
-    const electricityVatRow  = document.getElementById('electricity-vat-row');
-    const gtInputExclVat     = document.getElementById('gt-input-excl-vat');
-    const gtInputVat         = document.getElementById('gt-input-vat');
-    const netVatDesc         = document.getElementById('net-vat-desc');
-    const netVatAmount       = document.getElementById('net-vat-amount');
+    // ── Fixed inputs from DB ──────────────────────────────────────────
+    const IMPORTS_VAT      = {{ $importsVat }};
+    const DOMESTIC_VAT     = {{ $domesticVat }};
+    const IMPORTS_EXCL     = {{ $importsExVat }};
+    const DOMESTIC_EXCL    = {{ $domesticExVat }};
+    const GRAND_VAT        = {{ $grandVat }};
 
-    const initialExclVat  = {{ $totalPurchasesExVat }};
-    const initialInputVat = {{ $totalInputVat }};
-    const initialDomesticVat = {{ $domesticVat }};
-    const initialGrandVat = {{ $grandVat }};
+    // ── DOM refs ──────────────────────────────────────────────────────
+    const electricityExclRow     = document.getElementById('electricity-excl-row');
+    const electricityVatRow      = document.getElementById('electricity-vat-row');
+    const nonInventoryExclRow    = document.getElementById('non-inventory-excl-row');
+    const nonInventoryVatRow     = document.getElementById('non-inventory-vat-row');
+    const gtInputExclVat         = document.getElementById('gt-input-excl-vat');
+    const gtInputVat             = document.getElementById('gt-input-vat');
+    const netVatDesc             = document.getElementById('net-vat-desc');
+    const netVatAmount           = document.getElementById('net-vat-amount');
 
-    function calculateExcl(vat) {
-        return vat / 0.15;
-    }
+    const vatElectricityInput    = document.getElementById('vat-electricity-input');
+    const vatNonInventoryInput   = document.getElementById('vat-non-inventory-input');
+    const claimableInput         = document.getElementById('claimable-input');
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function exclFromVat(vat) { return vat / 0.15; }
 
     function fmt(n) {
         return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
-    function updateElectricity(vat) {
-        const v = parseFloat(vat) || 0;
-        const excl = calculateExcl(v);
+    function recalc() {
+        const elecVat  = parseFloat(vatElectricityInput.value) || 0;
+        const nonInvVat = parseFloat(vatNonInventoryInput.value) || 0;
+        const elecExcl  = exclFromVat(elecVat);
+        const nonInvExcl = exclFromVat(nonInvVat);
 
-        electricityExclRow.querySelector('.value-cell').textContent = fmt(excl);
-        electricityVatRow.querySelector('.vat-cell').textContent  = fmt(v);
+        // Update table cells
+        electricityExclRow.querySelector('.value-cell').textContent = elecExcl ? fmt(elecExcl) : '—';
+        electricityVatRow.querySelector('.vat-cell').textContent   = fmt(elecVat);
+        nonInventoryExclRow.querySelector('.value-cell').textContent  = nonInvExcl ? fmt(nonInvExcl) : '—';
+        nonInventoryVatRow.querySelector('.vat-cell').textContent     = fmt(nonInvVat);
 
-        const newExclVat  = initialExclVat  - calculateExcl(initialDomesticVat) + excl;
-        const newInputVat = initialInputVat - initialDomesticVat + v;
-        const netVat      = initialGrandVat - newInputVat;
+        // Totals
+        const totalExcl  = IMPORTS_EXCL + DOMESTIC_EXCL + elecExcl + nonInvExcl;
+        const totalVat   = IMPORTS_VAT + DOMESTIC_VAT + elecVat + nonInvVat;
+        const netVat     = GRAND_VAT - totalVat;
 
-        gtInputExclVat.textContent  = fmt(newExclVat);
-        gtInputVat.textContent = fmt(newInputVat);
+        gtInputExclVat.textContent = fmt(totalExcl);
+        gtInputVat.textContent     = fmt(totalVat);
 
-        netVatDesc.innerHTML = `Output VAT (${ fmt(initialGrandVat) }) − Input VAT (${ fmt(newInputVat) })`;
+        // Claimable = sum of all input VAT
+        claimableInput.value = fmt(totalVat);
 
+        // Net VAT section
+        netVatDesc.innerHTML = `Output VAT (${ fmt(GRAND_VAT) }) − Input VAT (${ fmt(totalVat) })`;
         if (netVat >= 0) {
             netVatAmount.innerHTML = `
                 <div class="gt-label text-white-50">Net VAT Payable</div>
@@ -543,8 +572,21 @@
         }
     }
 
-    VatElectricityInput.addEventListener('input', function () {
-        updateElectricity(this.value);
-    });
+    // ── Wire inputs ───────────────────────────────────────────────────
+    vatElectricityInput.addEventListener('input', recalc);
+    vatNonInventoryInput.addEventListener('input', recalc);
+
+    // ── Download ──────────────────────────────────────────────────────
+    function downloadExport(format) {
+        const elec  = vatElectricityInput.value || '0';
+        const nonInv = vatNonInventoryInput.value || '0';
+        const url = '{{ route('reports.generate', $report) }}' +
+            '?start_date={{ urlencode($startDate) }}' +
+            '&end_date={{ urlencode($endDate) }}' +
+            '&export_format=' + format +
+            '&vat_electricity=' + encodeURIComponent(elec) +
+            '&vat_non_inventory=' + encodeURIComponent(nonInv);
+        window.location.href = url;
+    }
 </script>
 @endpush

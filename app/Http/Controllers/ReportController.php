@@ -2639,7 +2639,7 @@ class ReportController extends Controller
                 $exportFormat = $request->input('export_format', '');
                 if ($exportFormat !== '') {
                     $format = $exportFormat;
-                    return $this->exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format);
+                    return $this->exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format, $request);
                 }
 
                 return view('reports.output_tax', compact(
@@ -2937,7 +2937,7 @@ class ReportController extends Controller
         ]);
     }
 
-    private function exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format)
+    private function exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format, $request = null)
     {
         $fmt = fn($v) => number_format($v ?? 0, 2);
 
@@ -2948,29 +2948,46 @@ class ReportController extends Controller
         $importsVat    = $inputTaxData['imports']['vat_amount'];
         $domesticExVat = $inputTaxData['domestic']['total_excl_vat'];
         $domesticVat   = $inputTaxData['domestic']['vat_amount'];
-        $totalInputVat = $importsVat + $domesticVat;
-        $totalPurchasesExVat = $importsExVat + $domesticExVat;
+
+        // Manual adjustment inputs passed via query params
+        $vatElectricity  = (float) ($request ? $request->input('vat_electricity', 0) : 0);
+        $vatNonInventory = (float) ($request ? $request->input('vat_non_inventory', 0) : 0);
+
+        $electricityExcl = $vatElectricity / 0.15;
+        $nonInventoryExcl = $vatNonInventory / 0.15;
+
+        $totalInputVat  = $importsVat + $domesticVat + $vatElectricity + $vatNonInventory;
+        $totalPurchasesExVat = $importsExVat + $domesticExVat + $electricityExcl + $nonInventoryExcl;
+        $claimable      = $totalInputVat;
         $netVat = $grandVat - $totalInputVat;
 
-        $columnLabels = ['Section', 'Type', 'Total (incl. VAT)', 'VAT Amount'];
+        $columnLabels = ['Section', 'Type', 'Total (Excl. VAT)', 'VAT Amount'];
         $rows = [];
 
         // Output Tax
-        $rows[] = ['Output Tax', 'Standard Rated', $fmt($outputTaxData['standard']['total_incl_vat']), $fmt($outputTaxData['standard']['vat_amount'])];
-        $rows[] = ['Output Tax', 'Zero Rated', $fmt($outputTaxData['zero_rated']['total_incl_vat']), $fmt($outputTaxData['zero_rated']['vat_amount'])];
-        $rows[] = ['Output Tax', 'Exempt', $fmt($outputTaxData['exempt']['total_incl_vat']), $fmt($outputTaxData['exempt']['vat_amount'])];
-        $rows[] = ['Output Tax', 'Grand Total', $fmt($grandTotal), $fmt($grandVat)];
+        $rows[] = ['Output Tax', 'Standard Rated', '—', $fmt($outputTaxData['standard']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Zero Rated', '—', $fmt($outputTaxData['zero_rated']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Exempt', '—', $fmt($outputTaxData['exempt']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Grand Total', '—', $fmt($grandVat)];
 
         // Input Tax
         $rows[] = ['Input Tax', 'Value of Imports (Excl. VAT)', $fmt($importsExVat), '—'];
         $rows[] = ['Input Tax', 'VAT on Imports', '—', $fmt($importsVat)];
         $rows[] = ['Input Tax', 'Value of Domestic Purchases (Excl. VAT)', $fmt($domesticExVat), '—'];
         $rows[] = ['Input Tax', 'VAT on Domestic Purchases', '—', $fmt($domesticVat)];
-        $rows[] = ['Input Tax', 'Grand Total – Input Tax', $fmt($totalPurchasesExVat), $fmt($totalInputVat)];
+        if ($vatElectricity) {
+            $rows[] = ['Input Tax', 'Value of Electricity Consumption (Excl. VAT)', $fmt($electricityExcl), '—'];
+            $rows[] = ['Input Tax', 'VAT on Electricity Consumption', '—', $fmt($vatElectricity)];
+        }
+        if ($vatNonInventory) {
+            $rows[] = ['Input Tax', 'Value of Non-Inventory Purchases (Excl. VAT)', $fmt($nonInventoryExcl), '—'];
+            $rows[] = ['Input Tax', 'VAT on Non-Inventory Purchases', '—', $fmt($vatNonInventory)];
+        }
+        $rows[] = ['Input Tax (Claimable)', 'Total Input VAT Claimable', $fmt($totalPurchasesExVat), $fmt($claimable)];
 
         // Net VAT
         $netLabel = $netVat >= 0 ? 'Net VAT Payable' : 'Net VAT Refundable';
-        $rows[] = ['Net VAT', $netLabel, $fmt(abs($netVat)), ''];
+        $rows[] = ['Net VAT', $netLabel, '—', $fmt(abs($netVat))];
 
         $safeTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $title);
 
