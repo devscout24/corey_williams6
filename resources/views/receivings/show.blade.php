@@ -112,9 +112,15 @@
         </a>
             <div>
                 @if($receiving->suspended && !$receiving->is_po)
-                    <a href="{{ route('receivings.resume', $receiving->receiving_id) }}" class="btn btn-warning">
-                        <i class="bi bi-play-fill me-1"></i> Resume
-                    </a>
+                    @if($receiving->mode === 'transfer')
+                        <a href="{{ route('purchases.show', $receiving->receiving_id) }}" class="btn btn-warning">
+                            <i class="bi bi-play-fill me-1"></i> View Transfer
+                        </a>
+                    @else
+                        <a href="{{ route('receivings.resume', $receiving->receiving_id) }}" class="btn btn-warning">
+                            <i class="bi bi-play-fill me-1"></i> Resume
+                        </a>
+                    @endif
                 @endif
                 <a href="{{ route($receiving->is_po ? 'orders.print' : 'purchases.print', $receiving->receiving_id) }}" target="_blank" class="btn btn-primary">
                     <i class="bi bi-printer"></i> Print
