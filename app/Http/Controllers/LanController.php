@@ -235,90 +235,6 @@ class LanController extends Controller
                                 'unit_price'       => (float) ($line['item_kit_unit_price'] ?? 0),
                                 'default_quantity' => 0,
                             ]);
-
-                            // Wire up kit components — resolve by product_id first, item_number second.
-                            // Auto-create component items if missing locally but product_id is present.
-                            if (! empty($line['components'])) {
-                                foreach ($line['components'] as $comp) {
-                                    // ── Nested kit component ──────────────────────
-                                    if (! empty($comp['item_kit_id'])) {
-                                        $nestedKit = null;
-                                        if (! empty($comp['item_kit_product_id'])) {
-                                            $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
-                                        }
-                                        if (! $nestedKit && ! empty($comp['item_kit_name'])) {
-                                            $nestedKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
-                                        }
-                                        if (! $nestedKit && ! empty($comp['item_kit_name'])) {
-                                            try {
-                                                $nestedKit = PhpposItemKit::create([
-                                                    'name'             => $comp['item_kit_name'],
-                                                    'product_id'       => $comp['item_kit_product_id'] ?? null,
-                                                    'cost_price'       => 0,
-                                                    'unit_price'       => 0,
-                                                    'default_quantity' => 0,
-                                                ]);
-                                                $this->log('Auto-created nested kit #'.$nestedKit->id.' ('.$comp['item_kit_name'].') product_id='.($comp['item_kit_product_id'] ?? 'null'));
-                                            } catch (\Throwable $e) {
-                                                $this->log('FAIL: could not auto-create nested kit — '.$e->getMessage());
-                                            }
-                                        }
-                                        if ($nestedKit) {
-                                            DB::table('phppos_item_kit_item_kits')->insert([
-                                                'item_kit_id'       => $kit->id,
-                                                'item_kit_item_kit' => $nestedKit->id,
-                                                'quantity'          => (float) $comp['quantity'],
-                                                'created_at'        => now(),
-                                                'updated_at'        => now(),
-                                            ]);
-                                            $this->log('Linked nested kit #'.$nestedKit->id.' to parent kit #'.$kit->id.' qty='.$comp['quantity']);
-                                        } else {
-                                            $this->log('SKIP nested kit component: could not resolve item_kit_id='.$comp['item_kit_id'].' product_id='.($comp['item_kit_product_id'] ?? 'null'));
-                                        }
-                                        continue;
-                                    }
-
-                                    // ── Item component (existing logic) ────────────
-                                    $compItem = null;
-
-                                    if (! empty($comp['product_id'])) {
-                                        $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
-                                    }
-                                    if (! $compItem && ! empty($comp['item_number'])) {
-                                        $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
-                                    }
-
-                                    // Auto-create the component item if we have enough data.
-                                    if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
-                                        try {
-                                            $compItem = PhpposItem::create([
-                                                'name'        => $comp['name'],
-                                                'item_number' => $comp['item_number'] ?? null,
-                                                'product_id'  => $comp['product_id'],
-                                                'cost_price'  => (float) ($comp['cost_price'] ?? 0),
-                                                'unit_price'  => (float) ($comp['unit_price'] ?? 0),
-                                                'default_quantity' => 0,
-                                            ]);
-                                            $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') product_id='.$comp['product_id']);
-                                        } catch (\Throwable $e) {
-                                            $this->log('FAIL: could not auto-create component item — '.$e->getMessage());
-                                        }
-                                    }
-
-                                    if (! $compItem) {
-                                        $this->log('SKIP component: could not resolve product_id='.($comp['product_id'] ?? 'null').' item_number='.($comp['item_number'] ?? 'null'));
-                                        continue;
-                                    }
-
-                                    DB::table('phppos_item_kit_items')->insert([
-                                        'item_kit_id' => $kit->id,
-                                        'item_id'     => $compItem->item_id,
-                                        'quantity'    => (float) $comp['quantity'],
-                                        'created_at'  => now(),
-                                        'updated_at'  => now(),
-                                    ]);
-                                }
-                            }
                         } catch (\Throwable $e) {
                             $this->log('FAIL: could not auto-create kit — '.$e->getMessage());
                         }
@@ -327,6 +243,89 @@ class LanController extends Controller
                     if (! $kit) {
                         $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id='.$itemKitProductId);
                         continue;
+                    }
+
+                    // Wire up kit components — runs for both new and pre-existing kits.
+                    if (! empty($line['components'])) {
+                        foreach ($line['components'] as $comp) {
+                            // ── Nested kit component ──────────────────────
+                            if (! empty($comp['item_kit_id'])) {
+                                $nestedKit = null;
+                                if (! empty($comp['item_kit_product_id'])) {
+                                    $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
+                                }
+                                if (! $nestedKit && ! empty($comp['item_kit_name'])) {
+                                    $nestedKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
+                                }
+                                if (! $nestedKit && ! empty($comp['item_kit_name'])) {
+                                    try {
+                                        $nestedKit = PhpposItemKit::create([
+                                            'name'             => $comp['item_kit_name'],
+                                            'product_id'       => $comp['item_kit_product_id'] ?? null,
+                                            'cost_price'       => 0,
+                                            'unit_price'       => 0,
+                                            'default_quantity' => 0,
+                                        ]);
+                                        $this->log('Auto-created nested kit #'.$nestedKit->id.' ('.$comp['item_kit_name'].') product_id='.($comp['item_kit_product_id'] ?? 'null'));
+                                    } catch (\Throwable $e) {
+                                        $this->log('FAIL: could not auto-create nested kit — '.$e->getMessage());
+                                    }
+                                }
+                                if ($nestedKit) {
+                                    DB::table('phppos_item_kit_item_kits')->insert([
+                                        'item_kit_id'       => $kit->id,
+                                        'item_kit_item_kit' => $nestedKit->id,
+                                        'quantity'          => (float) $comp['quantity'],
+                                        'created_at'        => now(),
+                                        'updated_at'        => now(),
+                                    ]);
+                                    $this->log('Linked nested kit #'.$nestedKit->id.' to parent kit #'.$kit->id.' qty='.$comp['quantity']);
+                                } else {
+                                    $this->log('SKIP nested kit component: could not resolve item_kit_id='.$comp['item_kit_id'].' product_id='.($comp['item_kit_product_id'] ?? 'null'));
+                                }
+                                continue;
+                            }
+
+                            // ── Item component (existing logic) ────────────
+                            $compItem = null;
+
+                            if (! empty($comp['product_id'])) {
+                                $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
+                            }
+                            if (! $compItem && ! empty($comp['item_number'])) {
+                                $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+                            }
+
+                            // Auto-create the component item if we have enough data.
+                            if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
+                                try {
+                                    $compItem = PhpposItem::create([
+                                        'name'        => $comp['name'],
+                                        'item_number' => $comp['item_number'] ?? null,
+                                        'product_id'  => $comp['product_id'],
+                                        'cost_price'  => (float) ($comp['cost_price'] ?? 0),
+                                        'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                                        'default_quantity' => 0,
+                                    ]);
+                                    $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') product_id='.$comp['product_id']);
+                                } catch (\Throwable $e) {
+                                    $this->log('FAIL: could not auto-create component item — '.$e->getMessage());
+                                }
+                            }
+
+                            if (! $compItem) {
+                                $this->log('SKIP component: could not resolve product_id='.($comp['product_id'] ?? 'null').' item_number='.($comp['item_number'] ?? 'null'));
+                                continue;
+                            }
+
+                            DB::table('phppos_item_kit_items')->insert([
+                                'item_kit_id' => $kit->id,
+                                'item_id'     => $compItem->item_id,
+                                'quantity'    => (float) $comp['quantity'],
+                                'created_at'  => now(),
+                                'updated_at'  => now(),
+                            ]);
+                        }
                     }
 
                     $this->log('Line '.$index.': resolved kit #'.$kit->id.' ('.$kit->name.') qty='.$qty);

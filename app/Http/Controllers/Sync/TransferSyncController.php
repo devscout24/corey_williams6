@@ -208,75 +208,75 @@ class TransferSyncController extends Controller
                             'unit_price' => (float) ($line['item_kit_unit_price'] ?? 0),
                             'default_quantity' => 0,
                         ]);
-
-                        // Create kit component records from metadata
-                        if (! empty($line['components'])) {
-                            foreach ($line['components'] as $comp) {
-                                // ── Nested kit component ──────────────────────
-                                if (! empty($comp['item_kit_id'])) {
-                                    $nestedKit = null;
-                                    if (! empty($comp['item_kit_product_id'])) {
-                                        $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
-                                    }
-                                    if (! $nestedKit && ! empty($comp['item_kit_name'])) {
-                                        $nestedKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
-                                    }
-                                    if (! $nestedKit && ! empty($comp['item_kit_name'])) {
-                                        try {
-                                            $nestedKit = PhpposItemKit::create([
-                                                'name'             => $comp['item_kit_name'],
-                                                'product_id'       => $comp['item_kit_product_id'] ?? null,
-                                                'cost_price'       => 0,
-                                                'unit_price'       => 0,
-                                                'default_quantity' => 0,
-                                            ]);
-                                        } catch (\Throwable) {
-                                        }
-                                    }
-                                    if ($nestedKit) {
-                                        DB::table('phppos_item_kit_item_kits')->insert([
-                                            'item_kit_id'       => $kit->id,
-                                            'item_kit_item_kit' => $nestedKit->id,
-                                            'quantity'          => (float) $comp['quantity'],
-                                            'created_at'        => now(),
-                                            'updated_at'        => now(),
-                                        ]);
-                                    }
-                                    continue;
-                                }
-
-                                // ── Item component (existing logic) ────────────
-                                $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
-                                $compItem = null;
-                                if (! empty($comp['product_id'])) {
-                                    $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
-                                }
-                                if (! $compItem && $compItemId) {
-                                    $compItem = PhpposItem::find($compItemId);
-                                }
-                                if (! $compItem && ! empty($comp['item_number'])) {
-                                    $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
-                                }
-                                if (! $compItem && ! empty($comp['name'])) {
-                                    $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
-                                }
-                                if ($compItem) {
-                                    DB::table('phppos_item_kit_items')->insert([
-                                        'item_kit_id' => $kit->id,
-                                        'item_id' => $compItem->item_id,
-                                        'quantity' => (float) $comp['quantity'],
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
-                                }
-                            }
-                        }
                     } catch (\Throwable) {
                     }
                 }
 
                 if (! $kit) {
                     continue;
+                }
+
+                // Create kit component records from metadata — runs for both new and pre-existing kits.
+                if (! empty($line['components'])) {
+                    foreach ($line['components'] as $comp) {
+                        // ── Nested kit component ──────────────────────
+                        if (! empty($comp['item_kit_id'])) {
+                            $nestedKit = null;
+                            if (! empty($comp['item_kit_product_id'])) {
+                                $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
+                            }
+                            if (! $nestedKit && ! empty($comp['item_kit_name'])) {
+                                $nestedKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
+                            }
+                            if (! $nestedKit && ! empty($comp['item_kit_name'])) {
+                                try {
+                                    $nestedKit = PhpposItemKit::create([
+                                        'name'             => $comp['item_kit_name'],
+                                        'product_id'       => $comp['item_kit_product_id'] ?? null,
+                                        'cost_price'       => 0,
+                                        'unit_price'       => 0,
+                                        'default_quantity' => 0,
+                                    ]);
+                                } catch (\Throwable) {
+                                }
+                            }
+                            if ($nestedKit) {
+                                DB::table('phppos_item_kit_item_kits')->insert([
+                                    'item_kit_id'       => $kit->id,
+                                    'item_kit_item_kit' => $nestedKit->id,
+                                    'quantity'          => (float) $comp['quantity'],
+                                    'created_at'        => now(),
+                                    'updated_at'        => now(),
+                                ]);
+                            }
+                            continue;
+                        }
+
+                        // ── Item component (existing logic) ────────────
+                        $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
+                        $compItem = null;
+                        if (! empty($comp['product_id'])) {
+                            $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
+                        }
+                        if (! $compItem && $compItemId) {
+                            $compItem = PhpposItem::find($compItemId);
+                        }
+                        if (! $compItem && ! empty($comp['item_number'])) {
+                            $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+                        }
+                        if (! $compItem && ! empty($comp['name'])) {
+                            $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
+                        }
+                        if ($compItem) {
+                            DB::table('phppos_item_kit_items')->insert([
+                                'item_kit_id' => $kit->id,
+                                'item_id' => $compItem->item_id,
+                                'quantity' => (float) $comp['quantity'],
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
                 }
 
                 $lines[] = [
