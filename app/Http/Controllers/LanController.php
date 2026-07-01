@@ -280,6 +280,11 @@ class LanController extends Controller
                                         'updated_at'        => now(),
                                     ]);
                                     $this->log('Linked nested kit #'.$nestedKit->id.' to parent kit #'.$kit->id.' qty='.$comp['quantity']);
+
+                                    // Process the inner kit's own components (items + sub-nested kits).
+                                    if (! empty($comp['components'])) {
+                                        $this->processNestedKitComponents($nestedKit, $comp['components']);
+                                    }
                                 } else {
                                     $this->log('SKIP nested kit component: could not resolve item_kit_id='.$comp['item_kit_id'].' product_id='.($comp['item_kit_product_id'] ?? 'null'));
                                 }
@@ -688,5 +693,88 @@ class LanController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Recursively process components belonging to a nested kit.
+     * Creates phppos_item_kit_items for item components and phppos_item_kit_item_kits
+     * for sub-nested kit components.
+     */
+    private function processNestedKitComponents(PhpposItemKit $parentKit, array $components): void
+    {
+        foreach ($components as $comp) {
+            // ── Sub-nested kit component ──────────────────────────
+            if (! empty($comp['item_kit_id'])) {
+                $subKit = null;
+                if (! empty($comp['item_kit_product_id'])) {
+                    $subKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
+                }
+                if (! $subKit && ! empty($comp['item_kit_name'])) {
+                    $subKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
+                }
+                if (! $subKit && ! empty($comp['item_kit_name'])) {
+                    try {
+                        $subKit = PhpposItemKit::create([
+                            'name'             => $comp['item_kit_name'],
+                            'product_id'       => $comp['item_kit_product_id'] ?? null,
+                            'cost_price'       => 0,
+                            'unit_price'       => 0,
+                            'default_quantity' => 0,
+                        ]);
+                        $this->log('Auto-created sub-nested kit #'.$subKit->id.' ('.$comp['item_kit_name'].')');
+                    } catch (\Throwable $e) {
+                        $this->log('FAIL: could not auto-create sub-nested kit — '.$e->getMessage());
+                    }
+                }
+                if ($subKit) {
+                    DB::table('phppos_item_kit_item_kits')->insert([
+                        'item_kit_id'       => $parentKit->id,
+                        'item_kit_item_kit' => $subKit->id,
+                        'quantity'          => (float) $comp['quantity'],
+                        'created_at'        => now(),
+                        'updated_at'        => now(),
+                    ]);
+                    $this->log('Linked sub-nested kit #'.$subKit->id.' to kit #'.$parentKit->id);
+
+                    if (! empty($comp['components'])) {
+                        $this->processNestedKitComponents($subKit, $comp['components']);
+                    }
+                }
+                continue;
+            }
+
+            // ── Item component ──────────────────────────────────────
+            $compItem = null;
+            if (! empty($comp['product_id'])) {
+                $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
+            }
+            if (! $compItem && ! empty($comp['item_number'])) {
+                $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+            }
+            if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
+                try {
+                    $compItem = PhpposItem::create([
+                        'name'        => $comp['name'],
+                        'item_number' => $comp['item_number'] ?? null,
+                        'product_id'  => $comp['product_id'],
+                        'cost_price'  => (float) ($comp['cost_price'] ?? 0),
+                        'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                        'default_quantity' => 0,
+                    ]);
+                    $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') for nested kit');
+                } catch (\Throwable $e) {
+                    $this->log('FAIL: could not auto-create item for nested kit — '.$e->getMessage());
+                }
+            }
+            if ($compItem) {
+                DB::table('phppos_item_kit_items')->insert([
+                    'item_kit_id' => $parentKit->id,
+                    'item_id'     => $compItem->item_id,
+                    'quantity'    => (float) $comp['quantity'],
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
+        }
     }
 }

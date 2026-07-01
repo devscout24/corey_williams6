@@ -186,14 +186,7 @@ class SendItem implements ShouldQueue
                         ];
                     }
                     foreach ($kitModel->nestedKits as $nestedKit) {
-                        $nestedKitModel = PhpposItemKit::find((int) $nestedKit->item_kit_item_kit);
-                        $components[] = [
-                            'item_kit_id'         => (int) $nestedKit->item_kit_item_kit,
-                            'item_kit_name'       => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
-                            'item_kit_product_id' => $nestedKitModel?->product_id,
-                            'name'                => $nestedKitModel?->name ?? 'Kit #'.$nestedKit->item_kit_item_kit,
-                            'quantity'            => (float) $nestedKit->quantity,
-                        ];
+                        $components[] = $this->buildKitComponentPayload((int) $nestedKit->item_kit_item_kit, (float) $nestedKit->quantity);
                     }
                 }
             }
@@ -242,6 +235,36 @@ class SendItem implements ShouldQueue
     {
         return [
             'X-Sync-Token' => (string) config('sync.shared_token'),
+        ];
+    }
+
+    private function buildKitComponentPayload(int $kitId, float $quantity): array
+    {
+        $kitModel = PhpposItemKit::with(['items.item', 'nestedKits'])->find($kitId);
+        $components = [];
+        if ($kitModel) {
+            foreach ($kitModel->items as $kitItem) {
+                $compItem = $kitItem->item;
+                $components[] = [
+                    'item_id'     => (int) $kitItem->item_id,
+                    'item_number' => $compItem?->item_number,
+                    'product_id'  => $compItem?->product_id,
+                    'name'        => $compItem?->name ?? 'Item #'.$kitItem->item_id,
+                    'quantity'    => (float) $kitItem->quantity,
+                ];
+            }
+            foreach ($kitModel->nestedKits as $nested) {
+                $components[] = $this->buildKitComponentPayload((int) $nested->item_kit_item_kit, (float) $nested->quantity);
+            }
+        }
+
+        return [
+            'item_kit_id'         => $kitId,
+            'item_kit_name'       => $kitModel?->name ?? 'Kit #'.$kitId,
+            'item_kit_product_id' => $kitModel?->product_id,
+            'name'                => $kitModel?->name ?? 'Kit #'.$kitId,
+            'quantity'            => $quantity,
+            'components'          => $components,
         ];
     }
 
