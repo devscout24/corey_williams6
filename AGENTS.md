@@ -96,6 +96,7 @@ Receiver resolution order (`LanController::receive`, `TransferSyncController::re
 ## VAT Report
 
 - Available at `/reports/vat` under `reports` permission. Handled by `ReportController::vatIndex()`.
+- Output tax view (`resources/views/reports/output_tax.blade.php`) has three manual input fields in the Input Tax section header: **Claimable**, **VAT Non-Inventory**, **VAT on Electricity**. Only **VAT on Electricity** is wired with JS to update the electricity rows and recalculate totals. **Claimable** and **VAT Non-Inventory** are placeholders — yet to be implemented.
 
 ## LAN sync
 

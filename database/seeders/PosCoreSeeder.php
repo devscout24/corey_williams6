@@ -66,6 +66,7 @@ class PosCoreSeeder extends Seeder
 
         if (Schema::hasTable('phppos_vat_rates')) {
             $vatRates = [
+                ['name' => 'VAT 10%', 'percent' => 10],
                 ['name' => 'VAT 15%', 'percent' => 15],
                 ['name' => 'VAT 20%', 'percent' => 20],
                 ['name' => 'Exempt', 'percent' => 0],
@@ -82,6 +83,50 @@ class PosCoreSeeder extends Seeder
                         'updated_at' => $now,
                     ]
                 );
+            }
+        }
+
+        if (Schema::hasTable('phppos_tax_classes')) {
+            $taxClasses = [
+                ['name' => 'Standard VAT 15%', 'order' => 10],
+                ['name' => 'VAT 10%', 'order' => 20],
+                ['name' => 'VAT 20%', 'order' => 30],
+            ];
+
+            foreach ($taxClasses as $tc) {
+                DB::table('phppos_tax_classes')->updateOrInsert(
+                    ['name' => $tc['name']],
+                    [
+                        'order' => $tc['order'],
+                        'deleted' => 0,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]
+                );
+            }
+        }
+
+        if (Schema::hasTable('phppos_tax_classes_taxes')) {
+            $classRates = [
+                ['name' => 'Standard VAT 15%', 'tax_name' => 'VAT 15%', 'percent' => 15, 'order' => 10],
+                ['name' => 'VAT 10%', 'tax_name' => 'VAT 10%', 'percent' => 10, 'order' => 10],
+                ['name' => 'VAT 20%', 'tax_name' => 'VAT 20%', 'percent' => 20, 'order' => 10],
+            ];
+
+            foreach ($classRates as $cr) {
+                $classId = DB::table('phppos_tax_classes')
+                    ->where('name', $cr['name'])
+                    ->value('id');
+
+                if ($classId) {
+                    DB::table('phppos_tax_classes_taxes')->updateOrInsert(
+                        ['tax_class_id' => $classId, 'name' => $cr['tax_name'], 'percent' => $cr['percent']],
+                        [
+                            'order' => $cr['order'],
+                            'cumulative' => 0,
+                        ]
+                    );
+                }
             }
         }
 
@@ -272,6 +317,17 @@ class PosCoreSeeder extends Seeder
                 ['key' => 'hide_item_image_upload'],
                 ['value' => '1']
             );
+
+            $standardClassId = DB::table('phppos_tax_classes')
+                ->where('name', 'Standard VAT 15%')
+                ->value('id');
+
+            if ($standardClassId) {
+                DB::table('phppos_app_config')->updateOrInsert(
+                    ['key' => 'tax_class_id'],
+                    ['value' => $standardClassId]
+                );
+            }
         }
 
         if (Schema::hasTable('phppos_receipt_settings')) {

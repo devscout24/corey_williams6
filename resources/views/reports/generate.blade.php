@@ -13,7 +13,7 @@
             <div class="card-body p-4">
                 <form action="{{ route('reports.store', $report) }}" method="POST">
                     @csrf
-                    
+
                     <div class="mb-4">
                         <label class="form-label font-weight-bold">Date Range</label>
                         <div class="row g-2">

@@ -23,7 +23,7 @@ class ReportController extends Controller
     {
         // Support legacy CI3-style links that directly generate a report via query string.
         // Example: /reports/generate/detailed_sales?report_type=simple&report_date_range_simple=TODAY&sale_type=all&with_time=1
-        if ($request->query->count() > 0 && $request->hasAny(['report_date_range_simple', 'start_date', 'end_date', 'with_time', 'sale_type', 'payment_type'])) {
+        if ($request->query->count() > 0 && $request->hasAny(['report_date_range_simple', 'start_date', 'end_date', 'with_time', 'sale_type', 'payment_type', 'export_format'])) {
             return $this->store($request, $report);
         }
 
@@ -2636,6 +2636,12 @@ class ReportController extends Controller
 
                 $title = 'VAT Report (Output & Input Tax)';
 
+                $exportFormat = $request->input('export_format', '');
+                if ($exportFormat !== '') {
+                    $format = $exportFormat;
+                    return $this->exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format);
+                }
+
                 return view('reports.output_tax', compact(
                     'outputTaxData', 'inputTaxData', 'title', 'startDate', 'endDate', 'report'
                 ));
@@ -2919,6 +2925,90 @@ class ReportController extends Controller
             foreach ($row as $i => $cell) {
                 $align = ($headers[$i]['align'] ?? 'left') === 'right' ? ' class="r"' : '';
                 $html .= '<td' . $align . '>' . htmlspecialchars((string) $cell) . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+        $html .= '</body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel',
+            'Content-Disposition' => 'attachment; filename="' . $safeTitle . '.xls"',
+        ]);
+    }
+
+    private function exportOutputTax($outputTaxData, $inputTaxData, $title, $startDate, $endDate, $format)
+    {
+        $fmt = fn($v) => number_format($v ?? 0, 2);
+
+        $grandTotal = array_sum(array_column($outputTaxData, 'total_incl_vat'));
+        $grandVat   = array_sum(array_column($outputTaxData, 'vat_amount'));
+
+        $importsExVat  = $inputTaxData['imports']['total_excl_vat'];
+        $importsVat    = $inputTaxData['imports']['vat_amount'];
+        $domesticExVat = $inputTaxData['domestic']['total_excl_vat'];
+        $domesticVat   = $inputTaxData['domestic']['vat_amount'];
+        $totalInputVat = $importsVat + $domesticVat;
+        $totalPurchasesExVat = $importsExVat + $domesticExVat;
+        $netVat = $grandVat - $totalInputVat;
+
+        $columnLabels = ['Section', 'Type', 'Total (incl. VAT)', 'VAT Amount'];
+        $rows = [];
+
+        // Output Tax
+        $rows[] = ['Output Tax', 'Standard Rated', $fmt($outputTaxData['standard']['total_incl_vat']), $fmt($outputTaxData['standard']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Zero Rated', $fmt($outputTaxData['zero_rated']['total_incl_vat']), $fmt($outputTaxData['zero_rated']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Exempt', $fmt($outputTaxData['exempt']['total_incl_vat']), $fmt($outputTaxData['exempt']['vat_amount'])];
+        $rows[] = ['Output Tax', 'Grand Total', $fmt($grandTotal), $fmt($grandVat)];
+
+        // Input Tax
+        $rows[] = ['Input Tax', 'Value of Imports (Excl. VAT)', $fmt($importsExVat), '—'];
+        $rows[] = ['Input Tax', 'VAT on Imports', '—', $fmt($importsVat)];
+        $rows[] = ['Input Tax', 'Value of Domestic Purchases (Excl. VAT)', $fmt($domesticExVat), '—'];
+        $rows[] = ['Input Tax', 'VAT on Domestic Purchases', '—', $fmt($domesticVat)];
+        $rows[] = ['Input Tax', 'Grand Total – Input Tax', $fmt($totalPurchasesExVat), $fmt($totalInputVat)];
+
+        // Net VAT
+        $netLabel = $netVat >= 0 ? 'Net VAT Payable' : 'Net VAT Refundable';
+        $rows[] = ['Net VAT', $netLabel, $fmt(abs($netVat)), ''];
+
+        $safeTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $title);
+
+        if ($format === 'csv') {
+            $callback = function () use ($columnLabels, $rows) {
+                $output = fopen('php://output', 'w');
+                fputcsv($output, $columnLabels);
+                foreach ($rows as $row) {
+                    fputcsv($output, $row);
+                }
+                fclose($output);
+            };
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $safeTitle . '.csv"',
+            ]);
+        }
+
+        // Default: XLS (HTML table format)
+        $html = '<html>';
+        $html .= '<head><meta charset="UTF-8"><title>' . htmlspecialchars($title) . '</title>';
+        $html .= '<style>
+            table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11pt; }
+            th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+            th { background: #f0f0f0; font-weight: bold; }
+            td.r { text-align: right; }
+        </style></head><body>';
+        $html .= '<h2>' . htmlspecialchars($title) . '</h2>';
+        $html .= '<p>Range: ' . htmlspecialchars($startDate) . ' to ' . htmlspecialchars($endDate) . '</p>';
+        $html .= '<table><thead><tr>';
+        foreach ($columnLabels as $label) {
+            $html .= '<th>' . htmlspecialchars($label) . '</th>';
+        }
+        $html .= '</tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $html .= '<tr>';
+            foreach ($row as $cell) {
+                $html .= '<td>' . htmlspecialchars((string) $cell) . '</td>';
             }
             $html .= '</tr>';
         }
