@@ -115,82 +115,86 @@
         </div>
 
         <!-- Permissions Section -->
-        <div class="mt-4">
-            <h4 class="mb-3">Module Permissions</h4>
+        <div class="mt-5">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-shield-lock fs-4"></i>
+                <h4 class="m-0">Module Permissions</h4>
+            </div>
             <div class="row g-3">
                 @foreach($modules as $module)
                     @php
                         $moduleId = $module->module_id;
                         $isChecked = in_array($moduleId, old('permissions', $selectedPermissions));
+                        $hasActions = isset($moduleActions[$moduleId]);
                     @endphp
                     <div class="col-md-6 col-lg-4">
-                        <div class="card border">
-                            <div class="card-header bg-light">
-                                <div class="form-check">
-                                    <input class="form-check-input module-checkbox" type="checkbox" 
-                                           id="permissions-{{ $moduleId }}"
-                                           name="permissions[]" 
-                                           value="{{ $moduleId }}"
-                                           @checked($isChecked)>
-                                    <label class="form-check-label fw-bold" for="permissions-{{ $moduleId }}">
-                                        {{ __('module_' . $moduleId) }}
-                                    </label>
-                                </div>
-                                <small class="text-muted">{{ __('module_' . $moduleId . '_desc') }}</small>
+                        <div class="card border shadow-sm h-100 module-card">
+                            <div class="card-header d-flex align-items-center gap-2 py-3 px-3 {{ $isChecked ? 'bg-primary text-white' : 'bg-light' }}" id="header-{{ $moduleId }}">
+                                <input class="form-check-input module-checkbox fs-5 mt-0" type="checkbox" 
+                                       id="permissions-{{ $moduleId }}"
+                                       name="permissions[]" 
+                                       value="{{ $moduleId }}"
+                                       @checked($isChecked)>
+                                <label class="form-check-label fw-semibold flex-grow-1 cursor-pointer" for="permissions-{{ $moduleId }}">
+                                    {{ $module->name_lang_key }}
+                                </label>
+                                <i class="bi bi-{{ $module->icon ?? 'gear' }} fs-5 opacity-75"></i>
                             </div>
-                            @if(isset($moduleActions[$moduleId]))
-                                <div class="card-body py-2">
+                            @if($hasActions)
+                                <div class="card-body py-2 px-3">
+                                    <small class="text-muted fw-medium text-uppercase tracking-wide">Actions</small>
                                     @foreach($moduleActions[$moduleId] as $action)
                                         @php
                                             $actionKey = $moduleId . '|' . $action->action_id;
                                             $actionChecked = in_array($actionKey, old('permissions_actions', $selectedActionPermissions));
                                         @endphp
-                                        <div class="form-check mb-1">
-                                            <input class="form-check-input action-checkbox" type="checkbox"
+                                        <div class="d-flex align-items-center gap-2 mt-2 py-1 px-2 rounded hover-bg">
+                                            <input class="form-check-input action-checkbox mt-0" type="checkbox"
                                                    id="permissions_actions-{{ $moduleId }}-{{ $action->action_id }}"
                                                    name="permissions_actions[]"
                                                    value="{{ $moduleId }}|{{ $action->action_id }}"
                                                    data-module-checkbox-id="permissions-{{ $moduleId }}"
                                                    @checked($actionChecked)>
-                                            <label class="form-check-label" for="permissions_actions-{{ $moduleId }}-{{ $action->action_id }}">
-                                                {{ __($action->action_name_key) }}
+                                            <label class="form-check-label small flex-grow-1 cursor-pointer" for="permissions_actions-{{ $moduleId }}-{{ $action->action_id }}">
+                                                {{ $action->action_name_key }}
                                             </label>
-                                            <!-- Location Override for Action -->
                                             @if(count($locations) > 1)
-                                                <a href="javascript:void(0);" class="ms-2 text-primary small" 
-                                                   onclick="toggleLocationOverride('action-{{ $moduleId }}-{{ $action->action_id }}')">
-                                                    <i class="bi bi-geo-alt"></i> Locations
-                                                </a>
-                                                <div class="ms-4 mt-1 d-none" id="action-{{ $moduleId }}-{{ $action->action_id }}-locations">
-                                                    @foreach($locations as $loc)
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox"
-                                                                   id="action-location-{{ $moduleId }}-{{ $action->action_id }}-{{ $loc->location_id }}"
-                                                                   name="action-location[]"
-                                                                   value="{{ $moduleId }}|{{ $action->action_id }}|{{ $loc->location_id }}"
-                                                                   @checked(in_array($moduleId . '|' . $action->action_id . '|' . $loc->location_id, old('action-location', $selectedActionLocations)))>
-                                                            <label class="form-check-label small" for="action-location-{{ $moduleId }}-{{ $action->action_id }}-{{ $loc->location_id }}">
-                                                                {{ $loc->name }}
-                                                            </label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary border-0 py-0 px-1" 
+                                                        onclick="toggleLocationOverride('action-{{ $moduleId }}-{{ $action->action_id }}')"
+                                                        title="Location overrides">
+                                                    <i class="bi bi-geo-alt"></i>
+                                                </button>
                                             @endif
                                         </div>
+                                        @if(count($locations) > 1)
+                                            <div class="ms-4 mt-1 ps-3 border-start border-2 d-none" id="action-{{ $moduleId }}-{{ $action->action_id }}-locations">
+                                                @foreach($locations as $loc)
+                                                    <div class="form-check py-1">
+                                                        <input class="form-check-input small-checkbox" type="checkbox"
+                                                               id="action-location-{{ $moduleId }}-{{ $action->action_id }}-{{ $loc->location_id }}"
+                                                               name="action-location[]"
+                                                               value="{{ $moduleId }}|{{ $action->action_id }}|{{ $loc->location_id }}"
+                                                               @checked(in_array($moduleId . '|' . $action->action_id . '|' . $loc->location_id, old('action-location', $selectedActionLocations)))>
+                                                        <label class="form-check-label small" for="action-location-{{ $moduleId }}-{{ $action->action_id }}-{{ $loc->location_id }}">
+                                                            {{ $loc->name }}
+                                                        </label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     @endforeach
                                 </div>
                             @endif
-                            <!-- Module Location Override -->
                             @if(count($locations) > 1)
-                                <div class="card-footer bg-white border-top-0">
-                                    <a href="javascript:void(0);" class="text-primary small" 
-                                       onclick="toggleLocationOverride('module-{{ $moduleId }}')">
-                                        <i class="bi bi-geo-alt"></i> Override Locations
-                                    </a>
-                                    <div class="mt-2 d-none" id="module-{{ $moduleId }}-locations">
+                                <div class="card-footer bg-white px-3 py-2 border-top">
+                                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" 
+                                            onclick="toggleLocationOverride('module-{{ $moduleId }}')">
+                                        <i class="bi bi-geo-alt-fill"></i> Location Overrides
+                                    </button>
+                                    <div class="mt-2 ps-3 border-start border-2 d-none" id="module-{{ $moduleId }}-locations">
                                         @foreach($locations as $loc)
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox"
+                                            <div class="form-check py-1">
+                                                <input class="form-check-input small-checkbox" type="checkbox"
                                                        id="module-location-{{ $moduleId }}-{{ $loc->location_id }}"
                                                        name="module_location[]"
                                                        value="{{ $moduleId }}|{{ $loc->location_id }}"
@@ -217,19 +221,39 @@
 </div>
 @endsection
 
+@push('styles')
+<style>
+    .module-card { transition: box-shadow .2s, border-color .2s; }
+    .module-card:hover { box-shadow: 0 .25rem .75rem rgba(0,0,0,.08); border-color: #86b7fe; }
+    .module-card .card-header { transition: background .2s, color .2s; }
+    .hover-bg { transition: background .15s; }
+    .hover-bg:hover { background: rgba(13,110,253,.05); }
+    .cursor-pointer { cursor: pointer; }
+    .tracking-wide { letter-spacing: .04em; }
+    .small-checkbox { transform: scale(.85); }
+    .module-checkbox:checked ~ .bi { color: inherit; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Module checkbox: check/uncheck all action checkboxes
+    // Module checkbox: check/uncheck all action checkboxes + toggle header styling
     document.querySelectorAll('.module-checkbox').forEach(function(moduleCheckbox) {
         moduleCheckbox.addEventListener('change', function() {
             const moduleId = this.id.replace('permissions-', '');
+            const header = document.getElementById('header-' + moduleId);
             const actionCheckboxes = document.querySelectorAll('.action-checkbox[data-module-checkbox-id="permissions-' + moduleId + '"]');
             actionCheckboxes.forEach(function(actionCb) {
                 if (!actionCb.disabled) {
                     actionCb.checked = moduleCheckbox.checked;
                 }
             });
+            if (header) {
+                header.classList.toggle('bg-primary', moduleCheckbox.checked);
+                header.classList.toggle('text-white', moduleCheckbox.checked);
+                header.classList.toggle('bg-light', !moduleCheckbox.checked);
+            }
         });
     });
 

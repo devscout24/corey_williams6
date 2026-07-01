@@ -171,6 +171,7 @@ class SalesService
                     'variation_id' => $line['variation_id'],
                     'quantity_purchased' => $qty,
                     'item_unit_price' => $unitPrice,
+                    'discount_percent' => $discount,
                     'line_total' => $lineTotal,
                     'commission' => $commission,
                     'vat' => $lineVat,
@@ -208,6 +209,7 @@ class SalesService
                     'item_kit_id' => (int) $entry['item_kit_id'],
                     'quantity_purchased' => $kitQty,
                     'item_kit_unit_price' => (float) $entry['unit_price'],
+                    'discount_percent' => (float) ($entry['discount'] ?? 0),
                     'line_total' => $kitLineTotal,
                 ];
 
@@ -314,6 +316,7 @@ class SalesService
                         'item_variation_id' => $entry['variation_id'],
                         'quantity_purchased' => $entry['quantity_purchased'],
                         'item_unit_price' => $entry['item_unit_price'],
+                        'discount_percent' => $entry['discount_percent'],
                         'line_total' => $entry['line_total'],
                         'commission' => $entry['commission'],
                         'vat' => round($entry['vat'], 10),
@@ -419,6 +422,7 @@ class SalesService
                         'item_kit_id' => $kl['item_kit_id'],
                         'quantity_purchased' => $kl['quantity_purchased'],
                         'item_kit_unit_price' => $kl['item_kit_unit_price'],
+                        'discount_percent' => $kl['discount_percent'],
                         'line_total' => $kl['line_total'],
                         'subtotal' => $kl['line_total'],
                         'total' => $kl['line_total'],

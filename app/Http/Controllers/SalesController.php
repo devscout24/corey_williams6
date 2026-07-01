@@ -634,9 +634,8 @@ class SalesController extends Controller
         $customerDiscount = 0;
         if ($cart['customer_id']) {
             $customer = PhpposCustomer::find($cart['customer_id']);
-            if ($customer && (float) $customer->discount_percent > 0) {
-                // TODO: Apply discount for item kits when customer discount_percent is set
-                // Kit discount logic goes here (check kit-level discountable flag or max_discount_percent)
+            if ($customer && (float) $customer->discount_percent > 0 && $kit->discountable) {
+                $customerDiscount = (float) $customer->discount_percent;
             }
         }
 
@@ -649,7 +648,7 @@ class SalesController extends Controller
                 'name' => $kit->name,
                 'quantity' => $quantity,
                 'unit_price' => (float) ($kit->unit_price ?? 0),
-                'discount' => 0,
+                'discount' => $customerDiscount,
             ];
         }
     }
@@ -747,8 +746,11 @@ class SalesController extends Controller
 
             if ($discountPercent > 0) {
                 $nonKitItemIds = [];
+                $kitIds = [];
                 foreach ($cart['items'] as $item) {
-                    if (($item['type'] ?? 'item') !== 'kit') {
+                    if (($item['type'] ?? 'item') === 'kit') {
+                        $kitIds[] = (int) $item['item_kit_id'];
+                    } else {
                         $nonKitItemIds[] = (int) $item['item_id'];
                     }
                 }
@@ -762,11 +764,22 @@ class SalesController extends Controller
                         ->toArray();
                 }
 
+                $discountableKitIds = [];
+                if ($kitIds) {
+                    $discountableKitIds = DB::table('phppos_item_kits')
+                        ->whereIn('id', $kitIds)
+                        ->where('discountable', true)
+                        ->pluck('id')
+                        ->map(fn ($id) => (int) $id)
+                        ->toArray();
+                }
+
                 foreach ($cart['items'] as $key => $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
-                        continue;
-                    }
-                    if (in_array((int) $item['item_id'], $discountableIds)) {
+                        if (in_array((int) $item['item_kit_id'], $discountableKitIds)) {
+                            $cart['items'][$key]['discount'] = $discountPercent;
+                        }
+                    } elseif (in_array((int) $item['item_id'], $discountableIds)) {
                         $cart['items'][$key]['discount'] = $discountPercent;
                     }
                 }
