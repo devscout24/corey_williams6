@@ -49,6 +49,30 @@
                 </div>
             </div>
         </div>
+
+        <div class="card shadow-sm border-0 radius-lg mt-4">
+            <div class="card-body p-5">
+                <h5 class="mb-4"><i class="bi bi-key me-2"></i>Change Password</h5>
+                <form id="change-password-form">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" name="current_password" id="current_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" name="new_password_confirmation" id="new_password_confirmation" class="form-control" required minlength="6">
+                    </div>
+                    <div id="password-error" class="alert alert-danger d-none"></div>
+                    <div id="password-success" class="alert alert-success d-none"></div>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -105,7 +129,6 @@
                     data: data,
                     headers: { 'X-CSRF-TOKEN': csrfToken },
                     success: function(resp){
-                        // Update initials and name in header
                         var $firstNameInput = $card.find('input[data-field="first_name"]');
                         var $lastNameInput = $card.find('input[data-field="last_name"]');
                         var firstName = $firstNameInput.length ? $firstNameInput.val() : 'Unknown';
@@ -124,6 +147,39 @@
                         var msg = 'Save failed';
                         if(xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
                         alert(msg);
+                    }
+                });
+            });
+
+            $('#change-password-form').on('submit', function(e){
+                e.preventDefault();
+                var $form = $(this);
+                var $error = $('#password-error');
+                var $success = $('#password-success');
+                $error.addClass('d-none');
+                $success.addClass('d-none');
+
+                var data = {
+                    _token: csrfToken,
+                    current_password: $('#current_password').val(),
+                    new_password: $('#new_password').val(),
+                    new_password_confirmation: $('#new_password_confirmation').val(),
+                    change_password: true
+                };
+
+                $.ajax({
+                    url: updateUrl,
+                    method: 'POST',
+                    data: data,
+                    headers: { 'X-CSRF-TOKEN': csrfToken },
+                    success: function(resp){
+                        $success.text(resp.message || 'Password updated successfully.').removeClass('d-none');
+                        $form[0].reset();
+                    },
+                    error: function(xhr){
+                        var msg = 'Failed to update password.';
+                        if(xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        $error.text(msg).removeClass('d-none');
                     }
                 });
             });

@@ -76,7 +76,7 @@
             <div class="nav-item"><a href="{{ route('sales.index') }}" class="nav-link"><i class="bi bi-cart-fill"></i><span>Sales</span></a></div>
             @endif
 
-            @if(auth('employee')->user()?->hasModulePermission('sales') || auth('employee')->user()?->hasModulePermission('config'))
+            @if(auth('employee')->user()?->hasModulePermission('reconciliation'))
             <div class="nav-item"><a href="{{ route('registers.reconciliation.index') }}" class="nav-link {{ request()->routeIs('registers.reconciliation.*') ? 'active' : '' }}"><i class="bi bi-calculator-fill"></i><span>Reconciliation</span></a></div>
             @endif
 

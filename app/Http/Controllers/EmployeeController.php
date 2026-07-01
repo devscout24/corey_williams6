@@ -7,6 +7,7 @@ use App\Services\EmployeeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class EmployeeController extends Controller
@@ -155,6 +156,22 @@ class EmployeeController extends Controller
     {
         $employee = auth('employee')->user();
         $person = $employee->person;
+
+        if ($request->boolean('change_password')) {
+            $validated = $request->validate([
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:6|confirmed',
+            ]);
+
+            if (! $employee->validatePassword($validated['current_password'])) {
+                return response()->json(['message' => 'Current password is incorrect.'], 422);
+            }
+
+            $employee->password = Hash::make($validated['new_password']);
+            $employee->save();
+
+            return response()->json(['message' => 'Password updated successfully.'], 200);
+        }
 
         $validated = $request->validate([
             'first_name' => 'nullable|string|max:255',

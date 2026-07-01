@@ -100,7 +100,8 @@ class PosCoreSeeder extends Seeder
                     ['module_id' => 'items', 'name_lang_key' => 'module_items', 'desc_lang_key' => 'module_items_desc', 'sort' => 30, 'icon' => 'ti-package'],
                     ['module_id' => 'receivings', 'name_lang_key' => 'module_receivings', 'desc_lang_key' => 'module_receivings_desc', 'sort' => 40, 'icon' => 'ti-truck'],
                     ['module_id' => 'sales', 'name_lang_key' => 'module_sales', 'desc_lang_key' => 'module_sales_desc', 'sort' => 50, 'icon' => 'ti-shopping-cart'],
-                    ['module_id' => 'reports', 'name_lang_key' => 'module_reports', 'desc_lang_key' => 'module_reports_desc', 'sort' => 70, 'icon' => 'ti-bar-chart-alt'],
+                    ['module_id' => 'reports', 'name_lang_key' => 'module_reports', 'desc_lang_key' => 'module_reports_desc', 'sort' => 60, 'icon' => 'ti-bar-chart-alt'],
+                    ['module_id' => 'reconciliation', 'name_lang_key' => 'module_reconciliation', 'desc_lang_key' => 'module_reconciliation_desc', 'sort' => 70, 'icon' => 'ti-calculator'],
                     ['module_id' => 'messages', 'name_lang_key' => 'module_messages', 'desc_lang_key' => 'module_messages_desc', 'sort' => 80, 'icon' => 'ti-email'],
                     ['module_id' => 'employees', 'name_lang_key' => 'module_employees', 'desc_lang_key' => 'module_employees_desc', 'sort' => 90, 'icon' => 'icon ti-id-badge'],
                     ['module_id' => 'config', 'name_lang_key' => 'module_config', 'desc_lang_key' => 'module_config_desc', 'sort' => 100, 'icon' => 'icon ti-settings'],
@@ -170,17 +171,13 @@ class PosCoreSeeder extends Seeder
         }
 
         if (Schema::hasTable('phppos_permissions')) {
-            $permissions = [
-                ['module_id' => 'config', 'person_id' => 1],
-                ['module_id' => 'employees', 'person_id' => 1],
-                ['module_id' => 'reports', 'person_id' => 1],
-            ];
+            $modules = ['locations', 'contacts', 'items', 'receivings', 'sales', 'reports', 'reconciliation', 'messages', 'employees', 'config'];
 
-            foreach ($permissions as $permission) {
+            foreach ($modules as $moduleId) {
                 DB::table('phppos_permissions')->updateOrInsert(
                     [
-                        'module_id' => $permission['module_id'],
-                        'person_id' => $permission['person_id'],
+                        'module_id' => $moduleId,
+                        'person_id' => 1,
                     ],
                     []
                 );

@@ -97,6 +97,14 @@ class SetupController extends Controller
                 'inactive' => 0,
             ]);
 
+            $modules = ['locations', 'contacts', 'items', 'receivings', 'sales', 'reports', 'reconciliation', 'messages', 'employees', 'config'];
+            foreach ($modules as $moduleId) {
+                DB::table('phppos_permissions')->updateOrInsert(
+                    ['module_id' => $moduleId, 'person_id' => $person->person_id],
+                    []
+                );
+            }
+
             $locationId = DB::table('phppos_locations')->value('location_id');
             if ($locationId) {
                 DB::table('phppos_employees_locations')->updateOrInsert([

@@ -40,14 +40,15 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
 ## Routes
 
-- `routes/web.php` (POS) requires `routes/rony/*` (4 CRUD bundles: items, sales/inventory, receive/return, people).
+- `routes/web.php` (POS) requires `routes/rony/*` (4 route files: `items_module.php`, `sales_inventory_modules.php`, `receive_return_module.php`, `people_modules.php`).
+- All module routes use `check_module_permission` middleware for role-based access.
 - `routes/api.php` (LAN sync, `sync.auth` middleware).
 - `routes/console.php` (`app:bind-identity` inline, `inspire`).
-- **~27 controllers** in `app/Http/Controllers/`; views in `resources/views/` (24 subdirs). Frontend: Blade + jQuery, Tailwind CSS v4, Vite with `@tailwindcss/vite`.
+- **~25 controllers** in `app/Http/Controllers/`; views in `resources/views/` (25 subdirs). Frontend: Blade + jQuery, Tailwind CSS v4, Vite with `@tailwindcss/vite`.
 
 ## Database & migrations
 
-- **~66 Eloquent models** in `app/Models/`, most prefixed `phppos_*`.
+- **~69 Eloquent models** in `app/Models/`, most prefixed `phppos_*`.
 - **Two location tables:** `phppos_locations` (POS stores), `locations` (LAN peer registry).
 - **Migration rule:** Prefer `Schema::create()` for `phppos_*` tables. Existing `Schema::table()` alter migrations exist in `database/migrations/` — do **not** add new ones. Update the single create migration and run `migrate:fresh` instead.
 - **Seeders:** `PosCoreSeeder` runs always; `PosDemoSeeder` only if `POS_SEED_DEMO=true`.
@@ -57,9 +58,11 @@ Set `POS_SEED_DEMO=true` in `.env` before seeding to load demo data.
 
 - **Location resolution** (`LocationContextService`): ULID header/cookie → requested ID → employee location → LAN self-record → first location fallback.
 - **Install guard:** `EnsureInstalled` checks `storage/app/install.lock` — all routes redirect to `/setup` until lock exists.
-- **Middleware aliases** (`bootstrap/app.php`): `sync.auth` (SyncAuth), `installed` (EnsureInstalled), `check_register_open` (CheckRegisterOpen — required for sales routes).
+- **Middleware aliases** (`bootstrap/app.php`): `sync.auth` (SyncAuth), `installed` (EnsureInstalled), `check_register_open` (CheckRegisterOpen — required for sales routes), `check_module_permission` (CheckModulePermission — gates routes by employee module permission).
+- **Module permission system:** `CheckModulePermission` middleware (`app/Http/Middleware/CheckModulePermission.php`) gates routes by employee module access. Supports comma-separated module names — access granted if employee has any of them. Sidebar in `resources/views/layouts/sidebar.blade.php` uses `hasModulePermission()` to conditionally render nav items.
+- **Dashboard:** `ModuleController::index()` displays a grid of permitted modules with sales charts (weekly/monthly/yearly) and stats.
 - **Storage path** overridable via `LARAVEL_STORAGE_PATH` env.
-- **Register flow:** sales routes require an open register session (`check_register_open` middleware). Open/close routes bypass this middleware.
+- **Register flow:** sales routes require an open register session (`check_register_open` middleware). Open/close routes bypass this middleware. Reconciliation routes use `check_module_permission:reconciliation` (register already closed).
 - **Key deps:** `barryvdh/laravel-dompdf` (PDF), `picqer/php-barcode-generator` (SVG barcodes), `rats/zkteco` (biometric SDK).
 - **Console commands:** `app:register-self` (`app/Console/Commands/RegisterSelf.php`), `app:bind-identity` (inline in `routes/console.php`).
 - **LAN sync jobs:** `AnnouncePresence`, `SendItem` in `app/Jobs/`. Sync controller at `app/Http/Controllers/Sync/TransferSyncController.php`.
@@ -85,6 +88,14 @@ When updating an item's quantity, **always update both** `phppos_items.default_q
 Receiver resolution order (`LanController::receive`, `TransferSyncController::receiveTransferOut`):
 1. `item_id` → 2. `item_number` → 3. `product_id` → 4. `name` → 5. **auto-create** `PhpposItem` with provided metadata
 6. For kit headers, auto-create `PhpposItemKit` with its `components` array if component items exist locally
+
+## Orders
+
+- **Orders module** (`OrderController`) is a submodule of `items` permission, routes in `routes/web.php:84-97`. Supports CRUD, pull list, item search, CSV/XLS export, close, print, and destroy.
+
+## VAT Report
+
+- Available at `/reports/vat` under `reports` permission. Handled by `ReportController::vatIndex()`.
 
 ## LAN sync
 

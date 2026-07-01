@@ -43,7 +43,7 @@ Route::middleware(['auth:employee', 'check_module_permission:sales'])->group(fun
     });
 });
 
-Route::middleware(['auth:employee', 'check_module_permission:sales,config'])->group(function (): void {
+Route::middleware(['auth:employee', 'check_module_permission:reconciliation'])->group(function (): void {
     // Reconciliation routes (outside check_register_open — register is already closed)
     Route::get('/registers/reconciliation', [SalesController::class, 'reconciliationIndex'])->name('registers.reconciliation.index');
     Route::get('/registers/reconciliation/{log}', [SalesController::class, 'reconciliationEdit'])->name('registers.reconciliation.edit');

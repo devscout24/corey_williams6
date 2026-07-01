@@ -12,7 +12,7 @@ class ModuleController extends Controller
         $employee = auth('employee')->user();
 
         $modules = PhpposModule::query()
-            ->whereIn('module_id', ['locations', 'contacts', 'items', 'receivings', 'sales', 'reports', 'messages', 'employees', 'config'])
+            ->whereIn('module_id', ['locations', 'contacts', 'items', 'receivings', 'sales', 'reports', 'reconciliation', 'messages', 'employees', 'config'])
             ->with('submodules')
             ->orderBy('sort')
             ->get()
