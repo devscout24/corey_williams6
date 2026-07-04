@@ -463,6 +463,7 @@ class TransferController extends Controller
                     'quantity' => (float) $tItem->quantity,
                     'cost_price' => 0,
                 ];
+
                 continue;
             }
 
@@ -552,8 +553,9 @@ class TransferController extends Controller
                         $kitQty = (float) $item['quantity'];
                         // Layer 1 — kit header row for display/audit
                         $lines[] = [
-                            'item_number' => $kit->item_kit_number,
-                            'product_id' => $kit->product_id,
+                            'item_kit_number' => $kit->item_kit_number,
+                            'item_kit_product_id' => $kit->product_id,
+                            'item_kit_name' => $kit->name,
                             'quantity' => $kitQty,
                         ];
                         // Layer 2 — exploded component items for inventory
@@ -561,13 +563,7 @@ class TransferController extends Controller
                         $lines = [...$lines, ...$exploded];
                     }
                 } else {
-                    $itemModel = null;
-                    if (! empty($item['item_number'])) {
-                        $itemModel = PhpposItem::where('item_number', $item['item_number'])->first();
-                    }
-                    if (! $itemModel && ! empty($item['product_id'])) {
-                        $itemModel = PhpposItem::where('product_id', $item['product_id'])->first();
-                    }
+                    $itemModel = PhpposItem::find($item['item_id'] ?? 0);
                     $lines[] = [
                         'item_number' => $itemModel?->item_number,
                         'product_id' => $itemModel?->product_id,
@@ -617,19 +613,20 @@ class TransferController extends Controller
                 $lines = [];
                 foreach ($cart['items'] as $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
-                            $kit = null;
-                            if (! empty($item['item_kit_number'])) {
-                                $kit = PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first();
-                            }
-                            if (! $kit && ! empty($item['item_kit_product_id'])) {
-                                $kit = PhpposItemKit::where('product_id', $item['item_kit_product_id'])->first();
-                            }
+                        $kit = null;
+                        if (! empty($item['item_kit_number'])) {
+                            $kit = PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first();
+                        }
+                        if (! $kit && ! empty($item['item_kit_product_id'])) {
+                            $kit = PhpposItemKit::where('product_id', $item['item_kit_product_id'])->first();
+                        }
                         if ($kit) {
                             $kitQty = (float) $item['quantity'];
                             // Layer 1 — kit header row for display/audit
                             $lines[] = [
-                                'item_number' => $kit->item_kit_number,
-                                'product_id' => $kit->product_id,
+                                'item_kit_number' => $kit->item_kit_number,
+                                'item_kit_product_id' => $kit->product_id,
+                                'item_kit_name' => $kit->name,
                                 'quantity' => $kitQty,
                             ];
                             // Layer 2 — exploded component items for inventory
@@ -637,13 +634,7 @@ class TransferController extends Controller
                             $lines = [...$lines, ...$exploded];
                         }
                     } else {
-                        $itemModel = null;
-                        if (! empty($item['item_number'])) {
-                            $itemModel = PhpposItem::where('item_number', $item['item_number'])->first();
-                        }
-                        if (! $itemModel && ! empty($item['product_id'])) {
-                            $itemModel = PhpposItem::where('product_id', $item['product_id'])->first();
-                        }
+                        $itemModel = PhpposItem::find($item['item_id'] ?? 0);
 
                         $lines[] = [
                             'item_number' => $itemModel?->item_number,

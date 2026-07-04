@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendItem;
 use App\Models\Location;
 use App\Models\PhpposItem;
+use App\Models\PhpposItemKit;
 use App\Models\PhpposLocation;
 use App\Models\PhpposReceiving;
 use App\Models\PhpposReceivingItem;
@@ -189,11 +190,12 @@ class InventoryFlowService
                 if ($qty <= 0) {
                     continue;
                 }
+                $resolved = $this->resolveLineIdentifiers($line);
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
-                    'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
-                    'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
-                    'item_kit_name' => $line['item_kit_name'] ?? null,
+                    'item_id' => $resolved['item_id'],
+                    'item_kit_id' => $resolved['item_kit_id'],
+                    'item_kit_name' => $resolved['item_kit_name'],
                     'quantity' => $qty,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -202,6 +204,40 @@ class InventoryFlowService
 
             return $transferOutId;
         });
+    }
+
+    public function resolveLineIdentifiers(array $line): array
+    {
+        $itemId = isset($line['item_id']) ? (int) $line['item_id'] : null;
+        if (! $itemId && ! empty($line['item_number'])) {
+            $found = PhpposItem::where('item_number', $line['item_number'])->first(['item_id']);
+            $itemId = $found?->item_id;
+        }
+        if (! $itemId && ! empty($line['product_id'])) {
+            $found = PhpposItem::where('product_id', $line['product_id'])->first(['item_id']);
+            $itemId = $found?->item_id;
+        }
+
+        $itemKitId = isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
+        if (! $itemKitId && ! empty($line['item_kit_number'])) {
+            $found = PhpposItemKit::where('item_kit_number', $line['item_kit_number'])->first(['id']);
+            $itemKitId = $found?->id;
+        }
+        if (! $itemKitId && ! empty($line['item_kit_product_id'])) {
+            $found = PhpposItemKit::where('product_id', $line['item_kit_product_id'])->first(['id']);
+            $itemKitId = $found?->id;
+        }
+
+        $itemKitName = $line['item_kit_name'] ?? null;
+        if (! $itemKitName && $itemKitId) {
+            $itemKitName = PhpposItemKit::find($itemKitId)?->name;
+        }
+
+        return [
+            'item_id' => $itemId,
+            'item_kit_id' => $itemKitId,
+            'item_kit_name' => $itemKitName,
+        ];
     }
 
     public function updateTransferOut(int $transferOutId, array $lines, ?string $notes = null): void
@@ -217,11 +253,12 @@ class InventoryFlowService
                 if ($qty <= 0) {
                     continue;
                 }
+                $resolved = $this->resolveLineIdentifiers($line);
                 DB::table('phppos_transfer_items')->insert([
                     'transfer_id' => $transferOutId,
-                    'item_id' => isset($line['item_id']) ? (int) $line['item_id'] : null,
-                    'item_kit_id' => isset($line['item_kit_id']) ? (int) $line['item_kit_id'] : null,
-                    'item_kit_name' => $line['item_kit_name'] ?? null,
+                    'item_id' => $resolved['item_id'],
+                    'item_kit_id' => $resolved['item_kit_id'],
+                    'item_kit_name' => $resolved['item_kit_name'],
                     'quantity' => $qty,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -553,6 +590,7 @@ class InventoryFlowService
                             ->where('id', $itemKitId)
                             ->increment('default_quantity', $qty);
                     }
+
                     continue;
                 }
 
