@@ -62,6 +62,7 @@ class TransferSyncController extends Controller
                             'product_id' => $compItem?->product_id,
                             'name' => $compItem?->name ?? 'Item #'.$kitItem->item_id,
                             'quantity' => (float) $kitItem->quantity,
+                            'type' => 'item',
                         ];
                     }
                     foreach ($kitModel->nestedKits as $nestedKit) {
@@ -136,6 +137,7 @@ class TransferSyncController extends Controller
             'lines.*.components.*.item_kit_id' => 'nullable|integer',
             'lines.*.components.*.item_kit_name' => 'nullable|string|max:255',
             'lines.*.components.*.item_kit_product_id' => 'nullable|string|max:255',
+            'lines.*.components.*.type' => 'nullable|string|in:kit,item',
             'lines.*.components.*.quantity' => 'required|numeric|gt:0',
             'lines.*.quantity' => 'required|numeric|gt:0',
         ]);
@@ -212,8 +214,10 @@ class TransferSyncController extends Controller
                 // Create kit component records from metadata — runs for both new and pre-existing kits.
                 if (! empty($line['components'])) {
                     foreach ($line['components'] as $comp) {
+                        $compType = $comp['type'] ?? (! empty($comp['item_kit_id']) ? 'kit' : 'item');
+
                         // ── Nested kit component ──────────────────────
-                        if (! empty($comp['item_kit_id'])) {
+                        if ($compType === 'kit') {
                             $nestedKit = null;
                             if (! empty($comp['item_kit_product_id'])) {
                                 $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
@@ -249,7 +253,7 @@ class TransferSyncController extends Controller
                             continue;
                         }
 
-                        // ── Item component (existing logic) ────────────
+                        // ── Item component ────────────────────────────
                         $compItemId = ! empty($comp['item_id']) ? (int) $comp['item_id'] : null;
                         $compItem = null;
                         if (! empty($comp['product_id'])) {
@@ -263,6 +267,19 @@ class TransferSyncController extends Controller
                         }
                         if (! $compItem && ! empty($comp['name'])) {
                             $compItem = PhpposItem::where('name', $comp['name'])->orderBy('item_id')->first();
+                        }
+                        // Auto-create item component (using name as fallback) if not found
+                        if (! $compItem && ! empty($comp['name'])) {
+                            try {
+                                $compItem = PhpposItem::create([
+                                    'name'        => $comp['name'],
+                                    'item_number' => $comp['item_number'] ?? null,
+                                    'product_id'  => $comp['product_id'] ?? null,
+                                    'cost_price'  => (float) ($comp['cost_price'] ?? 0),
+                                    'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                                ]);
+                            } catch (\Throwable) {
+                            }
                         }
                         if ($compItem) {
                             DB::table('phppos_item_kit_items')->insert([
@@ -383,6 +400,7 @@ class TransferSyncController extends Controller
                     'product_id'  => $compItem?->product_id,
                     'name'        => $compItem?->name ?? 'Item #'.$kitItem->item_id,
                     'quantity'    => (float) $kitItem->quantity,
+                    'type'        => 'item',
                 ];
             }
             foreach ($kitModel->nestedKits as $nested) {
@@ -397,13 +415,16 @@ class TransferSyncController extends Controller
             'name'                => $kitModel?->name ?? 'Kit #'.$kitId,
             'quantity'            => $quantity,
             'components'          => $components,
+            'type'                => 'kit',
         ];
     }
 
     private function processNestedKitComponents(PhpposItemKit $parentKit, array $components): void
     {
         foreach ($components as $comp) {
-            if (! empty($comp['item_kit_id'])) {
+            $compType = $comp['type'] ?? (! empty($comp['item_kit_id']) ? 'kit' : 'item');
+
+            if ($compType === 'kit') {
                 $subKit = null;
                 if (! empty($comp['item_kit_product_id'])) {
                     $subKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();

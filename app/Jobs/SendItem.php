@@ -183,6 +183,7 @@ class SendItem implements ShouldQueue
                             'product_id' => $compItem?->product_id,
                             'name' => $compItem?->name ?? 'Item #'.$kitItem->item_id,
                             'quantity' => (float) $kitItem->quantity,
+                            'type' => 'item',
                         ];
                     }
                     foreach ($kitModel->nestedKits as $nestedKit) {
@@ -251,6 +252,7 @@ class SendItem implements ShouldQueue
                     'product_id'  => $compItem?->product_id,
                     'name'        => $compItem?->name ?? 'Item #'.$kitItem->item_id,
                     'quantity'    => (float) $kitItem->quantity,
+                    'type'        => 'item',
                 ];
             }
             foreach ($kitModel->nestedKits as $nested) {
@@ -265,6 +267,7 @@ class SendItem implements ShouldQueue
             'name'                => $kitModel?->name ?? 'Kit #'.$kitId,
             'quantity'            => $quantity,
             'components'          => $components,
+            'type'                => 'kit',
         ];
     }
 
