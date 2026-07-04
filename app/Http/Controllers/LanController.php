@@ -371,6 +371,7 @@ class LanController extends Controller
                             'product_id'  => $line['product_id'],
                             'cost_price'  => (float) ($line['cost_price'] ?? 0),
                             'unit_price'  => (float) ($line['unit_price'] ?? 0),
+                            'default_quantity' => 0,
                         ];
                         if (isset($line['markup'])) {
                             $createData['markup'] = (float) $line['markup'];
