@@ -80,7 +80,9 @@ class LanController extends Controller
                 'body' => $data['ip'].':'.$data['port'],
                 'action_url' => '/lan/locations',
             ]);
-        } catch (\Throwable) {
+        }
+        catch (\Throwable $e) {
+
         }
 
         return response()->json(['ok' => true]);
@@ -130,7 +132,7 @@ class LanController extends Controller
                 'payload.lines.*.markup_type' => ['nullable', 'string', 'max:50'],
                 'payload.lines.*.item_kit_id' => ['nullable', 'integer'],
                 'payload.lines.*.item_kit_name' => ['nullable', 'string', 'max:255'],
-                'payload.lines.*.item_kit_product_id' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.item_kit_number' => ['nullable', 'string', 'max:255'],
                 'payload.lines.*.item_kit_cost_price' => ['nullable', 'numeric'],
                 'payload.lines.*.item_kit_unit_price' => ['nullable', 'numeric'],
                 'payload.lines.*.item_kit_default_quantity' => ['nullable', 'numeric'],
@@ -141,7 +143,7 @@ class LanController extends Controller
                 'payload.lines.*.components.*.name' => ['nullable', 'string', 'max:255'],
                 'payload.lines.*.components.*.item_kit_id' => ['nullable', 'integer'],
                 'payload.lines.*.components.*.item_kit_name' => ['nullable', 'string', 'max:255'],
-                'payload.lines.*.components.*.item_kit_product_id' => ['nullable', 'string', 'max:255'],
+                'payload.lines.*.components.*.item_kit_number' => ['nullable', 'string', 'max:255'],
                 'payload.lines.*.components.*.quantity' => ['required', 'numeric', 'gt:0'],
                 'payload.lines.*.quantity' => ['required', 'numeric', 'gt:0'],
             ]);
@@ -206,31 +208,38 @@ class LanController extends Controller
 
                 $itemKitId = ! empty($line['item_kit_id']) ? (int) $line['item_kit_id'] : null;
                 $itemKitName = $line['item_kit_name'] ?? null;
-                $itemKitProductId = $line['item_kit_product_id'] ?? null;
+                $itemKitNumber = $line['item_kit_number'] ?? null;
 
                 // -------------------------------------------------------
                 // Kit header row — no item_id, no item_number, just kit metadata.
                 // Must be checked BEFORE regular item resolution.
                 // -------------------------------------------------------
-                if (empty($line['item_id']) && empty($line['item_number']) && empty($line['product_id'])) {
+                if (empty($line['item_number']) && empty($line['product_id'])) {
 
-                    // product_id is the only globally portable key in a distributed system — required.
-                    if (! $itemKitProductId) {
-                        $this->log('FAIL: line '.$index.' kit header missing item_kit_product_id — cannot resolve cross-device');
+                    // item_kit_number or product_id is required for kit headers.
+                    if (! $itemKitNumber && ! $line['product_id']) {
+                        $this->log('FAIL: line '.$index.' kit header missing item_kit_number/product_id — cannot resolve cross-device');
                         throw ValidationException::withMessages([
-                            "payload.lines.$index.item_kit_product_id" => 'item_kit_product_id is required for kit lines in a distributed transfer.',
+                            "payload.lines.$index.item_kit_number" => 'item_kit_number or product_id is required for kit lines in a distributed transfer.',
                         ]);
                     }
 
-                    // Resolve by product_id only — no name/id fallbacks allowed.
-                    $kit = PhpposItemKit::where('product_id', $itemKitProductId)->orderBy('id')->first();
+                    // Resolve by item_kit_number first, then product_id.
+                    $kit = null;
+                    if ($itemKitNumber) {
+                        $kit = PhpposItemKit::where('item_kit_number', $itemKitNumber)->orderBy('id')->first();
+                    }
+                    if (! $kit && ! empty($line['product_id'])) {
+                        $kit = PhpposItemKit::where('product_id', $line['product_id'])->orderBy('id')->first();
+                    }
 
-                    // Auto-create kit if not found locally — product_id is guaranteed at this point.
-                    if (! $kit && $itemKitName) {
+                    // Auto-create kit if not found locally.
+                    if (! $kit && ($itemKitNumber || ! empty($line['product_id']))) {
                         try {
                             $kit = PhpposItemKit::create([
-                                'name'             => $itemKitName,
-                                'product_id'       => $itemKitProductId,
+                                'name'             => $line['name'] ?? ($itemKitNumber ?? 'Kit'),
+                                'item_kit_number'  => $itemKitNumber,
+                                'product_id'       => $line['product_id'] ?? null,
                                 'cost_price'       => (float) ($line['item_kit_cost_price'] ?? 0),
                                 'unit_price'       => (float) ($line['item_kit_unit_price'] ?? 0),
                                 'default_quantity' => 0,
@@ -241,32 +250,35 @@ class LanController extends Controller
                     }
 
                     if (! $kit) {
-                        $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id='.$itemKitProductId);
+                        // $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id='.$itemKitProductId);
+                        $this->log('FAIL: line '.$index.' kit not found and could not be created — item_kit_product_id=(Will provide later)');
                         continue;
                     }
 
                     // Wire up kit components — runs for both new and pre-existing kits.
                     if (! empty($line['components'])) {
                         foreach ($line['components'] as $comp) {
-                            // ── Nested kit component ──────────────────────
-                            if (! empty($comp['item_kit_id'])) {
+                            $componentType = $comp['type'] ?? null;
+
+                            if ($componentType === 'kit' || ($componentType === null && ! empty($comp['item_kit_id']) && empty($comp['item_id']) && empty($comp['product_id']) && empty($comp['item_number']))) {
                                 $nestedKit = null;
-                                if (! empty($comp['item_kit_product_id'])) {
+                                if (! empty($comp['item_kit_number'])) {
+                                    $nestedKit = PhpposItemKit::where('item_kit_number', $comp['item_kit_number'])->orderBy('id')->first();
+                                }
+                                if (! $nestedKit && ! empty($comp['item_kit_product_id'])) {
                                     $nestedKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
                                 }
-                                if (! $nestedKit && ! empty($comp['item_kit_name'])) {
-                                    $nestedKit = PhpposItemKit::where('name', $comp['item_kit_name'])->orderBy('id')->first();
-                                }
-                                if (! $nestedKit && ! empty($comp['item_kit_name'])) {
+                                if (! $nestedKit && (! empty($comp['item_kit_number']) || ! empty($comp['item_kit_product_id']))) {
                                     try {
                                         $nestedKit = PhpposItemKit::create([
-                                            'name'             => $comp['item_kit_name'],
+                                            'name'             => $comp['name'] ?? ($comp['item_kit_number'] ?? 'Kit'),
+                                            'item_kit_number'  => $comp['item_kit_number'] ?? null,
                                             'product_id'       => $comp['item_kit_product_id'] ?? null,
                                             'cost_price'       => 0,
                                             'unit_price'       => 0,
                                             'default_quantity' => 0,
                                         ]);
-                                        $this->log('Auto-created nested kit #'.$nestedKit->id.' ('.$comp['item_kit_name'].') product_id='.($comp['item_kit_product_id'] ?? 'null'));
+                                        $this->log('Auto-created nested kit #'.$nestedKit->id.' ('.($comp['item_kit_number'] ?? $comp['name'] ?? 'kit').')');
                                     } catch (\Throwable $e) {
                                         $this->log('FAIL: could not auto-create nested kit — '.$e->getMessage());
                                     }
@@ -281,12 +293,11 @@ class LanController extends Controller
                                     ]);
                                     $this->log('Linked nested kit #'.$nestedKit->id.' to parent kit #'.$kit->id.' qty='.$comp['quantity']);
 
-                                    // Process the inner kit's own components (items + sub-nested kits).
                                     if (! empty($comp['components'])) {
                                         $this->processNestedKitComponents($nestedKit, $comp['components']);
                                     }
                                 } else {
-                                    $this->log('SKIP nested kit component: could not resolve item_kit_id='.$comp['item_kit_id'].' product_id='.($comp['item_kit_product_id'] ?? 'null'));
+                                    $this->log('SKIP nested kit component: could not resolve item_kit_number='.($comp['item_kit_number'] ?? 'null').' product_id='.($comp['item_kit_product_id'] ?? 'null'));
                                 }
                                 continue;
                             }
@@ -294,32 +305,34 @@ class LanController extends Controller
                             // ── Item component (existing logic) ────────────
                             $compItem = null;
 
-                            if (! empty($comp['product_id'])) {
+                            if (! empty($comp['item_number'])) {
+                                $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
+                            }
+                            if (! $compItem && ! empty($comp['product_id'])) {
                                 $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
                             }
                             if (! $compItem && ! empty($comp['item_number'])) {
                                 $compItem = PhpposItem::where('item_number', $comp['item_number'])->orderBy('item_id')->first();
                             }
 
-                            // Auto-create the component item if we have enough data.
-                            if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
+                            if (! $compItem && ! empty($comp['item_number'])) {
                                 try {
                                     $compItem = PhpposItem::create([
-                                        'name'        => $comp['name'],
-                                        'item_number' => $comp['item_number'] ?? null,
-                                        'product_id'  => $comp['product_id'],
-                                        'cost_price'  => (float) ($comp['cost_price'] ?? 0),
-                                        'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                                        'name'             => $comp['name'] ?? $comp['item_number'],
+                                        'item_number'      => $comp['item_number'] ?? null,
+                                        'product_id'       => $comp['product_id'] ?? null,
+                                        'cost_price'       => (float) ($comp['cost_price'] ?? 0),
+                                        'unit_price'       => (float) ($comp['unit_price'] ?? 0),
                                         'default_quantity' => 0,
                                     ]);
-                                    $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') product_id='.$comp['product_id']);
+                                    $this->log('Auto-created component item #'.$compItem->item_id.' ('.$compItem->name.') item_number='.$compItem->item_number);
                                 } catch (\Throwable $e) {
                                     $this->log('FAIL: could not auto-create component item — '.$e->getMessage());
                                 }
                             }
 
                             if (! $compItem) {
-                                $this->log('SKIP component: could not resolve product_id='.($comp['product_id'] ?? 'null').' item_number='.($comp['item_number'] ?? 'null'));
+                                $this->log('SKIP component: could not resolve item_number='.($comp['item_number'] ?? 'null').' product_id='.($comp['product_id'] ?? 'null'));
                                 continue;
                             }
 
@@ -689,7 +702,8 @@ class LanController extends Controller
                     'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
                     'action_url' => '/transfers',
                 ]);
-            } catch (\Throwable) {
+            }
+            catch (\Throwable $e) {
             }
         }
 
@@ -704,8 +718,9 @@ class LanController extends Controller
     private function processNestedKitComponents(PhpposItemKit $parentKit, array $components): void
     {
         foreach ($components as $comp) {
-            // ── Sub-nested kit component ──────────────────────────
-            if (! empty($comp['item_kit_id'])) {
+            $componentType = $comp['type'] ?? null;
+
+            if ($componentType === 'kit' || ($componentType === null && ! empty($comp['item_kit_id']) && empty($comp['item_id']) && empty($comp['product_id']) && empty($comp['item_number']))) {
                 $subKit = null;
                 if (! empty($comp['item_kit_product_id'])) {
                     $subKit = PhpposItemKit::where('product_id', $comp['item_kit_product_id'])->orderBy('id')->first();
@@ -744,7 +759,6 @@ class LanController extends Controller
                 continue;
             }
 
-            // ── Item component ──────────────────────────────────────
             $compItem = null;
             if (! empty($comp['product_id'])) {
                 $compItem = PhpposItem::where('product_id', $comp['product_id'])->orderBy('item_id')->first();
@@ -755,11 +769,11 @@ class LanController extends Controller
             if (! $compItem && ! empty($comp['product_id']) && ! empty($comp['name'])) {
                 try {
                     $compItem = PhpposItem::create([
-                        'name'        => $comp['name'],
-                        'item_number' => $comp['item_number'] ?? null,
-                        'product_id'  => $comp['product_id'],
-                        'cost_price'  => (float) ($comp['cost_price'] ?? 0),
-                        'unit_price'  => (float) ($comp['unit_price'] ?? 0),
+                        'name'             => $comp['name'],
+                        'item_number'      => $comp['item_number'] ?? null,
+                        'product_id'       => $comp['product_id'],
+                        'cost_price'       => (float) ($comp['cost_price'] ?? 0),
+                        'unit_price'       => (float) ($comp['unit_price'] ?? 0),
                         'default_quantity' => 0,
                     ]);
                     $this->log('Auto-created component item #'.$compItem->item_id.' ('.$comp['name'].') for nested kit');

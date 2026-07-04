@@ -489,30 +489,37 @@ class TransferController extends Controller
     }
 
     /**
-     * @return array<int, array{item_id:int, quantity:float, cost_price:float, item_kit_id:int, item_kit_name:string}>
+     * @return array<int, array{type:string, quantity:float, cost_price?:float, item_number?:string|null, product_id?:string|null, item_kit_number?:string|null, item_kit_product_id?:string|null, components?:array}>
      */
     private function explodeKitForTransfer($kit, float $kitQty): array
     {
         $items = [];
-        $kitId = (int) $kit->id;
-        $kitName = $kit->name;
+        $kitNumber = $kit->item_kit_number ?? null;
         foreach ($kit->items as $kitItem) {
             $item = $kitItem->item ?? PhpposItem::find($kitItem->item_id);
             if (! $item) {
                 continue;
             }
             $items[] = [
-                'item_id' => (int) $item->item_id,
+                'type' => 'item',
+                'item_number' => $item->item_number,
+                'product_id' => $item->product_id,
                 'quantity' => (float) $kitItem->quantity * $kitQty,
                 'cost_price' => (float) ($item->cost_price ?? 0),
-                'item_kit_id' => $kitId,
-                'item_kit_name' => $kitName,
+                'item_kit_number' => $kitNumber,
             ];
         }
         foreach ($kit->nestedKits as $nestedKit) {
             $nKit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $nestedKit->item_kit_item_kit);
             if ($nKit) {
-                $items = [...$items, ...$this->explodeKitForTransfer($nKit, (float) $nestedKit->quantity * $kitQty)];
+                $nestedQty = (float) $nestedKit->quantity * $kitQty;
+                $items[] = [
+                    'type' => 'kit',
+                    'quantity' => $nestedQty,
+                    'item_kit_number' => $nKit->item_kit_number ?? null,
+                    'item_kit_product_id' => $nKit->product_id,
+                ];
+                $items = [...$items, ...$this->explodeKitForTransfer($nKit, $nestedQty)];
             }
         }
 
@@ -535,16 +542,18 @@ class TransferController extends Controller
             $lines = [];
             foreach ($cart['items'] as $item) {
                 if (($item['type'] ?? 'item') === 'kit') {
-                    $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
+                    $kit = ! empty($item['item_kit_number'])
+                        ? PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first()
+                        : null;
+                    if (! $kit && ! empty($item['item_kit_product_id'])) {
+                        $kit = PhpposItemKit::where('product_id', $item['item_kit_product_id'])->first();
+                    }
                     if ($kit) {
-                        $kitId = (int) $item['item_kit_id'];
-                        $kitName = $item['name'];
                         $kitQty = (float) $item['quantity'];
                         // Layer 1 — kit header row for display/audit
                         $lines[] = [
-                            'item_id' => null,
-                            'item_kit_id' => $kitId,
-                            'item_kit_name' => $kitName,
+                            'item_number' => $kit->item_kit_number,
+                            'product_id' => $kit->product_id,
                             'quantity' => $kitQty,
                         ];
                         // Layer 2 — exploded component items for inventory
@@ -552,7 +561,18 @@ class TransferController extends Controller
                         $lines = [...$lines, ...$exploded];
                     }
                 } else {
-                    $lines[] = ['item_id' => $item['item_id'], 'quantity' => $item['quantity']];
+                    $itemModel = null;
+                    if (! empty($item['item_number'])) {
+                        $itemModel = PhpposItem::where('item_number', $item['item_number'])->first();
+                    }
+                    if (! $itemModel && ! empty($item['product_id'])) {
+                        $itemModel = PhpposItem::where('product_id', $item['product_id'])->first();
+                    }
+                    $lines[] = [
+                        'item_number' => $itemModel?->item_number,
+                        'product_id' => $itemModel?->product_id,
+                        'quantity' => $item['quantity'],
+                    ];
                 }
             }
 
@@ -597,32 +617,37 @@ class TransferController extends Controller
                 $lines = [];
                 foreach ($cart['items'] as $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
-                        $kit = PhpposItemKit::with(['items.item', 'nestedKits'])->find((int) $item['item_kit_id']);
+                            $kit = null;
+                            if (! empty($item['item_kit_number'])) {
+                                $kit = PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first();
+                            }
+                            if (! $kit && ! empty($item['item_kit_product_id'])) {
+                                $kit = PhpposItemKit::where('product_id', $item['item_kit_product_id'])->first();
+                            }
                         if ($kit) {
-                            $kitId = (int) $item['item_kit_id'];
-                            $kitName = $item['name'];
                             $kitQty = (float) $item['quantity'];
                             // Layer 1 — kit header row for display/audit
                             $lines[] = [
-                                'item_id' => null,
-                                'item_kit_id' => $kitId,
-                                'item_kit_name' => $kitName,
+                                'item_number' => $kit->item_kit_number,
+                                'product_id' => $kit->product_id,
                                 'quantity' => $kitQty,
-                                'cost_price' => (float) ($item['cost_price'] ?? 0),
                             ];
                             // Layer 2 — exploded component items for inventory
                             $exploded = $this->explodeKitForTransfer($kit, $kitQty);
                             $lines = [...$lines, ...$exploded];
-                            // Decrement kit default_quantity on transfer out
-                            if ($kitQty > 0) {
-                                DB::table('phppos_item_kits')
-                                    ->where('id', $kitId)
-                                    ->decrement('default_quantity', $kitQty);
-                            }
                         }
                     } else {
+                        $itemModel = null;
+                        if (! empty($item['item_number'])) {
+                            $itemModel = PhpposItem::where('item_number', $item['item_number'])->first();
+                        }
+                        if (! $itemModel && ! empty($item['product_id'])) {
+                            $itemModel = PhpposItem::where('product_id', $item['product_id'])->first();
+                        }
+
                         $lines[] = [
-                            'item_id' => $item['item_id'],
+                            'item_number' => $itemModel?->item_number,
+                            'product_id' => $itemModel?->product_id,
                             'quantity' => $item['quantity'],
                             'cost_price' => $item['cost_price'] ?? 0,
                         ];
