@@ -193,7 +193,6 @@ class SendItem implements ShouldQueue
             }
 
             return [
-                'item_id' => $item->item_id,
                 'item_number' => $itemModel?->item_number,
                 'product_id' => $itemModel?->product_id,
                 'name' => $itemModel?->name ?? $item->item_kit_name,
@@ -201,8 +200,7 @@ class SendItem implements ShouldQueue
                 'unit_price' => $itemModel?->unit_price,
                 'markup' => $itemModel?->markup,
                 'markup_type' => $itemModel?->markup_type,
-                'item_kit_id' => $item->item_kit_id,
-                'item_kit_name' => $item->item_kit_name,
+                    'item_kit_number' => $kitModel?->item_kit_number,
                 'item_kit_product_id' => $kitModel?->product_id,
                 'item_kit_cost_price' => $kitModel?->cost_price,
                 'item_kit_unit_price' => $kitModel?->unit_price,
@@ -247,7 +245,7 @@ class SendItem implements ShouldQueue
             foreach ($kitModel->items as $kitItem) {
                 $compItem = $kitItem->item;
                 $components[] = [
-                    'item_id'     => (int) $kitItem->item_id,
+                    'type' => 'item',
                     'item_number' => $compItem?->item_number,
                     'product_id'  => $compItem?->product_id,
                     'name'        => $compItem?->name ?? 'Item #'.$kitItem->item_id,
@@ -261,8 +259,8 @@ class SendItem implements ShouldQueue
         }
 
         return [
-            'item_kit_id'         => $kitId,
-            'item_kit_name'       => $kitModel?->name ?? 'Kit #'.$kitId,
+            'type'                => 'kit',
+            'item_kit_number'     => $kitModel?->item_kit_number,
             'item_kit_product_id' => $kitModel?->product_id,
             'name'                => $kitModel?->name ?? 'Kit #'.$kitId,
             'quantity'            => $quantity,
