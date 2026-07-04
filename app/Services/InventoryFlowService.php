@@ -626,6 +626,10 @@ class InventoryFlowService
                 'quantity' => $newQty,
                 'updated_at' => now(),
             ]);
+
+        DB::table('phppos_items')
+            ->where('item_id', $itemId)
+            ->increment('default_quantity', $delta);
     }
 
     private function setTransferInternalCode(int $transferId, string $type): void

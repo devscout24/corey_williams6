@@ -1019,6 +1019,10 @@ class ReceivingController extends Controller
                         'updated_at' => now(),
                     ]);
 
+                DB::table('phppos_items')
+                    ->where('item_id', $item['item_id'])
+                    ->increment('default_quantity', $inventoryToMove);
+
                 $isReceive = in_array($cart['mode'], ['receive', 'transfer']);
                 DB::table('phppos_inventory_movements')->insert([
                     'movement_type' => $isReceive ? 'receiving' : 'return',
@@ -1088,6 +1092,10 @@ class ReceivingController extends Controller
                             'quantity' => $compStockQty + $inventoryToMove,
                             'updated_at' => now(),
                         ]);
+
+                    DB::table('phppos_items')
+                        ->where('item_id', $compItemId)
+                        ->increment('default_quantity', $inventoryToMove);
 
                     $isReceiveKit = in_array($cart['mode'], ['receive', 'transfer']);
                     DB::table('phppos_inventory_movements')->insert([
