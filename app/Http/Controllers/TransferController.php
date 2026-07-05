@@ -503,6 +503,7 @@ class TransferController extends Controller
             }
             $items[] = [
                 'type' => 'item',
+                'item_id' => (int) $item->item_id,
                 'item_number' => $item->item_number,
                 'product_id' => $item->product_id,
                 'quantity' => (float) $kitItem->quantity * $kitQty,
@@ -565,9 +566,11 @@ class TransferController extends Controller
                 } else {
                     $itemModel = PhpposItem::find($item['item_id'] ?? 0);
                     $lines[] = [
+                        'item_id' => (int) $item['item_id'],
                         'item_number' => $itemModel?->item_number,
                         'product_id' => $itemModel?->product_id,
                         'quantity' => $item['quantity'],
+                        'cost_price' => $item['cost_price'] ?? 0,
                     ];
                 }
             }
@@ -637,6 +640,7 @@ class TransferController extends Controller
                         $itemModel = PhpposItem::find($item['item_id'] ?? 0);
 
                         $lines[] = [
+                            'item_id' => (int) $item['item_id'],
                             'item_number' => $itemModel?->item_number,
                             'product_id' => $itemModel?->product_id,
                             'quantity' => $item['quantity'],
