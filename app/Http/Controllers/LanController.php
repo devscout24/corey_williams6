@@ -232,18 +232,24 @@ class LanController extends Controller
                     if (! $kit && ! empty($line['product_id'])) {
                         $kit = PhpposItemKit::where('product_id', $line['product_id'])->orderBy('id')->first();
                     }
+                    if (! $kit && ! empty($line['item_kit_product_id'])) {
+                        $kit = PhpposItemKit::where('product_id', $line['item_kit_product_id'])->orderBy('id')->first();
+                    }
 
                     // Auto-create kit if not found locally.
-                    if (! $kit && ($itemKitNumber || ! empty($line['product_id']))) {
+                    if (! $kit && ($itemKitNumber || ! empty($line['product_id']) || ! empty($line['item_kit_product_id']))) {
                         try {
-                            $kit = PhpposItemKit::create([
-                                'name'             => $line['name'] ?? ($itemKitNumber ?? 'Kit'),
-                                'item_kit_number'  => $itemKitNumber,
-                                'product_id'       => $line['product_id'] ?? null,
-                                'cost_price'       => (float) ($line['item_kit_cost_price'] ?? 0),
-                                'unit_price'       => (float) ($line['item_kit_unit_price'] ?? 0),
-                                'default_quantity' => 0,
-                            ]);
+                            $kit = PhpposItemKit::firstOrCreate(
+                                ['item_kit_number' => $itemKitNumber ?? ''],
+                                [
+                                    'name'             => $line['name'] ?? ($itemKitNumber ?? 'Kit'),
+                                    'product_id'       => $line['item_kit_product_id'] ?? $line['product_id'] ?? null,
+                                    'cost_price'       => (float) ($line['item_kit_cost_price'] ?? 0),
+                                    'unit_price'       => (float) ($line['item_kit_unit_price'] ?? 0),
+                                    'default_quantity' => 0,
+                                ]
+                            );
+                            $this->log('Resolved kit #'.$kit->id.' ('.$kit->name.') via lines');
                         } catch (\Throwable $e) {
                             $this->log('FAIL: could not auto-create kit — '.$e->getMessage());
                         }
@@ -271,17 +277,32 @@ class LanController extends Controller
                                 }
                                 if (! $nestedKit && (! empty($comp['item_kit_number']) || ! empty($comp['item_kit_product_id']))) {
                                     try {
-                                        $nestedKit = PhpposItemKit::create([
-                                            'name'             => $comp['name'] ?? ($comp['item_kit_number'] ?? 'Kit'),
-                                            'item_kit_number'  => $comp['item_kit_number'] ?? null,
-                                            'product_id'       => $comp['item_kit_product_id'] ?? null,
-                                            'cost_price'       => 0,
-                                            'unit_price'       => 0,
-                                            'default_quantity' => 0,
-                                        ]);
-                                        $this->log('Auto-created nested kit #'.$nestedKit->id.' ('.($comp['item_kit_number'] ?? $comp['name'] ?? 'kit').')');
+                                        if (! empty($comp['item_kit_number'])) {
+                                            $nestedKit = PhpposItemKit::firstOrCreate(
+                                                ['item_kit_number' => $comp['item_kit_number']],
+                                                [
+                                                    'name'             => $comp['name'] ?? ($comp['item_kit_number'] ?? 'Kit'),
+                                                    'product_id'       => $comp['item_kit_product_id'] ?? null,
+                                                    'cost_price'       => 0,
+                                                    'unit_price'       => 0,
+                                                    'default_quantity' => 0,
+                                                ]
+                                            );
+                                        } else {
+                                            $nestedKit = PhpposItemKit::firstOrCreate(
+                                                ['product_id' => $comp['item_kit_product_id']],
+                                                [
+                                                    'name'             => $comp['name'] ?? 'Kit',
+                                                    'item_kit_number'  => null,
+                                                    'cost_price'       => 0,
+                                                    'unit_price'       => 0,
+                                                    'default_quantity' => 0,
+                                                ]
+                                            );
+                                        }
+                                        $this->log('Resolved nested kit #'.$nestedKit->id.' ('.($comp['item_kit_number'] ?? $comp['name'] ?? 'kit').')');
                                     } catch (\Throwable $e) {
-                                        $this->log('FAIL: could not auto-create nested kit — '.$e->getMessage());
+                                        $this->log('FAIL: could not resolve nested kit — '.$e->getMessage());
                                     }
                                 }
                                 if ($nestedKit) {
