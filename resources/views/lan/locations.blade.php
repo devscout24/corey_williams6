@@ -441,7 +441,7 @@
                     var html = '<div class="' + cls + '" data-id="' + n.id + '">';
                     html += '<div class="d-flex w-100 justify-content-between"><small class="text-' + (n.is_unread ? 'primary' : 'secondary') + ' fw-semibold">' + escHtml(n.type) + '</small>';
                     if (n.is_unread) {
-                        html += '<button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="markRead(' + n.id + ')" title="Dismiss">&times;</button>';
+                        html += '<button class="btn btn-sm btn-outline-secondary" style="position:relative;z-index:3;line-height:1;padding:2px 6px;font-size:16px" onclick="markRead(' + n.id + ')" title="Dismiss">&times;</button>';
                     }
                     html += '</div>';
                     html += '<a href="' + (n.action_url || '#') + '" class="text-decoration-none stretched-link text-reset"><strong>' + escHtml(n.title) + '</strong></a>';

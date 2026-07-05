@@ -728,7 +728,7 @@ class LanController extends Controller
                     'reference_id' => (int) $data['transfer_out_id'],
                     'title' => 'Transfer #'.$data['transfer_out_id'].' completed by receiver',
                     'body' => 'Receiving '.($data['receiving_code'] ?? '').' — items confirmed on remote location.',
-                    'action_url' => '/transfers',
+                    'action_url' => '/transfers/edit/'.$data['transfer_out_id'],
                 ]);
             }
             catch (\Throwable $e) {
