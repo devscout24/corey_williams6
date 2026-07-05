@@ -504,6 +504,7 @@ class TransferController extends Controller
             $items[] = [
                 'type' => 'item',
                 'item_id' => (int) $item->item_id,
+                'item_kit_id' => (int) $kit->id,
                 'item_number' => $item->item_number,
                 'product_id' => $item->product_id,
                 'quantity' => (float) $kitItem->quantity * $kitQty,
@@ -517,6 +518,7 @@ class TransferController extends Controller
                 $nestedQty = (float) $nestedKit->quantity * $kitQty;
                 $items[] = [
                     'type' => 'kit',
+                    'item_kit_id' => (int) $nKit->id,
                     'quantity' => $nestedQty,
                     'item_kit_number' => $nKit->item_kit_number ?? null,
                     'item_kit_product_id' => $nKit->product_id,
@@ -544,9 +546,12 @@ class TransferController extends Controller
             $lines = [];
             foreach ($cart['items'] as $item) {
                 if (($item['type'] ?? 'item') === 'kit') {
-                    $kit = ! empty($item['item_kit_number'])
-                        ? PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first()
+                    $kit = ! empty($item['item_kit_id'])
+                        ? PhpposItemKit::find((int) $item['item_kit_id'])
                         : null;
+                    if (! $kit && ! empty($item['item_kit_number'])) {
+                        $kit = PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first();
+                    }
                     if (! $kit && ! empty($item['item_kit_product_id'])) {
                         $kit = PhpposItemKit::where('product_id', $item['item_kit_product_id'])->first();
                     }
@@ -617,7 +622,10 @@ class TransferController extends Controller
                 foreach ($cart['items'] as $item) {
                     if (($item['type'] ?? 'item') === 'kit') {
                         $kit = null;
-                        if (! empty($item['item_kit_number'])) {
+                        if (! empty($item['item_kit_id'])) {
+                            $kit = PhpposItemKit::find((int) $item['item_kit_id']);
+                        }
+                        if (! $kit && ! empty($item['item_kit_number'])) {
                             $kit = PhpposItemKit::where('item_kit_number', $item['item_kit_number'])->first();
                         }
                         if (! $kit && ! empty($item['item_kit_product_id'])) {
