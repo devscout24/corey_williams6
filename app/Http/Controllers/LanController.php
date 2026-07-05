@@ -177,6 +177,21 @@ class LanController extends Controller
             if ($existing) {
                 $this->log('DUPLICATE: receiving #'.$existing->receiving_id.' already exists for transfer_out_id='.$payload['transfer_out_id']);
 
+                // If the sender closed the transfer on their side, notify the receiver
+                if (($payload['status'] ?? '') === 'closed' && $existing->closed_at === null) {
+                    try {
+                        Notification::create([
+                            'type' => 'transfer_sender_completed',
+                            'reference_type' => 'receiving',
+                            'reference_id' => $existing->receiving_id,
+                            'title' => 'Transfer completed by sender',
+                            'body' => ($payload['transfer_code'] ?? 'Transfer #'.$payload['transfer_out_id']).' has been completed at the source. Please confirm receipt.',
+                            'action_url' => '/purchases/'.$existing->receiving_id,
+                        ]);
+                    } catch (\Throwable) {
+                    }
+                }
+
                 return response()->json([
                     'ok' => true,
                     'message' => 'Already received',
