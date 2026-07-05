@@ -156,7 +156,7 @@
 @section('content')
 <div class="container-fluid p-0">
     <div class="transfer-toolbar">
-        <a href="{{ route('transfers.create') }}" class="btn-add-transfer"><i class="bi bi-plus-lg"></i> Add Transfer</a>
+        <a href="{{ route('transfers.create', ['new' => 1]) }}" class="btn-add-transfer"><i class="bi bi-plus-lg"></i> Add Transfer</a>
     </div>
 
     <div class="table-container-card">

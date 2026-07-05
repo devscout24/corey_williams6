@@ -79,8 +79,11 @@ class TransferController extends Controller
         return view('transfers.in_index', compact('transfers'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        if ($request->boolean('new')) {
+            Session::forget('transfer_cart');
+        }
         $cart = $this->getCart();
         $locations = PhpposLocation::where('deleted', 0)->get();
         $suppliers = PhpposSupplier::with('person')->orderBy('person_id')->get();
