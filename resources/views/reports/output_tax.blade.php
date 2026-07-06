@@ -303,12 +303,13 @@
 
 {{-- ── Output Tax Table ─────────────────────────────────────────────── --}}
 <div class="ot-section">
+    <div class="d-flex gap-3 align-items-center justify-content-end mb-3" style="padding: 18px 24px; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200);">
+        <label class="small fw-semibold text-muted mb-0">Claimable <input type="text" id="claimable-input" class="form-control form-control-sm d-inline-block" style="width:120px" readonly tabindex="-1"></label>
+        <label class="small fw-semibold text-muted mb-0">VAT Non-Inventory <input type="number" id="vat-non-inventory-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
+        <label class="small fw-semibold text-muted mb-0">VAT on Electricity <input type="number" id="vat-electricity-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
+    </div>
+
     <div class="ot-section-header">
-        <div class="d-flex gap-3 align-items-center w-100 mb-2" style="justify-content: flex-end;">
-            <label class="small fw-semibold text-muted mb-0">Claimable <input type="text" id="claimable-input" class="form-control form-control-sm d-inline-block" style="width:120px" readonly tabindex="-1"></label>
-            <label class="small fw-semibold text-muted mb-0">VAT Non-Inventory <input type="number" id="vat-non-inventory-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
-            <label class="small fw-semibold text-muted mb-0">VAT on Electricity <input type="number" id="vat-electricity-input" class="form-control form-control-sm d-inline-block" style="width:100px" step="any"></label>
-        </div>
         <span class="ot-badge standard">
             <i class="bi bi-receipt-cutoff"></i>
             Output Tax
