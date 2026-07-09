@@ -530,7 +530,7 @@
     @if($currentRegister)
     <div class="modal fade" id="changeRegisterModal" tabindex="-1" aria-labelledby="changeRegisterModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content text-dark">
+            <div class="modal-content">
                 <form action="{{ route('sales.register.change') }}" method="POST">
                     @csrf
                     <div class="modal-header">

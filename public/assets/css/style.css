@@ -1106,6 +1106,17 @@ input, select, textarea { font-family: var(--font); }
 }
 
 /* Bootstrap Overrides for Dark Mode */
+[data-theme='dark'] .modal-content {
+  background-color: var(--gray-100);
+  border-color: var(--gray-200);
+  color: var(--gray-700);
+}
+
+[data-theme='dark'] .modal-header,
+[data-theme='dark'] .modal-footer {
+  border-color: var(--gray-200);
+}
+
 [data-theme='dark'] .bg-white {
   background-color: var(--gray-100) !important;
 }
