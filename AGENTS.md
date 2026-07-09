@@ -136,6 +136,24 @@ Outputs `graphify-out/{graph.json, graph.html, GRAPH_REPORT.md}`. Read `GRAPH_RE
 
 - Only branch `night` deploys via FTP (`.github/workflows/night.yml`). No test runner.
 
+## Bulk delete pattern
+
+Used on **transfers** (`TransferController::bulkDelete`, route `transfers.bulk-delete`) and **items** (`ItemController::bulkDelete`, route `items.bulk-delete`).
+
+Pattern:
+- `DELETE` route to a `bulkDelete` method accepting JSON-encoded IDs via `ids` input
+- View has a hidden form: `<form id="bulkDeleteForm" action="{{ route('X.bulk-delete') }}" method="POST" style="display:none">` with `@csrf`, `@method('DELETE')`, and hidden `ids` input
+- JS collects checked `data-id` from row checkboxes, JSON-encodes them into the hidden input, confirms, and submits the form
+- **Route ordering:** literal routes (`/items/bulk-delete`) must be defined **before** parameterized routes (`/items/{itemId}`) to avoid `{itemId}` capturing "bulk-delete" as a parameter
+
+## Items page bulk actions
+
+- `resources/views/items/index.blade.php` — bulk toolbar with Edit (single selection only), Select All, Delete, Clear Selection
+- Edit redirects to `/items/{id}/edit` if exactly one item is selected
+- Select All calls `toggleAll(document.getElementById('selectAll'))`
+- Delete calls `bulkDelete()` — confirms then submits bulk delete form
+- Row checkboxes use `class="custom-checkbox row-checkbox"` with `data-id="{{ $item->item_id }}"`
+
 ## Agent plans
 
 Save multi-step task plans to `.opencode/plans/` for continuity across sessions.

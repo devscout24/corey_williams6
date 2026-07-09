@@ -8,7 +8,7 @@
   let currentMode = cfg.initialMode === 'Return' ? 'Return' : 'Receive';
   let currentPage = 1;
 
-  const TABLE_COLS = 10;
+  const TABLE_COLS = 9;
 
   function el(id) {
     return document.getElementById(id);
@@ -70,7 +70,6 @@
         const typeClass = typePillClass(docType);
         return (
           '<tr>' +
-          '<td><input type="checkbox" class="form-check-input purchases-checkbox"></td>' +
           '<td><span class="history-id" title="Receiving #' +
           rid +
           '">' +
@@ -246,14 +245,6 @@
     } else {
       setListMode('Receive');
     }
-
-    document.addEventListener('change', function (e) {
-      if (e.target && e.target.id === 'selectAllPurchases') {
-        document.querySelectorAll('.purchases-checkbox').forEach(function (cb) {
-          cb.checked = e.target.checked;
-        });
-      }
-    });
 
     const searchInput = el('historySearchInput');
     if (searchInput) {

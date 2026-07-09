@@ -70,9 +70,6 @@
                     <table class="history-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;">
-                                    <input type="checkbox" class="form-check-input" id="selectAllPurchases" title="Select all">
-                                </th>
                                 <th>Code</th>
                                 <th>Type</th>
                                 <th>Date</th>
@@ -86,7 +83,7 @@
                         </thead>
                         <tbody id="historyBody">
                             <tr>
-                                <td colspan="10" class="text-center py-4 purchases-history-meta">Loading…</td>
+                                <td colspan="9" class="text-center py-4 purchases-history-meta">Loading…</td>
                             </tr>
                         </tbody>
                     </table>
