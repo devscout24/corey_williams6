@@ -10,9 +10,9 @@
     .toolbar { position: sticky; top: 0; background: #f8fafc; border-bottom: 1px solid #dbe4ee; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
     .toolbar button { border: 0; background: #0f766e; color: white; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
 
-    .sheet { padding: 12px; display: grid; gap: 8px; position: relative; }
-    .barcode-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-    .sheet-grid { 
+    .sheet {padding: 12px; display: grid; gap: 8px; position: relative; }
+    .barcode-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); padding: 8px; }
+    .sheet-grid {
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(8, 1fr);
         gap: 5mm;
@@ -29,7 +29,6 @@
         padding: 8px; 
         min-height: 92px; 
         position: relative;
-        overflow: hidden;
         z-index: 1;
     }
     .sheet-grid .label {
@@ -37,6 +36,11 @@
         height: 100%;
         width: 100%;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }
     .label-bg-img {
         position: absolute;
@@ -51,7 +55,8 @@
     .label .name { font-size: 13px; line-height: 1.25; margin-top: 6px; position: relative; z-index: 1; }
     .label .price { font-weight: 700; margin-top: 2px; position: relative; z-index: 1; }
     .company-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; text-align: center; }
-    .barcode, .barcode-value { position: relative; z-index: 1; }
+    .barcode { display: block; width: 100%; max-width: 100%; height: auto; position: relative; z-index: 1; }
+    .barcode-value { position: relative; z-index: 1; }
 
     .barcode-value { font-size: 11px; margin-top: 4px; letter-spacing: 1px; text-align: center; }
     .logo-box { display: none; }
@@ -61,9 +66,16 @@
             size: A4 portrait;
             margin: 0;
         }
-        .toolbar { display: none; }
-        .sidebar, .topbar, .page-header, .sidebar-overlay { display: none; }
-        body { margin: 0; padding: 10mm; background: #fff; }
+        .toolbar { display: none !important; }
+        .sidebar, .topbar, .page-header, .sidebar-overlay { display: none !important; }
+        .app-wrapper { display: block !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .page-content { padding: 0 !important; }
+        body { margin: 0; padding: 0; background: #fff; }
+        .sheet-grid { max-width: 100%; height: auto; }
+        .barcode-grid { padding: 2mm; gap: 4mm; }
+        .label { break-inside: avoid; border: 1px solid #ccc; }
+        .barcode { width: 100% !important; max-width: 100% !important; height: auto !important; }
     }
 </style>
 @endpush
@@ -97,7 +109,11 @@
         @endphp
         <article class="label" style="{{ $labelStyle }}">
             @if($mode === 'sheet' && $backgroundUrl)
-                <img class="label-bg-img" src="{{ $backgroundUrl }}" alt="Label Background">
+                <img class="label-bg-img" src="{{ $backgroundUrl }}" alt="Label Background"
+                     @if($logoWidthMm && $logoHeightMm)
+                         style="width: {{ $logoWidthMm }}mm; height: {{ $logoHeightMm }}mm; object-fit: contain; inset: auto; left: 50%; top: 50%; transform: translate(-50%, -50%);"
+                     @endif
+                >
             @endif
             @if($mode === 'barcode')
                 @if($showCompanyOnBarcode && $companyName !== '')
@@ -129,6 +145,16 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script>
         JsBarcode('.barcode').init();
+
+        document.querySelectorAll('.barcode').forEach(function (svg) {
+            var w = svg.getAttribute('width');
+            var h = svg.getAttribute('height');
+            if (w && h && !svg.getAttribute('viewBox')) {
+                svg.setAttribute('viewBox', '0 0 ' + parseFloat(w) + ' ' + parseFloat(h));
+            }
+            svg.removeAttribute('width');
+            svg.removeAttribute('height');
+        });
     </script>
 @endif
 @endpush
