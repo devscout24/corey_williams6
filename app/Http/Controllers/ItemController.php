@@ -284,6 +284,23 @@ class ItemController extends Controller
         return redirect()->route('items.index')->with('status', 'Item archived.');
     }
 
+    public function bulkDelete(Request $request): RedirectResponse
+    {
+        $ids = $request->input('ids', []);
+        if (is_string($ids)) {
+            $ids = json_decode($ids, true) ?? [];
+        }
+        $ids = (array) $ids;
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'No items selected.');
+        }
+
+        $ids = array_map('intval', $ids);
+        $count = PhpposItem::whereIn('item_id', $ids)->update(['deleted' => 1]);
+
+        return redirect()->route('items.index')->with('status', "$count item(s) archived.");
+    }
+
     public function quickUpdate(Request $request, int $itemId): JsonResponse
     {
         $data = $request->validate([

@@ -34,6 +34,7 @@ Route::middleware(['auth:employee', 'check_module_permission:items'])->group(fun
     Route::get('/items/{itemId}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::put('/items/{itemId}', [ItemController::class, 'update'])->name('items.update');
     Route::patch('/items/{itemId}/quick-update', [ItemController::class, 'quickUpdate'])->name('items.quick-update');
+    Route::delete('/items/bulk-delete', [ItemController::class, 'bulkDelete'])->name('items.bulk-delete');
     Route::delete('/items/{itemId}', [ItemController::class, 'destroy'])->name('items.destroy');
 
     // item kits

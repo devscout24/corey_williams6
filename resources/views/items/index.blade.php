@@ -234,10 +234,9 @@
     <!-- Table Card -->
     <div class="table-card">
       <div class="table-actions" id="bulkActions" style="display: none;">
-        <button class="btn-action-sm btn-action-blue"><i class="bi bi-pencil-square"></i> Edit</button>
-        <button class="btn-action-sm btn-action-blue"><i class="bi bi-check2-square"></i> Select All</button>
-        <button class="btn-action-sm btn-action-blue"><i class="bi bi-tags"></i> Labels <i class="bi bi-chevron-down ms-1" style="font-size: 10px;"></i></button>
-        <button class="btn-action-sm btn-delete"><i class="bi bi-trash3"></i> Delete</button>
+        <button class="btn-action-sm btn-action-blue" onclick="bulkEdit()"><i class="bi bi-pencil-square"></i> Edit</button>
+        <button class="btn-action-sm btn-action-blue" onclick="toggleAll(document.getElementById('selectAll'))"><i class="bi bi-check2-square"></i> Select All</button>
+        <button class="btn-action-sm btn-delete" onclick="bulkDelete()"><i class="bi bi-trash3"></i> Delete</button>
         <button class="btn-action-sm btn-clear" onclick="clearSelection()"><i class="bi bi-x-circle"></i> Clear Selection</button>
       </div>
 
@@ -257,7 +256,7 @@
           <tbody id="itemsTableBody">
             @forelse($items as $item)
             <tr>
-              <td><input type="checkbox" class="custom-checkbox row-checkbox" onchange="checkSelection()" /></td>
+              <td><input type="checkbox" class="custom-checkbox row-checkbox" data-id="{{ $item->item_id }}" onchange="checkSelection()" /></td>
 
               @foreach($selected_columns as $col_key)
                 @if($col_key == 'item_id')
@@ -320,6 +319,12 @@
     </div>
 </div>
 
+<form id="bulkDeleteForm" action="{{ route('items.bulk-delete') }}" method="POST" style="display:none">
+    @csrf
+    @method('DELETE')
+    <input type="hidden" name="ids" id="bulkDeleteIds">
+</form>
+
 @endsection
 
 @push('scripts')
@@ -357,6 +362,38 @@
     checkboxes.forEach(cb => cb.checked = false);
     selectAll.checked = false;
     checkSelection();
+  }
+
+  function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.row-checkbox'))
+      .filter(cb => cb.checked)
+      .map(cb => cb.dataset.id);
+  }
+
+  function bulkEdit() {
+    const selected = getSelectedIds();
+    if (selected.length === 0) {
+      alert('Please select an item.');
+      return;
+    }
+    if (selected.length > 1) {
+      alert('Please select only one item to edit.');
+      return;
+    }
+    window.location.href = '/items/' + selected[0] + '/edit';
+  }
+
+  function bulkDelete() {
+    const selected = getSelectedIds();
+    if (selected.length === 0) {
+      alert('Please select at least one item.');
+      return;
+    }
+    if (!confirm('Delete ' + selected.length + ' selected item(s)?')) {
+      return;
+    }
+    document.getElementById('bulkDeleteIds').value = JSON.stringify(selected);
+    document.getElementById('bulkDeleteForm').submit();
   }
 
   $(document).ready(function() {
