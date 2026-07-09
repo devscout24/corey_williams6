@@ -175,7 +175,7 @@
         <table class="transfer-table">
             <thead>
                 <tr>
-                    <th style="width: 40px;"><input type="checkbox"></th>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
                     <th>ID</th>
                     <th>Date</th>
                     <th>From Location</th>
@@ -188,7 +188,7 @@
             <tbody>
                 @forelse($transfers as $transfer)
                 <tr>
-                    <td><input type="checkbox"></td>
+                    <td><input type="checkbox" class="transfer-checkbox" data-id="{{ $transfer->id }}"></td>
                     <td class="fw-bold">TRN-OUT {{ $transfer->id }}</td>
                     <td>{{ \Carbon\Carbon::parse($transfer->created_at)->format('m/d/Y @ h:i a') }}</td>
                     <td>{{ $transfer->from_location_name }}</td>
@@ -214,4 +214,53 @@
         </div>
     </div>
 </div>
+
+<form id="bulkDeleteForm" action="{{ route('transfers.bulk-delete') }}" method="POST" style="display:none">
+    @csrf
+    @method('DELETE')
+    <input type="hidden" name="ids" id="bulkDeleteIds">
+</form>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.transfer-checkbox');
+        const bulkDeleteBtn = document.querySelector('.btn-bulk-delete');
+
+        selectAll.addEventListener('change', function () {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                if (!this.checked) {
+                    selectAll.checked = false;
+                } else {
+                    const allChecked = Array.from(checkboxes).every(c => c.checked);
+                    selectAll.checked = allChecked;
+                }
+            });
+        });
+
+        bulkDeleteBtn.addEventListener('click', function () {
+            const selected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.dataset.id);
+
+            if (selected.length === 0) {
+                alert('Please select at least one transfer.');
+                return;
+            }
+
+            if (!confirm('Delete ' + selected.length + ' selected transfer(s)?')) {
+                return;
+            }
+
+            document.getElementById('bulkDeleteIds').value = JSON.stringify(selected);
+            document.getElementById('bulkDeleteForm').submit();
+        });
+    });
+</script>
+@endpush
 @endsection

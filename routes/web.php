@@ -65,6 +65,7 @@ Route::middleware('installed')->group(function (): void {
             Route::post('/transfers/save', [TransferController::class, 'save'])->name('transfers.save');
             Route::get('/transfers/edit/{id}', [TransferController::class, 'edit'])->name('transfers.edit');
             Route::post('/transfers/cancel', [TransferController::class, 'cancel'])->name('transfers.cancel');
+            Route::delete('/transfers/bulk-delete', [TransferController::class, 'bulkDelete'])->name('transfers.bulk-delete');
         });
 
         // Locations module

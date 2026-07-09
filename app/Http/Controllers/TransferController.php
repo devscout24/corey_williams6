@@ -736,6 +736,47 @@ class TransferController extends Controller
         }
     }
 
+    public function bulkDelete(Request $request): RedirectResponse
+    {
+        $ids = $request->input('ids', []);
+        if (is_string($ids)) {
+            $ids = json_decode($ids, true) ?? [];
+        }
+        $ids = (array) $ids;
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'No transfers selected.');
+        }
+
+        $ids = array_map('intval', $ids);
+        $deleted = 0;
+        $skipped = 0;
+
+        foreach ($ids as $id) {
+            $transfer = PhpposTransfer::find($id);
+            if (! $transfer || $transfer->status !== 'open') {
+                $skipped++;
+                continue;
+            }
+
+            DB::transaction(function () use ($transfer): void {
+                DB::table('phppos_transfer_items')
+                    ->where('transfer_id', $transfer->id)
+                    ->delete();
+
+                $transfer->delete();
+            });
+
+            $deleted++;
+        }
+
+        $message = "$deleted transfer(s) deleted.";
+        if ($skipped > 0) {
+            $message .= " $skipped skipped (only open transfers can be deleted).";
+        }
+
+        return redirect()->back()->with('status', $message);
+    }
+
     public function cancel(): RedirectResponse
     {
         Session::forget('transfer_cart');
