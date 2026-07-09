@@ -308,7 +308,7 @@ class SupplierController extends Controller
 
         $suppliers = DB::table('phppos_suppliers as s')
             ->join('phppos_people as p', 'p.person_id', '=', 's.person_id')
-            ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number', 'p.fax_number', 'p.address', 'p.city', 'p.state', 'p.zip', 'p.country')
+            ->select('s.*', 'p.first_name', 'p.last_name', 'p.email', 'p.phone_number', 'p.fax_number', 'p.address_1 as address', 'p.city', 'p.state', 'p.zip', 'p.country')
             ->where('s.deleted', 0)
             ->orderBy('s.company_name')
             ->get();
